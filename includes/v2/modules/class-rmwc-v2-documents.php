@@ -800,6 +800,7 @@ final class RMWC_V2_Documents {
 
         $temp_dir = trailingslashit( get_temp_dir() );
         $system_temp = function_exists( 'sys_get_temp_dir' ) ? sys_get_temp_dir() : '';
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- This checks the OS temp directory before creating an exclusive, permission-restricted transient PDF outside potentially web-accessible WordPress paths.
         if ( is_string( $system_temp ) && '' !== $system_temp && is_dir( $system_temp ) && is_writable( $system_temp ) ) {
             // Prefer the operating-system temp directory so generated customer
             // documents are not placed below a potentially web-accessible WP path.

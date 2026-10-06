@@ -183,9 +183,19 @@ final class RMWC_V2_Integrations {
         $tax_rows = [];
         foreach ( $rates as $rate ) {
             $percent = $this->tax_percentage_label( $rate['percent'] );
-            $label = 'incl' === $tax_display
-                ? sprintf( __( 'inkl. %s %% MwSt.', 'patsch9-rental-engine' ), $percent )
-                : sprintf( __( '%s %% MwSt.', 'patsch9-rental-engine' ), $percent );
+            if ( 'incl' === $tax_display ) {
+                $label = sprintf(
+                    /* translators: %s: tax percentage. */
+                    __( 'inkl. %s %% MwSt.', 'patsch9-rental-engine' ),
+                    $percent
+                );
+            } else {
+                $label = sprintf(
+                    /* translators: %s: tax percentage. */
+                    __( '%s %% MwSt.', 'patsch9-rental-engine' ),
+                    $percent
+                );
+            }
             $tax_rows[ 'clr_tax_' . sanitize_title( (string) $rate['percent'] ) ] = [
                 'type'  => 'tax',
                 'label' => $label . ':',

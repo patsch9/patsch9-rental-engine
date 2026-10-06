@@ -638,7 +638,7 @@ final class RMWC_V2_Workflow {
                                     printf(
                                         /* translators: %s: still missing refundable deposit. */
                                         esc_html__( 'Vor der Übergabe sind noch %s Kaution offen. Der offene Betrag muss jetzt erfasst werden.', 'patsch9-rental-engine' ),
-                                        wp_strip_all_tags( wc_price( $deposit_state['missing'], [ 'currency' => $order->get_currency() ] ) )
+                                        esc_html( wp_strip_all_tags( wc_price( $deposit_state['missing'], [ 'currency' => $order->get_currency() ] ) ) )
                                     );
                                 ?></p>
                             </div>

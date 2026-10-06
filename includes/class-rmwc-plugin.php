@@ -1245,7 +1245,7 @@ final class RMWC_Plugin {
                 absint( $exclude_booking )
             );
         }
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Availability uses the plugin's own transactional booking table and must be current.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- $sql is prepared in every branch immediately above; availability uses the plugin's own transactional table and must be current.
         return $wpdb->get_results( $sql, ARRAY_A );
     }
 
@@ -1751,11 +1751,23 @@ final class RMWC_Plugin {
             $deposit_mode = sanitize_key( $r['deposit_mode'] ?? 'choice' );
 
             if ( 'online' === $deposit_mode ) {
-                $deposit_text = sprintf( __( '%s – online mit der Bestellung hinterlegen', 'patsch9-rental-engine' ), $deposit_amount );
+                $deposit_text = sprintf(
+                    /* translators: %s: formatted refundable deposit amount. */
+                    __( '%s – online mit der Bestellung hinterlegen', 'patsch9-rental-engine' ),
+                    $deposit_amount
+                );
             } elseif ( 'cash' === $deposit_mode ) {
-                $deposit_text = sprintf( __( '%s – separat: Überweisung oder bar bei Abholung', 'patsch9-rental-engine' ), $deposit_amount );
+                $deposit_text = sprintf(
+                    /* translators: %s: formatted refundable deposit amount. */
+                    __( '%s – separat: Überweisung oder bar bei Abholung', 'patsch9-rental-engine' ),
+                    $deposit_amount
+                );
             } else {
-                $deposit_text = sprintf( __( '%s – Auswahl im Checkout: online oder separat (Überweisung / bar bei Abholung)', 'patsch9-rental-engine' ), $deposit_amount );
+                $deposit_text = sprintf(
+                    /* translators: %s: formatted refundable deposit amount. */
+                    __( '%s – Auswahl im Checkout: online oder separat (Überweisung / bar bei Abholung)', 'patsch9-rental-engine' ),
+                    $deposit_amount
+                );
             }
 
             $item_data[] = [
@@ -2140,7 +2152,7 @@ final class RMWC_Plugin {
             $order->update_meta_data( '_clr_booking_conflict', $result->get_error_code() );
             $order->add_order_note( 'Vermietung: Bestellung vor Zahlung gestoppt – ' . $result->get_error_message() );
             $order->save();
-            throw new Exception( sanitize_text_field( $result->get_error_message() ) );
+            throw new Exception( esc_html( $result->get_error_message() ) );
         }
     }
 
@@ -2153,7 +2165,7 @@ final class RMWC_Plugin {
             $order->update_meta_data( '_clr_booking_conflict', $result->get_error_code() );
             $order->add_order_note( 'Vermietung: Bestellung vor Zahlung gestoppt – ' . $result->get_error_message() );
             $order->save();
-            throw new Exception( sanitize_text_field( $result->get_error_message() ) );
+            throw new Exception( esc_html( $result->get_error_message() ) );
         }
     }
 

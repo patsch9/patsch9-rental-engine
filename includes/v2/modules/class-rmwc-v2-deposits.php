@@ -614,9 +614,9 @@ final class RMWC_V2_Deposits {
         $required_text = $this->plain_price( $required, $order );
 
         if ( $online >= $required - 0.0001 ) {
-            /* translators: %s: formatted refundable deposit amount already collected online. */
             return sanitize_textarea_field(
                 sprintf(
+                    /* translators: %s: formatted refundable deposit amount already collected online. */
                     __( 'Die Kaution von %s wurde bereits mit der Online-Zahlung hinterlegt und gehört nicht zur Rechnungssumme. Der QR-Code dieser Rechnung enthält nur den Rechnungsbetrag. Die Rückerstattung erfolgt gemäß Mietbedingungen.', 'patsch9-rental-engine' ),
                     $required_text
                 )
@@ -625,9 +625,9 @@ final class RMWC_V2_Deposits {
 
         if ( $online > 0.0001 ) {
             $remaining = max( 0, $required - $online );
-            /* translators: 1: total refundable deposit, 2: amount collected online, 3: amount still to be deposited separately. */
             return sanitize_textarea_field(
                 sprintf(
+                    /* translators: 1: total refundable deposit, 2: amount collected online, 3: amount still to be deposited separately. */
                     __( 'Die Kaution beträgt %1$s. %2$s wurden bereits online hinterlegt; %3$s sind separat zu überweisen oder bei Abholung bar zu hinterlegen. Der QR-Code dieser Rechnung enthält nur den Rechnungsbetrag. Die Rückerstattung erfolgt gemäß Mietbedingungen.', 'patsch9-rental-engine' ),
                     $required_text,
                     $this->plain_price( $online, $order ),
@@ -636,9 +636,9 @@ final class RMWC_V2_Deposits {
             );
         }
 
-        /* translators: %s: formatted refundable deposit amount to be deposited separately. */
         return sanitize_textarea_field(
             sprintf(
+                /* translators: %s: formatted refundable deposit amount to be deposited separately. */
                 __( 'Gemäß Mietbedingungen ist zusätzlich eine Kaution von %s zu hinterlegen. Sie kann separat überwiesen oder bei Abholung bar hinterlegt werden. Der QR-Code dieser Rechnung enthält nur den Rechnungsbetrag; die Kaution ist darin nicht enthalten. Die Rückerstattung erfolgt gemäß Mietbedingungen.', 'patsch9-rental-engine' ),
                 $required_text
             )
