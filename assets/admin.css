@@ -1,0 +1,693 @@
+.clr-admin-table{margin:0 12px 12px;width:calc(100% - 24px)}.clr-admin-table input,.clr-admin-table select{width:100%}.clr-admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}.clr-admin-card{background:#fff;border:1px solid #dcdcde;border-radius:6px;padding:16px;margin-top:18px}.clr-admin-card h2{margin-top:0}.clr-admin-card label{font-weight:600;display:block}.clr-admin-card input[type=text],.clr-admin-card input[type=email],.clr-admin-card input[type=date],.clr-admin-card input[type=datetime-local],.clr-admin-card input[type=number],.clr-admin-card textarea,.clr-admin-card select{width:100%;max-width:none}.clr-form-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}.clr-admin-cal-head{display:flex;align-items:center;justify-content:space-between}.clr-admin-cal-head h2{margin:0;text-transform:capitalize}.clr-admin-calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:12px}.clr-admin-weekday{text-align:center;font-weight:700;padding:7px}.clr-admin-day{min-height:115px;border:1px solid #dcdcde;border-radius:4px;padding:5px;background:#fff;overflow:hidden}.clr-admin-day.is-empty{background:#f6f7f7;border-style:dashed}.clr-admin-daynum{display:block;margin-bottom:5px}.clr-admin-event{font-size:11px;line-height:1.25;padding:4px 5px;border-radius:4px;margin:3px 0;background:#f0f0f1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.clr-admin-event.is-block{border-left:4px solid currentColor;font-style:italic}.clr-admin-event.is-booking{border-left:4px solid currentColor}.clr-settings-form{background:#fff;border:1px solid #dcdcde;border-radius:6px;padding:18px;margin-top:18px}.clr-admin-wrap .nav-tab-wrapper{margin-top:12px}@media(max-width:900px){.clr-admin-grid{grid-template-columns:1fr}.clr-admin-calendar{grid-template-columns:repeat(7,minmax(120px,1fr));overflow-x:auto}.clr-calendar-card{overflow-x:auto}.clr-form-cols{grid-template-columns:1fr}}
+
+.clr-weekday-table input[type=checkbox]{width:auto}.clr-weekday-table td{vertical-align:middle}.clr-weekday-table th:nth-child(2),.clr-weekday-table th:nth-child(3){width:22%}.clr-weekday-table th:nth-child(4){width:24%}
+
+/* V2 product editor: card-based layout without replacing WooCommerce controls. */
+#clr_rental_product_data{box-sizing:border-box;padding:14px;background:#f6f7f7}
+#clr_rental_product_data>.options_group{margin:0 0 14px;background:#fff;border:1px solid #dcdcde;border-radius:10px;padding:14px 0;box-shadow:0 1px 1px rgba(0,0,0,.03)}
+#clr_rental_product_data>.options_group>h4{font-size:14px;margin:0 14px 10px!important;padding:0!important}
+#clr_rental_product_data>.options_group>.description{margin:0 14px 12px!important;padding:0!important;max-width:920px}
+#clr_rental_product_data .form-field{padding-left:14px;padding-right:14px}
+#clr_rental_product_data .clr-admin-table{margin:0 14px 12px;width:calc(100% - 28px);border-radius:8px;overflow:hidden}
+#clr_rental_product_data .clr-weekday-table{border:0;background:transparent;box-shadow:none}
+#clr_rental_product_data .clr-weekday-table thead{display:none}
+#clr_rental_product_data .clr-weekday-table tbody{display:grid;grid-template-columns:repeat(4,minmax(170px,1fr));gap:10px}
+#clr_rental_product_data .clr-weekday-table tr{display:grid;grid-template-columns:1fr;gap:9px;padding:12px;border:1px solid #dcdcde;border-radius:8px;background:#fff}
+#clr_rental_product_data .clr-weekday-table td{display:block;padding:0;border:0}
+#clr_rental_product_data .clr-weekday-table td:first-child{font-size:14px;padding-bottom:4px;border-bottom:1px solid #f0f0f1}
+#clr_rental_product_data .clr-weekday-table td:nth-child(4)::before{content:"Mietpreis";display:block;font-size:11px;font-weight:600;color:#646970;margin-bottom:3px}
+#clr_rental_product_data .clr-weekday-table input[type=number]{width:100%}
+#clr_rental_product_data .clr-weekday-table label{display:flex;align-items:center;gap:6px}
+.clr-v2-admin-card{background:#fff;border:1px solid #dcdcde;border-radius:10px;padding:18px;margin-top:18px;max-width:1200px}
+.clr-v2-admin-card h2{margin-top:0}
+.clr-v2-form-grid{display:grid;grid-template-columns:repeat(3,minmax(180px,1fr));gap:12px}
+.clr-v2-form-grid p{margin:0}
+.clr-v2-form-grid input,.clr-v2-form-grid select{width:100%}
+.clr-v2-document-list{margin:0}
+.clr-v2-document-list li{padding:7px 0;border-bottom:1px solid #f0f0f1}
+.clr-v2-document-list li:last-child{border-bottom:0}
+.clr-v2-deposit-form{margin:10px 0;padding-top:8px;border-top:1px solid #f0f0f1}
+.clr-v2-deposit-form p{margin:8px 0}
+.clr-v2-deposit-summary .notice.inline{margin:8px 0;padding:1px 10px}
+@media(max-width:1100px){#clr_rental_product_data .clr-weekday-table tbody{grid-template-columns:repeat(2,minmax(180px,1fr))}.clr-v2-form-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){#clr_rental_product_data .clr-weekday-table tbody,.clr-v2-form-grid{grid-template-columns:1fr}}
+
+/* V2 rental-only material sizes: keep the repeater readable on typical product screens. */
+#clr_rental_product_data .clr-v2-materials-table th:nth-child(1){width:16%}
+#clr_rental_product_data .clr-v2-materials-table th:nth-child(2){width:30%}
+#clr_rental_product_data .clr-v2-materials-table th:nth-child(3){width:24%}
+#clr_rental_product_data .clr-v2-materials-table th:nth-child(4){width:15%}
+#clr_rental_product_data .clr-v2-materials-table th:nth-child(5){width:10%}
+#clr_rental_product_data .clr-v2-materials-table td{vertical-align:middle}
+#clr_rental_product_data .clr-v2-materials-table input[type=checkbox]{width:auto}
+@media(max-width:900px){
+  #clr_rental_product_data .clr-v2-materials-table thead{display:none}
+  #clr_rental_product_data .clr-v2-materials-table,#clr_rental_product_data .clr-v2-materials-table tbody,#clr_rental_product_data .clr-v2-materials-table tr,#clr_rental_product_data .clr-v2-materials-table td{display:block;width:100%}
+  #clr_rental_product_data .clr-v2-materials-table tr{box-sizing:border-box;margin:0 0 12px;padding:10px;border:1px solid #dcdcde;border-radius:8px}
+  #clr_rental_product_data .clr-v2-materials-table td{box-sizing:border-box;border:0;padding:5px 0}
+}
+
+
+/* V2 stable: unified accessory editor. */
+#clr_rental_product_data .clr-v2-materials-wrap{margin:12px 14px 16px;padding:14px;border:1px solid #dcdcde;border-radius:8px;background:#f9f9fa}
+#clr_rental_product_data .clr-v2-section-heading{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+#clr_rental_product_data .clr-v2-section-heading h5{font-size:14px;margin:0 0 4px}
+#clr_rental_product_data .clr-v2-section-heading .description{margin:0!important;padding:0!important;max-width:760px}
+#clr_rental_product_data .clr-v2-material-list{display:flex;flex-direction:column;gap:12px}
+#clr_rental_product_data .clr-v2-material-row{position:relative;padding:0;border:1px solid #dcdcde;border-radius:10px;background:#fff;box-sizing:border-box;overflow:hidden;box-shadow:0 1px 1px rgba(0,0,0,.03)}
+#clr_rental_product_data .clr-v2-material-row-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid #f0f0f1;background:#fbfbfc}
+#clr_rental_product_data .clr-v2-material-row-head strong{display:block;font-size:13px;line-height:1.35;color:#1d2327;margin:0 0 2px}
+#clr_rental_product_data .clr-v2-material-row-head span{display:block;font-size:12px;line-height:1.45;color:#646970;max-width:760px}
+#clr_rental_product_data .clr-v2-material-grid{display:grid;grid-template-columns:minmax(180px,1fr) minmax(240px,1.6fr) minmax(200px,1.2fr) minmax(170px,1fr) minmax(220px,1.2fr);gap:12px;padding:14px}
+#clr_rental_product_data .clr-v2-field{min-width:0;display:flex;flex-direction:column;gap:5px}
+#clr_rental_product_data .clr-v2-field>label,#clr_rental_product_data .clr-v2-label{display:block;font-size:12px;font-weight:600;color:#50575e;margin:0}
+#clr_rental_product_data .clr-v2-field .description{margin:0!important;padding:0!important;font-size:11px;line-height:1.45;color:#646970}
+#clr_rental_product_data .clr-v2-field input[type=text],#clr_rental_product_data .clr-v2-field select,#clr_rental_product_data .clr-v2-field .select2-container{width:100%!important;max-width:100%!important;box-sizing:border-box}
+#clr_rental_product_data .clr-v2-field .select2-container .select2-selection{min-height:30px}
+#clr_rental_product_data .clr-v2-field-required{padding:10px 12px;border:1px solid #dcdcde;border-radius:8px;background:#f9f9fa;justify-content:flex-start}
+#clr_rental_product_data .clr-v2-checkbox{display:flex!important;align-items:flex-start;gap:8px;min-height:30px;margin:0!important;white-space:normal}
+#clr_rental_product_data .clr-v2-checkbox input{width:auto!important;margin:2px 0 0!important;flex:0 0 auto}
+#clr_rental_product_data .clr-v2-checkbox span{line-height:1.45}
+#clr_rental_product_data .clr-remove-material{align-self:flex-start;font-size:22px;text-decoration:none;padding:0 2px;line-height:1;color:#b32d2e}
+#clr_rental_product_data .clr-remove-material:hover{color:#8a2424}
+#clr_rental_product_data .clr-v2-material-empty{margin:10px 0 0;color:#646970;font-style:italic}
+#clr_rental_product_data .clr-simple-addons{margin:12px 14px 0;border-top:1px solid #dcdcde;padding-top:12px}
+#clr_rental_product_data .clr-simple-addons summary{cursor:pointer;font-weight:600;color:#50575e}
+#clr_rental_product_data .clr-simple-addons-inner{padding-top:10px}
+#clr_rental_product_data .clr-simple-addons-inner .clr-admin-table{margin:0 0 10px;width:100%}
+#clr_rental_product_data .clr-simple-addons-inner p{margin:0}
+@media(max-width:1260px){#clr_rental_product_data .clr-v2-material-grid{grid-template-columns:1fr 1fr 1fr}}
+@media(max-width:960px){#clr_rental_product_data .clr-v2-material-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:782px){#clr_rental_product_data .clr-v2-section-heading{display:block}#clr_rental_product_data .clr-v2-section-heading .button{margin-top:10px}#clr_rental_product_data .clr-v2-material-row-head{padding-right:10px}#clr_rental_product_data .clr-v2-material-grid{grid-template-columns:1fr;padding:12px}#clr_rental_product_data .clr-v2-field-required{padding:10px}}
+
+
+/* V2 stable product editor: explicit weekday cards. */
+#clr_rental_product_data .clr-product-section-head{padding:0 14px 12px}
+#clr_rental_product_data .clr-product-section-head h4{font-size:14px;margin:0 0 6px;padding:0}
+#clr_rental_product_data .clr-product-section-head .description{margin:0;padding:0;max-width:920px}
+#clr_rental_product_data .clr-weekday-cards{display:grid;grid-template-columns:repeat(4,minmax(190px,1fr));gap:10px;padding:0 14px 2px;box-sizing:border-box}
+#clr_rental_product_data .clr-weekday-card{display:flex;flex-direction:column;gap:10px;min-width:0;padding:12px;border:1px solid #dcdcde;border-radius:8px;background:#fff;box-sizing:border-box}
+#clr_rental_product_data .clr-weekday-card h5{font-size:14px;line-height:1.3;margin:0;padding:0 0 8px;border-bottom:1px solid #f0f0f1}
+#clr_rental_product_data .clr-weekday-toggle{display:grid;grid-template-columns:18px minmax(0,1fr);gap:8px;align-items:start;margin:0}
+#clr_rental_product_data .clr-weekday-toggle input{width:16px!important;height:16px;margin:2px 0 0!important}
+#clr_rental_product_data .clr-weekday-toggle strong,#clr_rental_product_data .clr-weekday-toggle small{display:block}
+#clr_rental_product_data .clr-weekday-toggle strong{font-weight:600;color:#1d2327}
+#clr_rental_product_data .clr-weekday-toggle small,#clr_rental_product_data .clr-weekday-price small{font-size:11px;line-height:1.35;color:#646970;margin-top:2px}
+#clr_rental_product_data .clr-weekday-price{display:block;margin-top:auto;padding-top:2px}
+#clr_rental_product_data .clr-weekday-price>label{display:block!important;float:none!important;width:auto!important;margin:0 0 5px!important;padding:0!important;font-size:12px;font-weight:600;color:#50575e}
+#clr_rental_product_data .clr-money-input{display:grid;grid-template-columns:minmax(0,1fr) 34px;align-items:center}
+#clr_rental_product_data .clr-money-input input{width:100%!important;min-width:0;border-radius:4px 0 0 4px}
+#clr_rental_product_data .clr-money-input>span{align-self:stretch;display:flex;align-items:center;justify-content:center;border:1px solid #8c8f94;border-left:0;border-radius:0 4px 4px 0;background:#f6f7f7;color:#50575e}
+#clr_rental_product_data .clr-weekday-price small{display:block}
+@media(max-width:1250px){#clr_rental_product_data .clr-weekday-cards{grid-template-columns:repeat(3,minmax(190px,1fr))}}
+@media(max-width:1050px){#clr_rental_product_data .clr-weekday-cards{grid-template-columns:repeat(2,minmax(190px,1fr))}}
+@media(max-width:700px){#clr_rental_product_data .clr-weekday-cards{grid-template-columns:1fr}}
+
+/* V2 workflow, checklists and signatures. */
+#clr_rental_product_data .clr-workflow-config .clr-checklist-config-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 14px 12px}
+#clr_rental_product_data .clr-checklist-config-card{border:1px solid #dcdcde;border-radius:8px;background:#fff;padding:12px;min-width:0}
+#clr_rental_product_data .clr-checklist-config-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+#clr_rental_product_data .clr-checklist-config-head h5{font-size:13px;margin:0}
+#clr_rental_product_data .clr-checklist-items{display:flex;flex-direction:column;gap:7px}
+#clr_rental_product_data .clr-checklist-item{display:grid;grid-template-columns:minmax(0,1fr) 30px;gap:7px;align-items:center}
+#clr_rental_product_data .clr-checklist-item input{width:100%!important;margin:0!important}
+#clr_rental_product_data .clr-remove-checklist-item{text-decoration:none;font-size:20px;line-height:1}
+.clr-workflow-table .clr-row-actions{display:flex;flex-wrap:wrap;gap:6px}
+.clr-workflow-form .clr-workflow-checklist{display:flex;flex-direction:column;gap:7px;margin:10px 0 16px}
+.clr-workflow-form .clr-workflow-checklist label{display:flex;align-items:flex-start;gap:8px;font-weight:400}
+.clr-signature-wrap{max-width:720px;margin:16px 0;padding:12px;border:1px solid #dcdcde;border-radius:8px;background:#fff}
+.clr-signature-wrap label{display:block;font-weight:600;margin-bottom:8px}
+.clr-signature-pad{display:block;width:100%;height:180px;border:1px solid #8c8f94;border-radius:4px;background:#fff;touch-action:none;cursor:crosshair}
+.clr-v2-admin-card .clr-row-actions{display:flex;flex-wrap:wrap;gap:6px}
+@media(max-width:782px){#clr_rental_product_data .clr-workflow-config .clr-checklist-config-grid{grid-template-columns:1fr}.clr-signature-pad{height:150px}}
+
+/* Stable 2.0.1: isolate weekday cards from WooCommerce's legacy floated form labels. */
+#clr_rental_product_data .clr-weekday-section,
+#clr_rental_product_data .clr-weekday-cards,
+#clr_rental_product_data .clr-weekday-card,
+#clr_rental_product_data .clr-weekday-toggle,
+#clr_rental_product_data .clr-weekday-price,
+#clr_rental_product_data .clr-money-input{box-sizing:border-box;min-width:0}
+#clr_rental_product_data .clr-weekday-card label,
+#clr_rental_product_data .clr-weekday-toggle,
+#clr_rental_product_data .clr-weekday-price{float:none!important;width:auto!important;max-width:none!important;margin:0!important;padding:0!important}
+#clr_rental_product_data .clr-weekday-price{display:block!important;margin-top:auto!important;padding-top:4px!important}
+#clr_rental_product_data .clr-money-input{display:flex!important;width:100%!important;max-width:100%!important;align-items:stretch;overflow:hidden;border:1px solid #8c8f94;border-radius:4px;background:#fff}
+#clr_rental_product_data .clr-money-input input[type=number]{display:block!important;float:none!important;flex:1 1 auto;width:1%!important;min-width:0!important;max-width:none!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important}
+#clr_rental_product_data .clr-money-input>span{display:flex!important;float:none!important;flex:0 0 36px;width:36px!important;min-width:36px!important;align-items:center;justify-content:center;margin:0!important;border:0!important;border-left:1px solid #8c8f94!important;border-radius:0!important;background:#f6f7f7;color:#50575e}
+#clr_rental_product_data .clr-weekday-cards{grid-template-columns:repeat(auto-fit,minmax(215px,1fr))}
+@media(max-width:782px){#clr_rental_product_data .clr-weekday-cards{grid-template-columns:1fr}}
+/* Stable 2.0.1 final spacing: keep weekday price controls comfortably inside each card. */
+#clr_rental_product_data .clr-weekday-cards{grid-template-columns:repeat(3,minmax(220px,1fr))!important}
+@media(max-width:1120px){#clr_rental_product_data .clr-weekday-cards{grid-template-columns:repeat(2,minmax(220px,1fr))!important}}
+@media(max-width:700px){#clr_rental_product_data .clr-weekday-cards{grid-template-columns:1fr!important}}
+
+
+/* 2.0.6: normalize WooCommerce legacy form fields and keep help tips from consuming a grid column. */
+#clr_rental_product_data > .options_group > .form-field,
+#clr_rental_product_data .clr-workflow-config > .form-field{
+    display:grid!important;
+    grid-template-columns:190px minmax(0,1fr);
+    column-gap:16px;
+    row-gap:5px;
+    align-items:start;
+    padding:8px 14px!important;
+    margin:0!important;
+    box-sizing:border-box;
+    position:relative;
+}
+#clr_rental_product_data > .options_group > .form-field > label,
+#clr_rental_product_data .clr-workflow-config > .form-field > label{
+    float:none!important;
+    width:auto!important;
+    max-width:none!important;
+    margin:6px 0 0!important;
+    padding:0!important;
+    line-height:1.4!important;
+    grid-column:1;
+    grid-row:1;
+    padding-right:24px!important;
+}
+#clr_rental_product_data > .options_group > .form-field > .woocommerce-help-tip,
+#clr_rental_product_data .clr-workflow-config > .form-field > .woocommerce-help-tip{
+    grid-column:1;
+    grid-row:1;
+    justify-self:end;
+    align-self:start;
+    float:none!important;
+    margin:7px 0 0!important;
+    position:relative!important;
+    top:auto!important;
+    right:auto!important;
+}
+#clr_rental_product_data > .options_group > .form-field > input:not([type=checkbox]),
+#clr_rental_product_data > .options_group > .form-field > select,
+#clr_rental_product_data > .options_group > .form-field > textarea,
+#clr_rental_product_data .clr-workflow-config > .form-field > input:not([type=checkbox]),
+#clr_rental_product_data .clr-workflow-config > .form-field > select,
+#clr_rental_product_data .clr-workflow-config > .form-field > textarea{
+    float:none!important;
+    width:100%!important;
+    max-width:680px!important;
+    margin:0!important;
+    box-sizing:border-box;
+    grid-column:2;
+    grid-row:1;
+}
+#clr_rental_product_data > .options_group > .form-field > input[type=checkbox],
+#clr_rental_product_data .clr-workflow-config > .form-field > input[type=checkbox]{
+    float:none!important;
+    width:16px!important;
+    height:16px!important;
+    margin:7px 0 0!important;
+    grid-column:2;
+    grid-row:1;
+}
+#clr_rental_product_data > .options_group > .form-field > .description,
+#clr_rental_product_data .clr-workflow-config > .form-field > .description{
+    grid-column:2;
+    width:auto!important;
+    max-width:680px!important;
+    margin:0!important;
+    padding:0!important;
+}
+#clr_rental_product_data > .options_group > .form-field .select2-container,
+#clr_rental_product_data .clr-workflow-config > .form-field .select2-container{
+    float:none!important;
+    width:100%!important;
+    max-width:680px!important;
+    grid-column:2;
+}
+.clr-v2-asset-textareas{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    margin:12px 0;
+}
+.clr-v2-asset-textareas label{
+    display:block;
+    font-weight:600;
+}
+.clr-v2-asset-textareas textarea{
+    display:block;
+    width:100%;
+    margin-top:6px;
+    box-sizing:border-box;
+}
+
+/* 2.0.5: handover / return workflow layout. */
+.clr-workflow-form-card{
+    max-width:1020px;
+    padding:0!important;
+    overflow:hidden;
+}
+.clr-workflow-form-head{
+    display:flex;
+    gap:20px;
+    align-items:flex-start;
+    padding:22px 24px 18px;
+    border-bottom:1px solid #dcdcde;
+    background:#fff;
+}
+.clr-workflow-form-head .clr-workflow-back{
+    flex:0 0 auto;
+    margin-top:5px;
+    text-decoration:none;
+}
+.clr-workflow-form-head h2{
+    margin:0 0 5px;
+    font-size:20px;
+}
+.clr-workflow-form-head p{
+    margin:0;
+    color:#646970;
+    max-width:720px;
+}
+.clr-workflow-summary{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:12px;
+    padding:18px 24px;
+    background:#f6f7f7;
+}
+.clr-workflow-summary-item{
+    min-width:0;
+    padding:13px 15px;
+    border:1px solid #dcdcde;
+    border-radius:7px;
+    background:#fff;
+}
+.clr-workflow-summary-item span,
+.clr-workflow-summary-item small{
+    display:block;
+    color:#646970;
+}
+.clr-workflow-summary-item span{
+    margin-bottom:5px;
+    font-size:12px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:.02em;
+}
+.clr-workflow-summary-item strong{
+    display:block;
+    font-size:14px;
+    line-height:1.45;
+}
+.clr-workflow-summary-item small{
+    margin-top:3px;
+}
+.clr-workflow-known-damage{
+    margin:18px 24px 0;
+    padding:14px 16px;
+    border:1px solid #dba617;
+    border-left-width:4px;
+    border-radius:6px;
+    background:#fff8e5;
+}
+.clr-workflow-known-damage-title{
+    font-weight:700;
+    margin-bottom:5px;
+}
+.clr-workflow-known-damage p{
+    margin:0 0 8px;
+}
+.clr-workflow-known-damage ul{
+    margin:0 0 0 19px;
+}
+.clr-workflow-form{
+    padding:20px 24px 24px;
+}
+.clr-workflow-form-section{
+    margin:0 0 18px;
+    padding:0;
+    border:0;
+}
+.clr-workflow-form-section legend{
+    display:block;
+    width:100%;
+    margin:0 0 9px;
+    padding:0;
+    font-size:14px;
+    font-weight:700;
+}
+.clr-workflow-form .clr-workflow-checklist{
+    gap:8px;
+    margin:0 0 20px;
+}
+.clr-workflow-form .clr-workflow-check-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    min-height:42px;
+    margin:0!important;
+    padding:8px 11px;
+    border:1px solid #dcdcde;
+    border-radius:6px;
+    background:#fff;
+    box-sizing:border-box;
+}
+.clr-workflow-form .clr-workflow-check-row:hover{
+    background:#f6f7f7;
+}
+.clr-workflow-form .clr-workflow-check-row input{
+    flex:0 0 auto;
+    margin:0!important;
+}
+.clr-workflow-field{
+    margin:0 0 18px!important;
+}
+.clr-workflow-field label{
+    display:block;
+    max-width:760px;
+}
+.clr-workflow-field strong{
+    display:block;
+    margin-bottom:6px;
+}
+.clr-workflow-field select,
+.clr-workflow-field textarea{
+    width:100%!important;
+    max-width:760px!important;
+    margin:0!important;
+    box-sizing:border-box;
+}
+.clr-workflow-form .clr-signature-wrap{
+    max-width:760px;
+    margin:0 0 20px;
+}
+.clr-workflow-submit-row{
+    display:flex;
+    justify-content:flex-end;
+    padding-top:16px;
+    border-top:1px solid #dcdcde;
+}
+.clr-v2-contract-mail-form{
+    margin-top:12px;
+    padding-top:12px;
+    border-top:1px solid #dcdcde;
+}
+.clr-v2-contract-mail-form .description{
+    margin:7px 0 0;
+}
+.clr-v2-document-mail-notice{
+    padding:7px 9px;
+    border-left:4px solid #00a32a;
+    background:#f0f6fc;
+}
+.clr-v2-document-mail-error{
+    padding:7px 9px;
+    border-left:4px solid #d63638;
+    background:#fcf0f1;
+}
+
+@media(max-width:782px){
+    #clr_rental_product_data > .options_group > .form-field,
+    #clr_rental_product_data .clr-workflow-config > .form-field{
+        grid-template-columns:1fr;
+    }
+    #clr_rental_product_data > .options_group > .form-field > label,
+    #clr_rental_product_data .clr-workflow-config > .form-field > label{
+        grid-column:1;
+        grid-row:auto;
+        padding-right:24px!important;
+    }
+    #clr_rental_product_data > .options_group > .form-field > .woocommerce-help-tip,
+    #clr_rental_product_data .clr-workflow-config > .form-field > .woocommerce-help-tip{
+        grid-column:1;
+        grid-row:1;
+    }
+    #clr_rental_product_data > .options_group > .form-field > input:not([type=checkbox]),
+    #clr_rental_product_data > .options_group > .form-field > select,
+    #clr_rental_product_data > .options_group > .form-field > textarea,
+    #clr_rental_product_data > .options_group > .form-field > input[type=checkbox],
+    #clr_rental_product_data > .options_group > .form-field .select2-container,
+    #clr_rental_product_data .clr-workflow-config > .form-field > input:not([type=checkbox]),
+    #clr_rental_product_data .clr-workflow-config > .form-field > select,
+    #clr_rental_product_data .clr-workflow-config > .form-field > textarea,
+    #clr_rental_product_data .clr-workflow-config > .form-field > input[type=checkbox],
+    #clr_rental_product_data .clr-workflow-config > .form-field .select2-container,
+    #clr_rental_product_data > .options_group > .form-field > .description,
+    #clr_rental_product_data .clr-workflow-config > .form-field > .description{
+        grid-column:1;
+        grid-row:auto;
+    }
+    .clr-v2-asset-textareas{
+        grid-template-columns:1fr;
+    }
+    .clr-workflow-form-head{
+        display:block;
+        padding:18px;
+    }
+    .clr-workflow-form-head .clr-workflow-back{
+        display:inline-block;
+        margin:0 0 12px;
+    }
+    .clr-workflow-summary{
+        grid-template-columns:1fr;
+        padding:14px 18px;
+    }
+    .clr-workflow-known-damage{
+        margin:16px 18px 0;
+    }
+    .clr-workflow-form{
+        padding:18px;
+    }
+}
+
+/* 2.0.7: explicit rental field rows. WooCommerce help tips are separate siblings
+ * of labels/controls; these classes make the rental UI independent of the legacy
+ * float layout and keep every control in the same second column. */
+#clr_rental_product_data .options_group .form-field.clr-rental-field-row{
+    display:grid!important;
+    grid-template-columns:190px minmax(260px,680px)!important;
+    column-gap:16px!important;
+    row-gap:6px!important;
+    align-items:start!important;
+    width:auto!important;
+    min-height:38px;
+    margin:0!important;
+    padding:8px 14px!important;
+    box-sizing:border-box!important;
+    clear:both!important;
+    float:none!important;
+    position:relative!important;
+}
+#clr_rental_product_data .options_group .form-field.clr-rental-field-row > label{
+    display:block!important;
+    float:none!important;
+    width:auto!important;
+    max-width:none!important;
+    margin:6px 0 0!important;
+    padding:0 25px 0 0!important;
+    line-height:1.4!important;
+    grid-column:1!important;
+    grid-row:1!important;
+    box-sizing:border-box!important;
+}
+#clr_rental_product_data .options_group .form-field.clr-rental-field-row > .woocommerce-help-tip{
+    display:inline-block!important;
+    float:none!important;
+    grid-column:1!important;
+    grid-row:1!important;
+    justify-self:end!important;
+    align-self:start!important;
+    position:relative!important;
+    top:auto!important;
+    right:auto!important;
+    margin:7px 0 0!important;
+    z-index:2;
+}
+#clr_rental_product_data .options_group .form-field.clr-rental-field-row > input:not([type=checkbox]):not([type=hidden]),
+#clr_rental_product_data .options_group .form-field.clr-rental-field-row > select,
+#clr_rental_product_data .options_group .form-field.clr-rental-field-row > textarea,
+#clr_rental_product_data .options_group .form-field.clr-rental-field-row > .select2-container{
+    display:block!important;
+    float:none!important;
+    grid-column:2!important;
+    grid-row:1!important;
+    width:100%!important;
+    max-width:680px!important;
+    min-width:0!important;
+    margin:0!important;
+    box-sizing:border-box!important;
+}
+#clr_rental_product_data .options_group .form-field.clr-rental-field-row > textarea{
+    min-height:72px!important;
+    resize:vertical;
+}
+#clr_rental_product_data .options_group .form-field.clr-rental-field-row > input[type=checkbox]{
+    display:block!important;
+    float:none!important;
+    grid-column:2!important;
+    grid-row:1!important;
+    width:16px!important;
+    min-width:16px!important;
+    height:16px!important;
+    margin:7px 0 0!important;
+}
+#clr_rental_product_data .options_group .form-field.clr-rental-field-row > input[type=hidden]{
+    display:none!important;
+}
+#clr_rental_product_data .options_group .form-field.clr-rental-field-row > .description{
+    display:block!important;
+    float:none!important;
+    grid-column:2!important;
+    grid-row:2!important;
+    width:auto!important;
+    max-width:680px!important;
+    margin:0!important;
+    padding:0!important;
+}
+#clr_rental_product_data .clr-deposit-handover-section .clr-rental-section-title{
+    margin:0 14px 10px!important;
+    padding:0!important;
+    font-size:14px;
+}
+@media(max-width:782px){
+    #clr_rental_product_data .options_group .form-field.clr-rental-field-row{
+        grid-template-columns:minmax(0,1fr)!important;
+        row-gap:7px!important;
+    }
+    #clr_rental_product_data .options_group .form-field.clr-rental-field-row > label{
+        grid-column:1!important;
+        grid-row:1!important;
+    }
+    #clr_rental_product_data .options_group .form-field.clr-rental-field-row > .woocommerce-help-tip{
+        grid-column:1!important;
+        grid-row:1!important;
+    }
+    #clr_rental_product_data .options_group .form-field.clr-rental-field-row > input:not([type=hidden]),
+    #clr_rental_product_data .options_group .form-field.clr-rental-field-row > select,
+    #clr_rental_product_data .options_group .form-field.clr-rental-field-row > textarea,
+    #clr_rental_product_data .options_group .form-field.clr-rental-field-row > .select2-container,
+    #clr_rental_product_data .options_group .form-field.clr-rental-field-row > .description{
+        grid-column:1!important;
+        grid-row:auto!important;
+        max-width:none!important;
+    }
+}
+
+/* 2.0.11: deposit integrated into mobile handover / return workflow. */
+.clr-workflow-section-head h3{margin:0 0 4px;font-size:15px}
+.clr-workflow-section-head p{margin:0 0 12px;color:#646970}
+.clr-workflow-deposit{padding:16px!important;border:1px solid #dcdcde!important;border-radius:7px!important;background:#f6f7f7}
+.clr-workflow-deposit-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 14px}
+.clr-workflow-deposit-grid>div{padding:10px 12px;border:1px solid #dcdcde;border-radius:6px;background:#fff}
+.clr-workflow-deposit-grid span{display:block;margin-bottom:3px;color:#646970;font-size:12px}
+.clr-workflow-deposit-grid strong{display:block;font-size:14px}
+.clr-workflow-deposit .notice.inline{margin:12px 0;padding:8px 12px}
+.clr-workflow-deposit .notice.inline p{margin:.4em 0}
+.clr-workflow-deposit-ok{margin:10px 0 0;font-weight:600}
+.clr-workflow-deposit-toggle span{display:flex;flex-direction:column;gap:2px}
+.clr-workflow-deposit-toggle small{color:#646970;font-weight:400}
+.clr-workflow-deposit-settlement{margin-top:14px;padding:14px;border:1px solid #c3c4c7;border-radius:6px;background:#fff}
+.clr-workflow-deposit-settlement h4{margin:0 0 5px;font-size:14px}
+.clr-workflow-deposit-retained-preview{margin:8px 0 12px;padding:9px 11px;border-radius:5px;background:#f0f0f1}
+.clr-workflow-deposit-settlement.has-remainder .clr-workflow-deposit-retained-preview{background:#fcf0f1}
+.clr-workflow-deposit-retention-fields{padding-top:8px;border-top:1px solid #dcdcde}
+.clr-workflow-deposit-retention-fields textarea{width:100%;max-width:680px}
+.clr-workflow-field input[type="number"],.clr-workflow-field input[type="text"]{width:100%!important;max-width:760px!important;box-sizing:border-box}
+@media(max-width:782px){.clr-workflow-deposit-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.clr-workflow-deposit-grid{grid-template-columns:1fr}}
+
+
+/* 2.0.12: return checklist records OK, deviations/missing items and N/A instead of requiring positive checkboxes. */
+.clr-workflow-checklist-help{margin:-2px 0 12px!important}
+.clr-workflow-return-checklist{display:flex!important;flex-direction:column;gap:10px!important}
+.clr-workflow-return-check-row{padding:12px;border:1px solid #dcdcde;border-radius:8px;background:#fff;box-sizing:border-box}
+.clr-workflow-return-check-row.has-issue{border-color:#d63638;background:#fff8f8}
+.clr-workflow-return-check-label{margin-bottom:9px;font-size:14px}
+.clr-workflow-return-check-options{display:flex;flex-wrap:wrap;gap:8px 16px;margin-bottom:10px}
+.clr-workflow-return-check-options label{display:inline-flex!important;align-items:center!important;gap:6px!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;min-height:0!important}
+.clr-workflow-return-check-options input{margin:0!important}
+.clr-workflow-return-check-note{display:block!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important}
+.clr-workflow-return-check-note>span{display:block;margin-bottom:5px;font-size:12px;font-weight:600;color:#50575e}
+.clr-workflow-return-check-note textarea{display:block;width:100%!important;max-width:none!important;min-height:62px;margin:0!important;box-sizing:border-box}
+.clr-workflow-return-check-row.has-issue .clr-workflow-return-check-note>span:after{content:' *';color:#d63638}
+@media(max-width:782px){.clr-workflow-return-check-options{display:grid;grid-template-columns:1fr;gap:8px}.clr-workflow-return-check-options label{padding:6px 0!important}}
+
+/* 2.0.14: product-specific supplemental rental terms. */
+#clr_rental_product_data .options_group .form-field.clr-product-terms-field > textarea{
+    min-height:150px!important;
+}
+#clr_rental_product_data .options_group .form-field.clr-product-terms-version > span{
+    display:block!important;
+    grid-column:2!important;
+    grid-row:1!important;
+    width:100%!important;
+    max-width:680px!important;
+    margin:4px 0 0!important;
+    overflow-wrap:anywhere;
+}
+@media(max-width:782px){
+    #clr_rental_product_data .options_group .form-field.clr-product-terms-version > span{
+        grid-column:1!important;
+        grid-row:auto!important;
+        max-width:none!important;
+    }
+}
+
+/* 2.0.17: WordPress visual editor for article-specific supplemental rental terms. */
+#clr_rental_product_data .options_group .form-field.clr-product-terms-editor-row > .clr-product-terms-editor-wrap{
+    display:block!important;
+    float:none!important;
+    grid-column:2!important;
+    grid-row:1!important;
+    width:100%!important;
+    max-width:680px!important;
+    min-width:0!important;
+    margin:0!important;
+    box-sizing:border-box!important;
+}
+#clr_rental_product_data .clr-product-terms-editor-help{
+    margin:0 0 8px!important;
+    padding:0!important;
+    line-height:1.45;
+}
+#clr_rental_product_data .clr-product-terms-editor-wrap .wp-editor-wrap,
+#clr_rental_product_data .clr-product-terms-editor-wrap .wp-editor-container,
+#clr_rental_product_data .clr-product-terms-editor-wrap textarea.wp-editor-area{
+    width:100%!important;
+    max-width:none!important;
+    box-sizing:border-box!important;
+}
+#clr_rental_product_data .clr-product-terms-editor-wrap .wp-editor-container{
+    border-color:#8c8f94;
+}
+#clr_rental_product_data .clr-product-terms-editor-wrap textarea.wp-editor-area{
+    min-height:260px!important;
+}
+#clr_rental_product_data .clr-product-terms-editor-wrap .mce-tinymce,
+#clr_rental_product_data .clr-product-terms-editor-wrap .tox-tinymce{
+    width:100%!important;
+    max-width:none!important;
+    box-sizing:border-box!important;
+}
+@media(max-width:782px){
+    #clr_rental_product_data .options_group .form-field.clr-product-terms-editor-row > .clr-product-terms-editor-wrap{
+        grid-column:1!important;
+        grid-row:auto!important;
+        max-width:none!important;
+    }
+}
+
+/* 2.0.26: group-centric accessory editor. */
+#clr_rental_product_data .clr-v2-material-group-list{display:flex;flex-direction:column;gap:14px}
+#clr_rental_product_data .clr-v2-material-group{border:1px solid #c3c4c7;border-radius:10px;background:#fff;overflow:hidden;box-shadow:0 1px 1px rgba(0,0,0,.03)}
+#clr_rental_product_data .clr-v2-material-group-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:14px;background:#f6f7f7;border-bottom:1px solid #dcdcde}
+#clr_rental_product_data .clr-v2-material-group-settings{display:grid;grid-template-columns:minmax(180px,1fr) minmax(260px,1.35fr) minmax(250px,1.3fr);gap:14px;flex:1 1 auto;min-width:0}
+#clr_rental_product_data .clr-v2-material-group-settings .clr-v2-field{margin:0}
+#clr_rental_product_data .clr-v2-material-group-settings input[type=text],#clr_rental_product_data .clr-v2-material-group-settings select{width:100%!important;max-width:none!important}
+#clr_rental_product_data .clr-v2-group-required{padding:9px 11px;border:1px solid #dcdcde;border-radius:7px;background:#fff}
+#clr_rental_product_data .clr-v2-material-group-actions{display:flex;align-items:center;gap:10px;flex:0 0 auto;padding-top:18px}
+#clr_rental_product_data .clr-remove-material-group{font-size:22px;line-height:1;color:#b32d2e;text-decoration:none;padding:3px}
+#clr_rental_product_data .clr-v2-material-options-list{display:flex;flex-direction:column;gap:0}
+#clr_rental_product_data .clr-v2-material-option{display:grid;grid-template-columns:minmax(260px,1.55fr) minmax(220px,1.25fr) minmax(170px,.85fr) 32px;gap:14px;align-items:start;padding:14px;border-bottom:1px solid #f0f0f1;background:#fff}
+#clr_rental_product_data .clr-v2-material-option:last-child{border-bottom:0}
+#clr_rental_product_data .clr-v2-material-option .clr-v2-field{min-width:0}
+#clr_rental_product_data .clr-v2-material-option input[type=text],#clr_rental_product_data .clr-v2-material-option select,#clr_rental_product_data .clr-v2-material-option .select2-container{width:100%!important;max-width:none!important}
+#clr_rental_product_data .clr-remove-material-option{align-self:center;font-size:21px;line-height:1;color:#b32d2e;text-decoration:none;padding:4px}
+#clr_rental_product_data .clr-v2-material-group-empty{margin:0;padding:14px;color:#646970;font-style:italic;background:#fff}
+@media(max-width:1180px){#clr_rental_product_data .clr-v2-material-group-head{display:block}#clr_rental_product_data .clr-v2-material-group-settings{grid-template-columns:1fr 1fr}#clr_rental_product_data .clr-v2-material-group-actions{padding-top:12px}#clr_rental_product_data .clr-v2-material-option{grid-template-columns:1fr 1fr}}
+@media(max-width:782px){#clr_rental_product_data .clr-v2-material-group-settings,#clr_rental_product_data .clr-v2-material-option{grid-template-columns:1fr}#clr_rental_product_data .clr-v2-material-group-actions{justify-content:space-between}#clr_rental_product_data .clr-remove-material-option{justify-self:end}}

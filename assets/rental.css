@@ -1,0 +1,140 @@
+/*
+ * Frontend styles intentionally inherit typography and colors from the active
+ * theme. The plugin only provides layout and subtle state styling.
+ */
+.clr-rental-box{
+    --clr-rental-border:rgba(127,127,127,.28);
+    --clr-rental-subtle:rgba(127,127,127,.08);
+    border:1px solid var(--clr-rental-border);
+    padding:18px;
+    margin:20px 0;
+    border-radius:10px;
+    background:transparent;
+    color:inherit;
+    font:inherit;
+}
+@supports (color:color-mix(in srgb,currentColor 20%,transparent)){
+    .clr-rental-box{
+        --clr-rental-border:color-mix(in srgb,currentColor 20%,transparent);
+        --clr-rental-subtle:color-mix(in srgb,currentColor 6%,transparent);
+    }
+}
+.clr-rental-box h3{margin-top:0;color:inherit}
+.clr-time-info{padding:10px 12px;background:var(--clr-rental-subtle);border:1px solid var(--clr-rental-border);border-radius:6px;color:inherit}
+.clr-calendar{margin:14px 0}
+.clr-cal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.clr-cal-head button{min-width:42px;color:inherit}
+.clr-cal-legend{font-size:.85em;opacity:.8;text-align:center}
+.clr-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:currentColor;opacity:.35;margin-right:4px}
+.clr-months{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.clr-month{min-width:0}
+.clr-month-title{text-align:center;font-weight:700;margin-bottom:7px;text-transform:capitalize;color:inherit}
+.clr-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.clr-cal-weekday{text-align:center;font-size:.78em;font-weight:600;padding:5px 0;color:inherit}
+.clr-cal-day{
+    position:relative;
+    padding:9px 3px;
+    border:1px solid var(--clr-rental-border);
+    background:transparent;
+    color:inherit;
+    border-radius:5px;
+    cursor:pointer;
+    text-align:center;
+    min-height:38px;
+    font:inherit;
+    box-shadow:none;
+}
+.clr-cal-day:hover:not(:disabled){border-color:currentColor;background:var(--clr-rental-subtle)}
+.clr-cal-day:disabled{opacity:.3;text-decoration:line-through;cursor:not-allowed;background:transparent;color:inherit}
+.clr-cal-day.has-booking:after{content:"";position:absolute;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.45;bottom:3px;left:50%;transform:translateX(-50%)}
+.clr-cal-day.is-selected,.clr-cal-day.is-in-range{font-weight:700;outline:2px solid currentColor;outline-offset:-1px;background:var(--clr-rental-subtle)}
+.clr-cal-empty{min-height:38px}
+.clr-date-summary{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.clr-date-summary label,.clr-addon-group label,.clr-delivery-fields label{display:block;font-weight:600;color:inherit}
+.clr-date-summary input,.clr-addon-group select,.clr-delivery-fields input,.clr-delivery-fields select{width:100%;font:inherit}
+.clr-hint{font-size:.9em;opacity:.75}
+.clr-fulfilment{border:0;padding:0;margin:14px 0;color:inherit}
+.clr-fulfilment legend{font-weight:600;margin-bottom:5px;color:inherit}
+.clr-fulfilment label{margin-right:18px;color:inherit}
+.clr-delivery-fields{padding:12px;background:var(--clr-rental-subtle);border:1px solid var(--clr-rental-border);border-radius:6px;margin:10px 0;color:inherit}
+.clr-delivery-fields[hidden]{display:none!important}
+.clr-delivery-quote-actions{display:flex;align-items:center;justify-content:flex-start;margin-top:12px}
+.clr-delivery-quote-actions .button{margin:0;display:inline-flex;align-items:center;justify-content:center;width:auto;max-width:100%}
+.clr-delivery-result{display:block;clear:both;width:100%;font-weight:600;margin:10px 0 0;line-height:1.45}
+.clr-delivery-result:empty{display:none}
+.clr-delivery-result.is-error{color:#b32d2e}
+.clr-price-preview{padding:13px;background:var(--clr-rental-subtle);border:1px solid var(--clr-rental-border);border-radius:6px;margin-top:14px;color:inherit}
+.clr-price-preview small{display:block;margin-top:4px}
+.clr-rental-price-line{color:inherit}
+.clr-deposit-notice{margin-top:8px;padding-top:8px;border-top:1px solid var(--clr-rental-border);color:inherit}
+.clr-calendar-loading{opacity:.55;pointer-events:none}
+@media(max-width:760px){.clr-months{grid-template-columns:1fr}.clr-months .clr-month:nth-child(2){display:none}}
+@media(max-width:520px){.clr-date-summary{grid-template-columns:1fr}.clr-cal-day{padding:7px 1px;font-size:.9em}.clr-cal-legend{display:none}}
+
+/* V2 terms and checkout elements inherit the active theme. */
+.clr-v2-terms-acceptance{margin:14px 0;padding:12px;border:1px solid var(--clr-rental-border,rgba(127,127,127,.28));border-radius:8px;background:transparent;color:inherit}
+.clr-v2-checkbox-row{display:flex;align-items:flex-start;gap:8px;font-weight:600}
+.clr-v2-checkbox-row input{margin-top:.25em}
+.clr-v2-terms-details{margin-top:8px}
+.clr-v2-terms-details summary{cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.clr-v2-terms-content{margin-top:10px;max-height:320px;overflow:auto;padding:12px 14px;border:1px solid var(--clr-rental-border,rgba(127,127,127,.28));border-radius:6px;line-height:1.55;background:rgba(255,255,255,.35)}
+.clr-v2-terms-content p{margin:0 0 .85em}
+.clr-v2-terms-content p:last-child{margin-bottom:0}
+.clr-v2-terms-content h3,.clr-v2-terms-content h4{margin:0 0 .55em;line-height:1.35}
+.clr-v2-terms-content h3:not(:first-child),.clr-v2-terms-content h4:not(:first-child){margin-top:1em}
+.clr-v2-terms-content ul,.clr-v2-terms-content ol{margin:.25em 0 .9em 1.2em;padding:0}
+.clr-v2-terms-content li{margin:0 0 .35em}
+.clr-v2-checkout-deposit{margin:12px 0;padding:12px;border:1px solid rgba(127,127,127,.28);border-radius:8px;background:transparent;color:inherit}
+.clr-v2-checkout-deposit label{display:inline-block;margin:4px 0}
+.clr-v2-checkout-deposit .description{opacity:.75;font-size:.9em}
+.clr-v2-account-documents ul{margin-left:1.2em}
+
+/* V2 stable price summary: clear hierarchy while still inheriting theme colors. */
+.clr-price-preview{display:grid;gap:8px}
+.clr-rental-price-line{display:flex;align-items:baseline;justify-content:space-between;gap:16px}
+.clr-price-label,.clr-deposit-label{font-weight:600}
+.clr-price-value{font-size:1.3em;line-height:1.2}
+.clr-duration-preview{opacity:.75}
+.clr-deposit-notice{display:grid;grid-template-columns:auto 1fr;column-gap:12px;row-gap:3px;align-items:baseline}
+.clr-deposit-notice .clr-deposit-copy{grid-column:1/-1;font-size:.9em;opacity:.8}
+@media(max-width:520px){.clr-rental-price-line{align-items:flex-start;flex-direction:column;gap:3px}.clr-deposit-notice{grid-template-columns:1fr}}
+
+/* 2.0.11: long transport choices remain readable on desktop and mobile. */
+.clr-fulfilment{display:grid;gap:7px}
+.clr-fulfilment label{display:flex;align-items:flex-start;gap:8px;margin:0}
+.clr-fulfilment input[type="radio"]{margin-top:.25em;flex:0 0 auto}
+
+/* 2.0.20: visual rental-accessory cards / slider. */
+.clr-v2-material-options{display:grid;gap:18px;margin:18px 0}
+.clr-accessory-group{min-width:0;padding:14px;border:1px solid var(--clr-rental-border,rgba(127,127,127,.28));border-radius:10px;background:rgba(255,255,255,.22)}
+.clr-accessory-group-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:10px}
+.clr-accessory-group-head h4{margin:0 0 3px;font-size:1.02em;line-height:1.35}
+.clr-accessory-group-head p{margin:0;opacity:.72;font-size:.9em}
+.clr-accessory-slider-nav{display:flex;gap:6px;flex:0 0 auto}
+.clr-accessory-slider-nav button{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;border:1px solid var(--clr-rental-border,rgba(127,127,127,.35));border-radius:50%;background:transparent;color:inherit;font-size:22px;line-height:1;cursor:pointer}
+.clr-accessory-slider{display:flex;gap:12px;overflow-x:auto;overscroll-behavior-inline:contain;scroll-snap-type:x proximity;scrollbar-width:thin;padding:2px 2px 8px}
+.clr-accessory-card{position:relative;display:flex;flex:0 0 min(280px,82vw);flex-direction:column;scroll-snap-align:start;min-width:0;border:1px solid var(--clr-rental-border,rgba(127,127,127,.28));border-radius:10px;background:rgba(255,255,255,.5);overflow:hidden;transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease}
+.clr-accessory-card.is-selected{border-color:currentColor;box-shadow:0 0 0 1px currentColor inset}
+.clr-accessory-choice{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;border:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important}
+.clr-accessory-card-select{display:flex!important;flex:1 1 auto;flex-direction:column;margin:0!important;padding:0!important;color:inherit!important;text-decoration:none!important;cursor:pointer}
+.clr-accessory-image{display:block;aspect-ratio:4/3;background:rgba(127,127,127,.08);overflow:hidden}
+.clr-accessory-image img{display:block;width:100%;height:100%;object-fit:cover;margin:0}
+.clr-accessory-placeholder{display:flex;align-items:center;justify-content:center;aspect-ratio:4/3;font-size:52px;line-height:1;opacity:.28}
+.clr-accessory-card-body{display:flex;flex:1 1 auto;flex-direction:column;gap:5px;padding:12px}
+.clr-accessory-card-body>strong{font-size:1em;line-height:1.35}
+.clr-accessory-description{font-size:.9em;line-height:1.45;opacity:.78}
+.clr-accessory-price{margin-top:auto;padding-top:5px;font-weight:700;font-size:1.05em}
+.clr-accessory-card-body small{font-size:.78em;opacity:.65}
+.clr-accessory-select-label{display:flex;align-items:center;justify-content:center;min-height:42px;margin:0 12px 12px;padding:9px 12px;border:1px solid var(--clr-rental-border,rgba(127,127,127,.35));border-radius:8px;background:#fff;color:#1d2327;text-align:center;font-weight:700;line-height:1.2;box-sizing:border-box;transition:background-color .15s ease,border-color .15s ease,color .15s ease,box-shadow .15s ease}
+.clr-accessory-card:hover .clr-accessory-select-label{border-color:rgba(0,0,0,.35)}
+.clr-accessory-card.is-selected .clr-accessory-select-label{background:var(--clr-rental-accent,#5a3700);border-color:var(--clr-rental-accent,#5a3700);color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.clr-accessory-card[data-accessory-id="0"].is-selected .clr-accessory-select-label{background:#1d2327;border-color:#1d2327;color:#fff}
+.clr-accessory-quantity{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-top:1px solid var(--clr-rental-border,rgba(127,127,127,.22));background:rgba(127,127,127,.04)}
+.clr-accessory-qty-title{font-size:.88em;font-weight:600}
+.clr-accessory-fixed-qty{font-weight:700}
+.clr-accessory-qty-control{display:grid;grid-template-columns:32px 52px 32px;align-items:stretch;border:1px solid var(--clr-rental-border,rgba(127,127,127,.35));border-radius:7px;overflow:hidden;background:transparent}
+.clr-accessory-qty-control button{display:flex;align-items:center;justify-content:center;min-width:0;margin:0;padding:0;border:0;border-radius:0;background:transparent;color:inherit;font-size:18px;cursor:pointer}
+.clr-accessory-qty-control input{width:52px!important;min-width:0!important;margin:0!important;padding:5px 2px!important;border-width:0 1px!important;border-style:solid!important;border-color:var(--clr-rental-border,rgba(127,127,127,.35))!important;border-radius:0!important;background:transparent!important;text-align:center!important;appearance:textfield}
+.clr-accessory-qty-control input::-webkit-inner-spin-button,.clr-accessory-qty-control input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.clr-accessory-card:not(.is-selected) .clr-accessory-quantity{opacity:.5}
+@media(max-width:600px){.clr-accessory-group{padding:12px}.clr-accessory-slider-nav{display:none}.clr-accessory-card{flex-basis:84vw;max-width:290px}}
