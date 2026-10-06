@@ -1,0 +1,109 @@
+name: Apply Plugin Check source fixes
+
+on:
+  push:
+    branches:
+      - fix/plugin-check-2026-10-06
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: ${{ !contains(github.event.head_commit.message, '[autofix]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/plugin-check-2026-10-06
+          fetch-depth: 0
+      - name: Apply targeted source fixes
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new, label):
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              if text.count(old) != 1:
+                  raise SystemExit(f'{label}: expected block exactly once, found {text.count(old)}')
+              p.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          main = 'includes/class-rmwc-plugin.php'
+          replace_once(
+              main,
+              "// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Availability uses the plugin's own transactional booking table and must be current.\n        return $wpdb->get_results( $sql, ARRAY_A );",
+              "// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- $sql is prepared in every branch immediately above; availability uses the plugin's own transactional table and must be current.\n        return $wpdb->get_results( $sql, ARRAY_A );",
+              'prepared SQL annotation'
+          )
+          replace_once(
+              main,
+              """            if ( 'online' === $deposit_mode ) {\n                $deposit_text = sprintf( __( '%s – online mit der Bestellung hinterlegen', 'patsch9-rental-engine' ), $deposit_amount );\n            } elseif ( 'cash' === $deposit_mode ) {\n                $deposit_text = sprintf( __( '%s – separat: Überweisung oder bar bei Abholung', 'patsch9-rental-engine' ), $deposit_amount );\n            } else {\n                $deposit_text = sprintf( __( '%s – Auswahl im Checkout: online oder separat (Überweisung / bar bei Abholung)', 'patsch9-rental-engine' ), $deposit_amount );\n            }""",
+              """            if ( 'online' === $deposit_mode ) {\n                $deposit_text = sprintf(\n                    /* translators: %s: formatted refundable deposit amount. */\n                    __( '%s – online mit der Bestellung hinterlegen', 'patsch9-rental-engine' ),\n                    $deposit_amount\n                );\n            } elseif ( 'cash' === $deposit_mode ) {\n                $deposit_text = sprintf(\n                    /* translators: %s: formatted refundable deposit amount. */\n                    __( '%s – separat: Überweisung oder bar bei Abholung', 'patsch9-rental-engine' ),\n                    $deposit_amount\n                );\n            } else {\n                $deposit_text = sprintf(\n                    /* translators: %s: formatted refundable deposit amount. */\n                    __( '%s – Auswahl im Checkout: online oder separat (Überweisung / bar bei Abholung)', 'patsch9-rental-engine' ),\n                    $deposit_amount\n                );\n            }""",
+              'cart deposit translator comments'
+          )
+          p = Path(main)
+          text = p.read_text(encoding='utf-8')
+          old_exception = "throw new Exception( sanitize_text_field( $result->get_error_message() ) );"
+          if text.count(old_exception) != 2:
+              raise SystemExit(f'expected two booking exceptions, found {text.count(old_exception)}')
+          p.write_text(text.replace(old_exception, "throw new Exception( esc_html( $result->get_error_message() ) );"), encoding='utf-8')
+
+          deposits = 'includes/v2/modules/class-rmwc-v2-deposits.php'
+          p = Path(deposits)
+          text = p.read_text(encoding='utf-8')
+          text = text.replace(
+              """            /* translators: %s: formatted refundable deposit amount already collected online. */\n            return sanitize_textarea_field(\n                sprintf(\n                    __( 'Die Kaution von %s wurde bereits mit der Online-Zahlung hinterlegt und gehört nicht zur Rechnungssumme. Der QR-Code dieser Rechnung enthält nur den Rechnungsbetrag. Die Rückerstattung erfolgt gemäß Mietbedingungen.', 'patsch9-rental-engine' ),""",
+              """            return sanitize_textarea_field(\n                sprintf(\n                    /* translators: %s: formatted refundable deposit amount already collected online. */\n                    __( 'Die Kaution von %s wurde bereits mit der Online-Zahlung hinterlegt und gehört nicht zur Rechnungssumme. Der QR-Code dieser Rechnung enthält nur den Rechnungsbetrag. Die Rückerstattung erfolgt gemäß Mietbedingungen.', 'patsch9-rental-engine' ),""",
+              1
+          )
+          text = text.replace(
+              """            /* translators: 1: total refundable deposit, 2: amount collected online, 3: amount still to be deposited separately. */\n            return sanitize_textarea_field(\n                sprintf(\n                    __( 'Die Kaution beträgt %1$s. %2$s wurden bereits online hinterlegt; %3$s sind separat zu überweisen oder bei Abholung bar zu hinterlegen. Der QR-Code dieser Rechnung enthält nur den Rechnungsbetrag. Die Rückerstattung erfolgt gemäß Mietbedingungen.', 'patsch9-rental-engine' ),""",
+              """            return sanitize_textarea_field(\n                sprintf(\n                    /* translators: 1: total refundable deposit, 2: amount collected online, 3: amount still to be deposited separately. */\n                    __( 'Die Kaution beträgt %1$s. %2$s wurden bereits online hinterlegt; %3$s sind separat zu überweisen oder bei Abholung bar zu hinterlegen. Der QR-Code dieser Rechnung enthält nur den Rechnungsbetrag. Die Rückerstattung erfolgt gemäß Mietbedingungen.', 'patsch9-rental-engine' ),""",
+              1
+          )
+          text = text.replace(
+              """        /* translators: %s: formatted refundable deposit amount to be deposited separately. */\n        return sanitize_textarea_field(\n            sprintf(\n                __( 'Gemäß Mietbedingungen ist zusätzlich eine Kaution von %s zu hinterlegen. Sie kann separat überwiesen oder bei Abholung bar hinterlegt werden. Der QR-Code dieser Rechnung enthält nur den Rechnungsbetrag; die Kaution ist darin nicht enthalten. Die Rückerstattung erfolgt gemäß Mietbedingungen.', 'patsch9-rental-engine' ),""",
+              """        return sanitize_textarea_field(\n            sprintf(\n                /* translators: %s: formatted refundable deposit amount to be deposited separately. */\n                __( 'Gemäß Mietbedingungen ist zusätzlich eine Kaution von %s zu hinterlegen. Sie kann separat überwiesen oder bei Abholung bar hinterlegt werden. Der QR-Code dieser Rechnung enthält nur den Rechnungsbetrag; die Kaution ist darin nicht enthalten. Die Rückerstattung erfolgt gemäß Mietbedingungen.', 'patsch9-rental-engine' ),""",
+              1
+          )
+          p.write_text(text, encoding='utf-8')
+
+          replace_once(
+              'includes/v2/modules/class-rmwc-v2-integrations.php',
+              """            $label = 'incl' === $tax_display\n                ? sprintf( __( 'inkl. %s %% MwSt.', 'patsch9-rental-engine' ), $percent )\n                : sprintf( __( '%s %% MwSt.', 'patsch9-rental-engine' ), $percent );""",
+              """            if ( 'incl' === $tax_display ) {\n                $label = sprintf(\n                    /* translators: %s: tax percentage. */\n                    __( 'inkl. %s %% MwSt.', 'patsch9-rental-engine' ),\n                    $percent\n                );\n            } else {\n                $label = sprintf(\n                    /* translators: %s: tax percentage. */\n                    __( '%s %% MwSt.', 'patsch9-rental-engine' ),\n                    $percent\n                );\n            }""",
+              'tax translator comments'
+          )
+
+          replace_once(
+              'includes/v2/modules/class-rmwc-v2-workflow.php',
+              "wp_strip_all_tags( wc_price( $deposit_state['missing'], [ 'currency' => $order->get_currency() ] ) )",
+              "esc_html( wp_strip_all_tags( wc_price( $deposit_state['missing'], [ 'currency' => $order->get_currency() ] ) ) )",
+              'workflow deposit escaping'
+          )
+
+          replace_once(
+              'includes/v2/modules/class-rmwc-v2-documents.php',
+              """        $system_temp = function_exists( 'sys_get_temp_dir' ) ? sys_get_temp_dir() : '';\n        if ( is_string( $system_temp ) && '' !== $system_temp && is_dir( $system_temp ) && is_writable( $system_temp ) ) {""",
+              """        $system_temp = function_exists( 'sys_get_temp_dir' ) ? sys_get_temp_dir() : '';\n        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- This checks the OS temp directory before creating an exclusive, permission-restricted transient PDF outside potentially web-accessible WordPress paths.\n        if ( is_string( $system_temp ) && '' !== $system_temp && is_dir( $system_temp ) && is_writable( $system_temp ) ) {""",
+              'OS temp directory writability annotation'
+          )
+
+          # The workflow is intentionally one-shot and removes itself in the fix commit.
+          Path('.github/workflows/apply-plugin-check-fixes.yml').unlink()
+          PY
+          php -l includes/class-rmwc-plugin.php
+          php -l includes/v2/modules/class-rmwc-v2-deposits.php
+          php -l includes/v2/modules/class-rmwc-v2-integrations.php
+          php -l includes/v2/modules/class-rmwc-v2-workflow.php
+          php -l includes/v2/modules/class-rmwc-v2-documents.php
+      - name: Commit source fixes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add includes/class-rmwc-plugin.php includes/v2/modules/class-rmwc-v2-deposits.php includes/v2/modules/class-rmwc-v2-integrations.php includes/v2/modules/class-rmwc-v2-workflow.php includes/v2/modules/class-rmwc-v2-documents.php .github/workflows/apply-plugin-check-fixes.yml
+          git commit -m "Fix Plugin Check source findings [autofix]"
+          git push origin HEAD:fix/plugin-check-2026-10-06
