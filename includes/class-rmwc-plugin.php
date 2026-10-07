@@ -4,6 +4,7 @@ defined( 'ABSPATH' ) || exit;
 
 final class RMWC_Plugin {
     private static $instance = null;
+    private $admin_page_hook = '';
 
     public static function instance() {
         if ( null === self::$instance ) {
@@ -656,22 +657,22 @@ final class RMWC_Plugin {
             update_post_meta( $post_id, $key, min( 7, max( 1, $value ) ) );
         }
 
-        /* phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Product nonce/capability verified above; every nested value is validated below. */
-        $blocked_pickup = isset( $_POST['clr_blocked_pickup_days'] ) && is_array( $_POST['clr_blocked_pickup_days'] )
-            ? $this->sanitize_weekday_list( wp_unslash( $_POST['clr_blocked_pickup_days'] ) )
+        $raw_blocked_pickup = isset( $_POST['clr_blocked_pickup_days'] )
+            ? map_deep( wp_unslash( $_POST['clr_blocked_pickup_days'] ), 'sanitize_text_field' )
             : [];
-        /* phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Product nonce/capability verified above; every nested value is validated below. */
-        $blocked_return = isset( $_POST['clr_blocked_return_days'] ) && is_array( $_POST['clr_blocked_return_days'] )
-            ? $this->sanitize_weekday_list( wp_unslash( $_POST['clr_blocked_return_days'] ) )
+        $blocked_pickup = $this->sanitize_weekday_list( is_array( $raw_blocked_pickup ) ? $raw_blocked_pickup : [] );
+        $raw_blocked_return = isset( $_POST['clr_blocked_return_days'] )
+            ? map_deep( wp_unslash( $_POST['clr_blocked_return_days'] ), 'sanitize_text_field' )
             : [];
+        $blocked_return = $this->sanitize_weekday_list( is_array( $raw_blocked_return ) ? $raw_blocked_return : [] );
         update_post_meta( $post_id, '_clr_blocked_pickup_days', $blocked_pickup );
         update_post_meta( $post_id, '_clr_blocked_return_days', $blocked_return );
 
         $weekday_prices = [];
-        /* phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Product nonce/capability verified above; every nested value is validated below. */
-        $raw_weekday_prices = isset( $_POST['clr_weekday_prices'] ) && is_array( $_POST['clr_weekday_prices'] )
-            ? wp_unslash( $_POST['clr_weekday_prices'] )
+        $raw_weekday_prices = isset( $_POST['clr_weekday_prices'] )
+            ? map_deep( wp_unslash( $_POST['clr_weekday_prices'] ), 'sanitize_text_field' )
             : [];
+        $raw_weekday_prices = is_array( $raw_weekday_prices ) ? $raw_weekday_prices : [];
         for ( $day = 1; $day <= 7; $day++ ) {
             if ( ! isset( $raw_weekday_prices[ $day ] ) && ! isset( $raw_weekday_prices[ (string) $day ] ) ) {
                 continue;
@@ -686,7 +687,8 @@ final class RMWC_Plugin {
 
         $decimal_fields = [ '_clr_unit_price', '_clr_deposit', '_clr_delivery_fee', '_clr_weekend_price' ];
         foreach ( $decimal_fields as $key ) {
-            $value = isset( $_POST[ $key ] ) ? (float) wc_format_decimal( wp_unslash( $_POST[ $key ] ) ) : 0;
+            $raw_value = isset( $_POST[ $key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $key ] ) ) : '0';
+            $value = (float) wc_format_decimal( $raw_value );
             update_post_meta( $post_id, $key, min( 100000000, max( 0, $value ) ) );
         }
         $deposit_notice = isset( $_POST['_clr_deposit_notice'] )
@@ -782,7 +784,7 @@ final class RMWC_Plugin {
             wp_enqueue_style( 'patsch9-rental-engine-admin', RMWC_URL . 'assets/admin.css', [], RMWC_VERSION );
         }
 
-        if ( isset( $_GET['page'] ) && 'clr-rentals' === sanitize_key( wp_unslash( $_GET['page'] ) ) ) {
+        if ( $this->admin_page_hook && $hook === $this->admin_page_hook ) {
             wp_enqueue_style( 'patsch9-rental-engine-admin', RMWC_URL . 'assets/admin.css', [], RMWC_VERSION );
             wp_enqueue_script( 'wc-enhanced-select' );
             wp_enqueue_style( 'woocommerce_admin_styles' );
@@ -1311,7 +1313,7 @@ final class RMWC_Plugin {
     private function insert_booking_with_lock( $product_id, array $data, array $interval ) {
         global $wpdb;
         $lock_name = $this->booking_lock_name( $product_id );
-        $got_lock  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 8)', $lock_name ) );
+        $got_lock  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 8)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Booking advisory locks must reflect current database state and are intentionally not cached.
         if ( 1 !== $got_lock ) {
             return new WP_Error( 'clr_booking_lock', 'Der Mietbestand konnte gerade nicht sicher gesperrt werden. Bitte erneut versuchen.' );
         }
@@ -1319,13 +1321,13 @@ final class RMWC_Plugin {
             if ( ! $this->capacity_available( $product_id, [ $interval ] ) ) {
                 return new WP_Error( 'clr_booking_capacity', 'Für diesen Zeitraum ist nicht genügend Kapazität frei.' );
             }
-            $ok = $wpdb->insert( $this->table(), $data, [ '%d','%s','%s','%s','%s','%s','%d','%s','%s','%s','%s','%s' ] );
+            $ok = $wpdb->insert( $this->table(), $data, [ '%d','%s','%s','%s','%s','%s','%d','%s','%s','%s','%s','%s' ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Writes to the plugin's transactional booking table must not be cached.
             if ( false === $ok ) {
                 return new WP_Error( 'clr_booking_database', 'Der Zeitraum konnte nicht gespeichert werden. Bitte erneut versuchen.' );
             }
             return (int) $wpdb->insert_id;
         } finally {
-            $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
+            $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Releases the matching booking advisory lock immediately; caching is invalid here.
         }
     }
 
@@ -1339,9 +1341,12 @@ final class RMWC_Plugin {
                 continue;
             }
             $r = $item['clr_rental'];
+            if ( empty( $r['start_at'] ) || empty( $r['end_at'] ) ) {
+                continue;
+            }
             $intervals[] = [
-                'start_at' => $interval_check['start_at'],
-                'end_at'   => $interval_check['end_at'],
+                'start_at' => sanitize_text_field( (string) $r['start_at'] ),
+                'end_at'   => sanitize_text_field( (string) $r['end_at'] ),
                 'quantity' => max( 1, (int) ( $item['quantity'] ?? 1 ) ),
             ];
         }
@@ -2231,7 +2236,7 @@ final class RMWC_Plugin {
         try {
             foreach ( array_keys( $groups ) as $product_id ) {
                 $lock_name = $this->booking_lock_name( $product_id );
-                $got_lock  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 8)', $lock_name ) );
+                $got_lock  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 8)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Booking advisory locks must reflect current database state and are intentionally not cached.
                 if ( 1 !== $got_lock ) {
                     return new WP_Error( 'clr_booking_lock', 'Der Mietbestand konnte gerade nicht sicher reserviert werden. Bitte Bestellung erneut versuchen.' );
                 }
@@ -2311,7 +2316,7 @@ final class RMWC_Plugin {
             return true;
         } finally {
             foreach ( array_reverse( $locks ) as $lock_name ) {
-                $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
+                $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Releases the matching booking advisory lock immediately; caching is invalid here.
             }
         }
     }
@@ -2555,7 +2560,8 @@ final class RMWC_Plugin {
     }
 
     public function admin_menu() {
-        add_submenu_page( 'woocommerce', 'Vermietungen', 'Vermietungen', 'manage_woocommerce', 'clr-rentals', [ $this, 'admin_bookings_page' ] );
+        $hook = add_submenu_page( 'woocommerce', 'Vermietungen', 'Vermietungen', 'manage_woocommerce', 'clr-rentals', [ $this, 'admin_bookings_page' ] );
+        $this->admin_page_hook = is_string( $hook ) ? $hook : '';
     }
 
     private function admin_booking_row( $booking_id ) {
@@ -2624,7 +2630,7 @@ final class RMWC_Plugin {
                 : min( $this->capacity( $product_id ), max( 1, absint( wp_unslash( $_POST['quantity'] ?? $row['quantity'] ) ) ) );
 
             $lock_name = $this->booking_lock_name( $product_id );
-            $got_lock  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 8)', $lock_name ) );
+            $got_lock  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 8)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Booking advisory locks must reflect current database state and are intentionally not cached.
             if ( 1 !== $got_lock ) {
                 return '<div class="notice notice-error"><p>' . esc_html__( 'Die Buchung konnte gerade nicht sicher gesperrt werden. Bitte erneut versuchen.', 'patsch9-rental-engine' ) . '</p></div>';
             }
@@ -2767,7 +2773,7 @@ final class RMWC_Plugin {
                 do_action( 'rmwc_booking_updated', $booking_id, $row, $new_row );
                 return '<div class="notice notice-success"><p>' . esc_html__( 'Buchung wurde aktualisiert.', 'patsch9-rental-engine' ) . '</p></div>';
             } finally {
-                $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
+                $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Releases the matching booking advisory lock immediately; caching is invalid here.
             }
         }
 
