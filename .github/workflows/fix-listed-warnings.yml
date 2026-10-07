@@ -50,16 +50,12 @@ jobs:
                   "    public function admin_menu() {\n        $hook = add_submenu_page( 'woocommerce', 'Vermietungen', 'Vermietungen', 'manage_woocommerce', 'clr-rentals', [ $this, 'admin_bookings_page' ] );\n        $this->admin_page_hook = is_string( $hook ) ? $hook : '';\n    }\n",
               ),
               (
-                  "        $got_lock  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 8)', $lock_name ) );\n",
-                  "        $got_lock  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 8)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Advisory locks must reflect current database state and are intentionally not cached.\n",
-              ),
-              (
                   "            $ok = $wpdb->insert( $this->table(), $data, [ '%d','%s','%s','%s','%s','%s','%d','%s','%s','%s','%s','%s' ] );\n",
                   "            $ok = $wpdb->insert( $this->table(), $data, [ '%d','%s','%s','%s','%s','%s','%d','%s','%s','%s','%s','%s' ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Writes to the plugin's transactional booking table must not be cached.\n",
               ),
               (
-                  "            $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );\n",
-                  "            $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Releases the matching advisory lock immediately; caching is invalid here.\n",
+                  "            $r = $item['clr_rental'];\n            $intervals[] = [\n                'start_at' => $interval_check['start_at'],\n                'end_at'   => $interval_check['end_at'],\n                'quantity' => max( 1, (int) ( $item['quantity'] ?? 1 ) ),\n            ];\n",
+                  "            $r = $item['clr_rental'];\n            if ( empty( $r['start_at'] ) || empty( $r['end_at'] ) ) {\n                continue;\n            }\n            $intervals[] = [\n                'start_at' => sanitize_text_field( (string) $r['start_at'] ),\n                'end_at'   => sanitize_text_field( (string) $r['end_at'] ),\n                'quantity' => max( 1, (int) ( $item['quantity'] ?? 1 ) ),\n            ];\n",
               ),
           ]
 
@@ -68,6 +64,18 @@ jobs:
               if count != 1:
                   raise SystemExit(f'Expected exactly one match, found {count}: {old[:100]!r}')
               text = text.replace(old, new, 1)
+
+          lock_acquire = "        $got_lock  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 8)', $lock_name ) );\n"
+          lock_acquire_fixed = "        $got_lock  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 8)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Booking advisory locks must reflect current database state and are intentionally not cached.\n"
+          if text.count(lock_acquire) != 3:
+              raise SystemExit(f'Expected three booking lock acquisitions, found {text.count(lock_acquire)}')
+          text = text.replace(lock_acquire, lock_acquire_fixed)
+
+          lock_release = "            $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );\n"
+          lock_release_fixed = "            $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Releases the matching booking advisory lock immediately; caching is invalid here.\n"
+          if text.count(lock_release) != 3:
+              raise SystemExit(f'Expected three booking lock releases, found {text.count(lock_release)}')
+          text = text.replace(lock_release, lock_release_fixed)
 
           path.write_text(text, encoding='utf-8')
 
