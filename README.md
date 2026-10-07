@@ -59,6 +59,10 @@ Der Website-Betreiber ist für die korrekte Datenschutzinformation und die Einha
 
 Ab 2026.10.0 gilt projektweit `YYYY.M.PATCH`. Details stehen in [VERSIONING.md](VERSIONING.md).
 
+## Releases
+
+Installierbare ZIP-Dateien werden automatisch als [GitHub Releases](https://github.com/patsch9/patsch9-rental-engine/releases) bereitgestellt. Ein Release wird nur erzeugt, wenn der entsprechende `v...`-Tag zur Plugin-Version passt und die Paketprüfungen erfolgreich sind.
+
 ## Migration
 
 Hinweise für Installationen aus der Vorabphase stehen in [MIGRATION.md](MIGRATION.md).
@@ -70,6 +74,15 @@ Sicherheitslücken bitte **nicht öffentlich als GitHub-Issue veröffentlichen**
 ## Entwicklung & Tests
 
 Das Repository enthält automatisierte statische Prüfungen für unterstützte PHP-Versionen, JavaScript-Syntax und WordPress Plugin Check. Vor produktiven Releases sind zusätzlich Integrationstests mit der tatsächlich unterstützten WordPress-/WooCommerce-Kombination erforderlich.
+
+## Projekt unterstützen
+
+Wenn dir das Plugin hilft, kannst du die Weiterentwicklung unterstützen:
+
+- [GitHub Sponsors](https://github.com/sponsors/patsch9)
+- [Buy Me a Coffee](https://buymeacoffee.com/patsch09)
+
+Die Links sind zusätzlich über GitHubs Sponsor-Funktion (`.github/FUNDING.yml`) hinterlegt.
 
 ## Markenhinweise
 
