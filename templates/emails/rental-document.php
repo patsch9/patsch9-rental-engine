@@ -7,6 +7,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Standard WooCommerce email template hook; the hook name is defined by WooCommerce and must not be prefixed.
 do_action( 'woocommerce_email_header', $email_heading, $email );
 ?>
 
@@ -27,4 +28,5 @@ do_action( 'woocommerce_email_header', $email_heading, $email );
 <?php endif; ?>
 
 <?php
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Standard WooCommerce email template hook; the hook name is defined by WooCommerce and must not be prefixed.
 do_action( 'woocommerce_email_footer', $email );

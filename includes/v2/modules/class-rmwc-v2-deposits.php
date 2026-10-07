@@ -449,7 +449,7 @@ final class RMWC_V2_Deposits {
         if ( ! $this->cart_has_deposit_choice() ) {
             return;
         }
-        $choice = isset( $_POST['clr_v2_deposit_choice'] ) ? sanitize_key( wp_unslash( $_POST['clr_v2_deposit_choice'] ) ) : '';
+        $choice = isset( $_POST['clr_v2_deposit_choice'] ) ? sanitize_key( wp_unslash( $_POST['clr_v2_deposit_choice'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce verifies woocommerce-process-checkout-nonce before firing woocommerce_checkout_process.
         if ( ! in_array( $choice, [ 'online', 'cash' ], true ) ) {
             wc_add_notice( __( 'Bitte wählen Sie, wie die Kaution hinterlegt werden soll.', 'patsch9-rental-engine' ), 'error' );
         }
@@ -1157,6 +1157,7 @@ final class RMWC_V2_Deposits {
         global $wpdb;
         $scope = ( defined( 'DB_NAME' ) ? DB_NAME : '' ) . '|' . $wpdb->prefix . '|' . get_current_blog_id();
         $lock = 'clr_dep_' . substr( hash( 'sha256', $scope ), 0, 20 ) . '_' . $order->get_id();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $got = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 5)', $lock ) );
         return 1 === $got ? $lock : false;
     }
@@ -1166,6 +1167,7 @@ final class RMWC_V2_Deposits {
             return;
         }
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
     }
 
@@ -1188,8 +1190,10 @@ final class RMWC_V2_Deposits {
         $notice = 'error';
         try {
             $missing = max( 0, $this->required_total( $order ) - $this->received_total( $order ) );
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- admin_action_order() verifies the order-specific admin nonce before this handler continues.
             $amount = isset( $_POST['amount'] ) ? max( 0, (float) wc_format_decimal( sanitize_text_field( wp_unslash( $_POST['amount'] ) ) ) ) : 0;
             $amount = min( $missing, $amount );
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- admin_action_order() verifies the order-specific admin nonce before this handler continues.
             $method = isset( $_POST['method'] ) ? sanitize_key( wp_unslash( $_POST['method'] ) ) : 'cash';
 
             if ( $amount <= 0 || ! in_array( $method, [ 'cash', 'transfer', 'other' ], true ) ) {
@@ -1247,8 +1251,10 @@ final class RMWC_V2_Deposits {
                 $notice = 'uncertain';
             } else {
                 $available = max( 0, (float) ( $this->state( $order )['available'] ?? 0 ) );
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- admin_action_order() verifies the order-specific admin nonce before this handler continues.
                 $amount = isset( $_POST['amount'] ) ? max( 0, (float) wc_format_decimal( sanitize_text_field( wp_unslash( $_POST['amount'] ) ) ) ) : 0;
                 $amount = min( $available, $amount );
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- admin_action_order() verifies the order-specific admin nonce before this handler continues.
                 $method = isset( $_POST['method'] ) ? sanitize_key( wp_unslash( $_POST['method'] ) ) : 'manual';
 
                 if ( $amount <= 0 || ! in_array( $method, [ 'online', 'manual' ], true ) ) {
@@ -1306,12 +1312,15 @@ final class RMWC_V2_Deposits {
 
                     if ( $can_record_refund ) {
                         $remaining = max( 0, $available - $amount );
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- admin_action_order() verifies the order-specific admin nonce before this handler continues.
                         $retention_reason = isset( $_POST['retention_reason'] ) ? sanitize_key( wp_unslash( $_POST['retention_reason'] ) ) : 'none';
                         $allowed_reasons = [ 'none', 'damage', 'cleaning', 'loss', 'other' ];
                         if ( ! in_array( $retention_reason, $allowed_reasons, true ) || $remaining <= 0 ) {
                             $retention_reason = 'none';
                         }
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- admin_action_order() verifies the order-specific admin nonce before this handler continues.
                         $retention_note = isset( $_POST['retention_note'] )
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- admin_action_order() verifies the order-specific admin nonce before this handler continues.
                             ? substr( sanitize_text_field( wp_unslash( $_POST['retention_note'] ) ), 0, 500 )
                             : '';
                         $reason_labels = [
@@ -1416,6 +1425,7 @@ final class RMWC_V2_Deposits {
         if ( ! current_user_can( 'manage_woocommerce' ) ) {
             return;
         }
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The core settings handler verifies clr_admin_action before firing rmwc_save_v2_settings.
         $raw = isset( $_POST['clr_v2_offline_gateway_ids'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_v2_offline_gateway_ids'] ) ) : 'bacs,cheque,cod';
         $ids = array_values( array_unique( array_filter( array_map( 'sanitize_key', preg_split( '/[\s,;]+/', $raw ) ?: [] ) ) ) );
         update_option( 'clr_v2_offline_gateway_ids', implode( ',', array_slice( $ids, 0, 50 ) ), false );
