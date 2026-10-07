@@ -29,7 +29,8 @@ $rmwc_tables = [
 ];
 foreach ( $rmwc_tables as $rmwc_table ) {
     // Identifiers are constructed exclusively from the trusted WordPress prefix and plugin constant suffixes.
-    $wpdb->query( $wpdb->prepare( "DROP TABLE IF EXISTS %i", $rmwc_table ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit opt-in uninstall cleanup; cached reads/writes are not appropriate during removal.
+    $wpdb->query( $wpdb->prepare( "DROP TABLE IF EXISTS %i", $rmwc_table ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Explicit opt-in uninstall cleanup of plugin-owned tables; identifier is prepared with %i.
 }
 
 $rmwc_product_meta_keys = [
@@ -126,13 +127,13 @@ $rmwc_hpos_meta_table = $wpdb->prefix . 'wc_orders_meta';
 $rmwc_table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $rmwc_hpos_meta_table ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 if ( $rmwc_table_exists === $rmwc_hpos_meta_table ) {
     foreach ( $rmwc_order_meta_keys as $rmwc_meta_key ) {
-        $wpdb->delete( $rmwc_hpos_meta_table, [ 'meta_key' => $rmwc_meta_key ], [ '%s' ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->delete( $rmwc_hpos_meta_table, [ 'meta_key' => $rmwc_meta_key ], [ '%s' ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Explicit opt-in uninstall cleanup; cache is irrelevant and the meta-key scan runs only during destructive uninstall.
     }
 }
 
 $rmwc_order_item_meta_table = $wpdb->prefix . 'woocommerce_order_itemmeta';
 foreach ( [ '_clr_booking_admin_cancelled', '_clr_rental_data', '_clr_fee_type', '_clr_deposit', '_clr_terms_version_id', '_clr_terms_version', '_clr_terms_hash', '_clr_terms_accepted_at', '_clr_product_terms_snapshot', '_clr_rental_accessory', '_clr_rental_parent_product', '_clr_rental_accessory_group', '_clr_rental_accessory_label', '_clr_rental_accessory_mode' ] as $rmwc_meta_key ) {
-    $wpdb->delete( $rmwc_order_item_meta_table, [ 'meta_key' => $rmwc_meta_key ], [ '%s' ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+    $wpdb->delete( $rmwc_order_item_meta_table, [ 'meta_key' => $rmwc_meta_key ], [ '%s' ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Explicit opt-in uninstall cleanup; cache is irrelevant and the meta-key scan runs only during destructive uninstall.
 }
 
 $rmwc_patterns = [
@@ -148,5 +149,6 @@ $rmwc_patterns = [
     '_transient_timeout_clr_v2_deposit_choice_product_ids',
 ];
 foreach ( $rmwc_patterns as $rmwc_pattern ) {
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit opt-in uninstall cleanup; cached reads/writes are not appropriate during removal.
     $wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE option_name LIKE %s", $wpdb->options, $wpdb->esc_like( rtrim( $rmwc_pattern, '%' ) ) . '%' ) );
 }

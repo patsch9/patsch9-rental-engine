@@ -132,6 +132,7 @@ final class RMWC_V2_Workflow {
 
     private function booking( $booking_id ) {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $row = $wpdb->get_row(
             $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d LIMIT 1', $this->booking_table(), absint( $booking_id ) ),
             ARRAY_A
@@ -192,6 +193,7 @@ final class RMWC_V2_Workflow {
             return new WP_Error( 'clr_asset_booking', __( 'Gerätezuordnung konnte nicht vorbereitet werden.', 'patsch9-rental-engine' ) );
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $existing = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT id, asset_id FROM %i WHERE booking_id = %d AND status IN ('reserved','handed_over') ORDER BY id",
@@ -210,6 +212,7 @@ final class RMWC_V2_Workflow {
         $start_at = sanitize_text_field( $booking['start_at'] ?? '' );
         $end_at   = sanitize_text_field( $booking['end_at'] ?? '' );
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $candidates = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT a.id
@@ -263,6 +266,7 @@ final class RMWC_V2_Workflow {
 
         $created = [];
         foreach ( $available_ids as $asset_id ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $ok = $wpdb->insert(
                 $this->assignment_table(),
                 [
@@ -290,6 +294,7 @@ final class RMWC_V2_Workflow {
         global $wpdb;
         foreach ( array_map( 'absint', $ids ) as $id ) {
             if ( $id ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                 $wpdb->delete( $this->assignment_table(), [ 'id' => $id ], [ '%d' ] );
             }
         }
@@ -309,6 +314,7 @@ final class RMWC_V2_Workflow {
 
         global $wpdb;
         $booking_id = absint( $old_row['id'] ?? 0 );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $old_assignments = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT * FROM %i WHERE booking_id = %d AND status = 'reserved' ORDER BY id",
@@ -319,6 +325,7 @@ final class RMWC_V2_Workflow {
         );
         $old_assignments = is_array( $old_assignments ) ? $old_assignments : [];
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $wpdb->delete( $this->assignment_table(), [ 'booking_id' => $booking_id, 'status' => 'reserved' ], [ '%d', '%s' ] );
         $created = $this->ensure_booking_assignments( $new_row );
         if ( ! is_wp_error( $created ) ) {
@@ -326,8 +333,10 @@ final class RMWC_V2_Workflow {
         }
 
         // Roll the physical assignment state back to the exact previous rows.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $wpdb->delete( $this->assignment_table(), [ 'booking_id' => $booking_id, 'status' => 'reserved' ], [ '%d', '%s' ] );
         foreach ( $old_assignments as $assignment ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $wpdb->insert(
                 $this->assignment_table(),
                 [
@@ -354,6 +363,7 @@ final class RMWC_V2_Workflow {
             $where['order_id'] = absint( $order_id );
             $where_format[] = '%d';
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $wpdb->update(
             $this->assignment_table(),
             [ 'status' => 'cancelled', 'updated_at' => current_time( 'mysql', true ) ],
@@ -365,6 +375,7 @@ final class RMWC_V2_Workflow {
 
     private function assignments_for_booking( $booking_id ) {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $rows = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT aa.*, a.inventory_number, a.serial_number, a.known_damage, a.status AS asset_status
@@ -414,6 +425,7 @@ final class RMWC_V2_Workflow {
             wp_die( esc_html__( 'Keine Berechtigung.', 'patsch9-rental-engine' ), '', [ 'response' => 403 ] );
         }
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only WooCommerce admin navigation/filter parameter; no state change occurs here.
         $notice = isset( $_GET['clr_workflow_notice'] ) ? sanitize_key( wp_unslash( $_GET['clr_workflow_notice'] ) ) : '';
         if ( $notice ) {
             $messages = [
@@ -433,7 +445,9 @@ final class RMWC_V2_Workflow {
             }
         }
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only WooCommerce admin navigation/filter parameter; no state change occurs here.
         $booking_id = isset( $_GET['booking_id'] ) ? absint( wp_unslash( $_GET['booking_id'] ) ) : 0;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only WooCommerce admin navigation/filter parameter; no state change occurs here.
         $mode       = isset( $_GET['mode'] ) ? sanitize_key( wp_unslash( $_GET['mode'] ) ) : '';
         if ( $booking_id && in_array( $mode, [ 'handover', 'return' ], true ) ) {
             $this->render_workflow_form( $booking_id, $mode );
@@ -442,6 +456,7 @@ final class RMWC_V2_Workflow {
 
         global $wpdb;
         $now = current_time( 'mysql' );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $rows = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT * FROM %i
@@ -638,7 +653,7 @@ final class RMWC_V2_Workflow {
                                     printf(
                                         /* translators: %s: still missing refundable deposit. */
                                         esc_html__( 'Vor der Übergabe sind noch %s Kaution offen. Der offene Betrag muss jetzt erfasst werden.', 'patsch9-rental-engine' ),
-                                        wp_strip_all_tags( wc_price( $deposit_state['missing'], [ 'currency' => $order->get_currency() ] ) )
+                                        esc_html( wp_strip_all_tags( wc_price( $deposit_state['missing'], [ 'currency' => $order->get_currency() ] ) ) )
                                     );
                                 ?></p>
                             </div>
@@ -750,9 +765,9 @@ final class RMWC_V2_Workflow {
         $configured = $this->checklist( (int) $booking['product_id'], $type );
 
         if ( 'return' === $type ) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Values are validated against a fixed allowlist and mapped to the server-side checklist below.
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.NonceVerification.Missing -- validate_action_request() verifies the action-specific nonce before this private helper is called; values are then allowlisted below.
             $raw_status = isset( $_POST['checklist_status'] ) && is_array( $_POST['checklist_status'] ) ? wp_unslash( $_POST['checklist_status'] ) : [];
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Notes are individually sanitized and length-limited below.
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.NonceVerification.Missing -- validate_action_request() verifies the action-specific nonce before this private helper is called; notes are sanitized and length-limited below.
             $raw_notes = isset( $_POST['checklist_note'] ) && is_array( $_POST['checklist_note'] ) ? wp_unslash( $_POST['checklist_note'] ) : [];
             $allowed = [ 'ok', 'issue', 'na' ];
             $snapshot = [];
@@ -776,7 +791,7 @@ final class RMWC_V2_Workflow {
             return $snapshot;
         }
 
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Only numeric indexes are accepted and mapped to the server-side configured checklist.
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.NonceVerification.Missing -- validate_action_request() verifies the action-specific nonce before this private helper is called; only numeric configured indexes are accepted.
         $raw = isset( $_POST['checklist'] ) && is_array( $_POST['checklist'] ) ? wp_unslash( $_POST['checklist'] ) : [];
         $selected = array_values( array_unique( array_map( 'absint', $raw ) ) );
         if ( $configured && count( $selected ) < count( $configured ) ) {
@@ -791,7 +806,7 @@ final class RMWC_V2_Workflow {
     }
 
     private function signature_from_request() {
-        $raw = isset( $_POST['signature_data'] ) ? trim( (string) wp_unslash( $_POST['signature_data'] ) ) : '';
+        $raw = isset( $_POST['signature_data'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['signature_data'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- validate_action_request() verifies the action-specific nonce before this private helper is called; the data URI is strictly validated below.
         if ( '' === $raw ) {
             return '';
         }
@@ -881,9 +896,11 @@ final class RMWC_V2_Workflow {
         $deposit_module = RMWC_V2_Deposits::instance();
         $deposit_state  = $deposit_module->state( $order );
         if ( (float) ( $deposit_state['missing'] ?? 0 ) > 0 ) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- validate_action_request() verified the action-specific nonce at the start of this handler.
             if ( empty( $_POST['clr_workflow_deposit_receive'] ) ) {
                 $this->redirect( 'deposit_required', (int) $booking['id'], 'handover' );
             }
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- validate_action_request() verified the action-specific nonce at the start of this handler.
             $method = isset( $_POST['clr_workflow_deposit_method'] ) ? sanitize_key( wp_unslash( $_POST['clr_workflow_deposit_method'] ) ) : 'cash';
             $receipt = $deposit_module->workflow_receive( $order, (float) $deposit_state['missing'], $method );
             if ( is_wp_error( $receipt ) ) {
@@ -902,11 +919,13 @@ final class RMWC_V2_Workflow {
             }
         }
         $assets = $this->assignments_for_booking( (int) $booking['id'] );
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- validate_action_request() verified the action-specific nonce at the start of this handler.
         $notes = isset( $_POST['notes'] ) ? substr( sanitize_textarea_field( wp_unslash( $_POST['notes'] ) ), 0, 3000 ) : '';
         $snapshot = $this->workflow_snapshot( $booking, $order, 'handover', $checklist, $assets, $signature, $notes );
 
         global $wpdb;
         $now = current_time( 'mysql', true );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $transitioned = $wpdb->update(
             $this->booking_table(),
             [ 'workflow_status' => 'handed_over', 'handover_at' => $now ],
@@ -919,6 +938,7 @@ final class RMWC_V2_Workflow {
             // creating duplicate protocol documents, emails and order notes.
             $this->redirect( 'workflow_state', (int) $booking['id'], 'handover' );
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $wpdb->update(
             $this->assignment_table(),
             [ 'status' => 'handed_over', 'updated_at' => $now ],
@@ -927,6 +947,7 @@ final class RMWC_V2_Workflow {
             [ '%d', '%s' ]
         );
         foreach ( $assets as $asset ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $wpdb->update( $this->asset_table(), [ 'status' => 'rented', 'updated_at' => $now ], [ 'id' => absint( $asset['asset_id'] ) ], [ '%s', '%s' ], [ '%d' ] );
         }
 
@@ -964,13 +985,18 @@ final class RMWC_V2_Workflow {
         $deposit_module = RMWC_V2_Deposits::instance();
         $deposit_state  = $deposit_module->state( $order );
         if ( (float) ( $deposit_state['available'] ?? 0 ) > 0 ) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- validate_action_request() verified the action-specific nonce at the start of this handler.
             if ( ! isset( $_POST['clr_workflow_deposit_refund_amount'] ) ) {
                 $this->redirect( 'deposit_settlement', (int) $booking['id'], 'return' );
             }
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- validate_action_request() verified the action-specific nonce at the start of this handler.
             $amount = max( 0, (float) wc_format_decimal( sanitize_text_field( wp_unslash( $_POST['clr_workflow_deposit_refund_amount'] ) ) ) );
             $amount = min( (float) $deposit_state['available'], $amount );
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- validate_action_request() verified the action-specific nonce at the start of this handler.
             $reason = isset( $_POST['clr_workflow_deposit_retention_reason'] ) ? sanitize_key( wp_unslash( $_POST['clr_workflow_deposit_retention_reason'] ) ) : 'none';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- validate_action_request() verified the action-specific nonce at the start of this handler.
             $retention_note = isset( $_POST['clr_workflow_deposit_retention_note'] )
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- validate_action_request() verified the action-specific nonce at the start of this handler.
                 ? substr( sanitize_textarea_field( wp_unslash( $_POST['clr_workflow_deposit_retention_note'] ) ), 0, 700 )
                 : '';
             $remaining = max( 0, (float) $deposit_state['available'] - $amount );
@@ -985,16 +1011,19 @@ final class RMWC_V2_Workflow {
 
         $assets = $this->assignments_for_booking( (int) $booking['id'] );
         $allowed_statuses = [ 'available', 'cleaning', 'maintenance', 'defect' ];
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- validate_action_request() verified the action-specific nonce at the start of this handler.
         $asset_status = isset( $_POST['asset_status'] ) ? sanitize_key( wp_unslash( $_POST['asset_status'] ) ) : 'available';
         if ( ! in_array( $asset_status, $allowed_statuses, true ) ) {
             $asset_status = 'available';
         }
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- validate_action_request() verified the action-specific nonce at the start of this handler.
         $notes = isset( $_POST['notes'] ) ? substr( sanitize_textarea_field( wp_unslash( $_POST['notes'] ) ), 0, 3000 ) : '';
         $snapshot = $this->workflow_snapshot( $booking, $order, 'return', $checklist, $assets, $signature, $notes );
         $snapshot['asset_status_after_return'] = $asset_status;
 
         global $wpdb;
         $now = current_time( 'mysql', true );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $transitioned = $wpdb->update(
             $this->booking_table(),
             [ 'workflow_status' => 'returned', 'return_at' => $now ],
@@ -1007,6 +1036,7 @@ final class RMWC_V2_Workflow {
             // effects when a mobile browser resubmits the same form.
             $this->redirect( 'workflow_state', (int) $booking['id'], 'return' );
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $wpdb->update(
             $this->assignment_table(),
             [ 'status' => 'returned', 'updated_at' => $now ],
@@ -1015,6 +1045,7 @@ final class RMWC_V2_Workflow {
             [ '%d' ]
         );
         foreach ( $assets as $asset ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $wpdb->update( $this->asset_table(), [ 'status' => $asset_status, 'updated_at' => $now ], [ 'id' => absint( $asset['asset_id'] ) ], [ '%s', '%s' ], [ '%d' ] );
         }
 
@@ -1037,6 +1068,7 @@ final class RMWC_V2_Workflow {
 
     private function complete_order_when_all_returns_finished( WC_Order $order ) {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $open = (int) $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT COUNT(*) FROM %i WHERE source = 'order' AND order_id = %d AND status <> 'cancelled' AND workflow_status <> 'returned'",
@@ -1085,6 +1117,7 @@ final class RMWC_V2_Workflow {
             return;
         }
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $bookings = $wpdb->get_results(
             $wpdb->prepare( 'SELECT * FROM %i WHERE order_id = %d ORDER BY start_at, id', $this->booking_table(), $order->get_id() ),
             ARRAY_A

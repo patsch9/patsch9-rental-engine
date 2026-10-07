@@ -69,6 +69,7 @@ final class RMWC_V2_Documents {
         global $wpdb;
         $table = $this->table();
         if ( $event_key ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $existing = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM %i WHERE event_key = %s LIMIT 1", $table, $event_key ) );
             if ( $existing ) {
                 return $existing;
@@ -84,6 +85,7 @@ final class RMWC_V2_Documents {
         }
         $hash = hash( 'sha256', $snapshot_json );
         $amount = max( 0, (float) wc_format_decimal( $amount ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $inserted = $wpdb->insert(
             $table,
             [
@@ -106,6 +108,7 @@ final class RMWC_V2_Documents {
             // final authority; return the already persisted document instead
             // of producing a duplicate or a false failure.
             if ( '' !== $event_key ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                 $existing = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM %i WHERE event_key = %s LIMIT 1", $table, $event_key ) );
                 if ( $existing ) {
                     return $existing;
@@ -123,6 +126,7 @@ final class RMWC_V2_Documents {
             'return_protocol'   => 'RP',
         ];
         $number = sprintf( '%s-%s-%06d', $prefixes[ $type ], wp_date( 'Y' ), $id );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $wpdb->update( $table, [ 'document_number' => $number ], [ 'id' => $id ], [ '%s' ], [ '%d' ] );
 
         /**
@@ -160,12 +164,14 @@ final class RMWC_V2_Documents {
         if ( ! $document_id ) {
             return null;
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM %i WHERE id = %d LIMIT 1", $this->table(), $document_id ), ARRAY_A );
         return is_array( $row ) ? $this->hydrate_document_row( $row ) : null;
     }
 
     public function documents_for_order( $order_id ) {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM %i WHERE order_id = %d ORDER BY id ASC", $this->table(), absint( $order_id ) ), ARRAY_A );
         if ( ! is_array( $rows ) ) {
             return [];
@@ -189,6 +195,7 @@ final class RMWC_V2_Documents {
             return 0;
         }
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $existing = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM %i WHERE order_id = %d AND type = 'contract' ORDER BY id ASC LIMIT 1", $this->table(), $order->get_id() ) );
         if ( $existing ) {
             $document = $this->get_document( $existing );
@@ -800,6 +807,7 @@ final class RMWC_V2_Documents {
 
         $temp_dir = trailingslashit( get_temp_dir() );
         $system_temp = function_exists( 'sys_get_temp_dir' ) ? sys_get_temp_dir() : '';
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- This checks the OS temp directory before creating an exclusive, permission-restricted transient PDF outside potentially web-accessible WordPress paths.
         if ( is_string( $system_temp ) && '' !== $system_temp && is_dir( $system_temp ) && is_writable( $system_temp ) ) {
             // Prefer the operating-system temp directory so generated customer
             // documents are not placed below a potentially web-accessible WP path.
@@ -888,10 +896,15 @@ final class RMWC_V2_Documents {
     }
 
     public function download_document() {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- can_download() validates either the authenticated session nonce or the signed, expiring HMAC download token before output.
         $document_id = isset( $_GET['document_id'] ) ? absint( wp_unslash( $_GET['document_id'] ) ) : 0;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- can_download() validates either the authenticated session nonce or the signed, expiring HMAC download token before output.
         $order_id    = isset( $_GET['order_id'] ) ? absint( wp_unslash( $_GET['order_id'] ) ) : 0;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- can_download() validates either the authenticated session nonce or the signed, expiring HMAC download token before output.
         $token       = isset( $_GET['token'] ) ? strtolower( sanitize_text_field( wp_unslash( $_GET['token'] ) ) ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- can_download() validates either the authenticated session nonce or the signed, expiring HMAC download token before output.
         $expires     = isset( $_GET['expires'] ) ? absint( wp_unslash( $_GET['expires'] ) ) : 0;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- can_download() validates either the authenticated session nonce or the signed, expiring HMAC download token before output.
         $nonce       = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '';
         $document = $this->get_document( $document_id );
         $order = wc_get_order( $order_id );

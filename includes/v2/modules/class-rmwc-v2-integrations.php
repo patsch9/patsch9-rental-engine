@@ -183,9 +183,19 @@ final class RMWC_V2_Integrations {
         $tax_rows = [];
         foreach ( $rates as $rate ) {
             $percent = $this->tax_percentage_label( $rate['percent'] );
-            $label = 'incl' === $tax_display
-                ? sprintf( __( 'inkl. %s %% MwSt.', 'patsch9-rental-engine' ), $percent )
-                : sprintf( __( '%s %% MwSt.', 'patsch9-rental-engine' ), $percent );
+            if ( 'incl' === $tax_display ) {
+                $label = sprintf(
+                    /* translators: %s: tax percentage. */
+                    __( 'inkl. %s %% MwSt.', 'patsch9-rental-engine' ),
+                    $percent
+                );
+            } else {
+                $label = sprintf(
+                    /* translators: %s: tax percentage. */
+                    __( '%s %% MwSt.', 'patsch9-rental-engine' ),
+                    $percent
+                );
+            }
             $tax_rows[ 'clr_tax_' . sanitize_title( (string) $rate['percent'] ) ] = [
                 'type'  => 'tax',
                 'label' => $label . ':',
@@ -299,6 +309,7 @@ final class RMWC_V2_Integrations {
                 );
             }
 
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $booking = $wpdb->get_row(
                 $wpdb->prepare(
                     "SELECT * FROM %i WHERE order_id = %d AND order_item_id = %d AND status <> 'cancelled' ORDER BY id DESC LIMIT 1",
@@ -316,6 +327,7 @@ final class RMWC_V2_Integrations {
             $status_label = $this->workflow_status_label( $status );
             $statuses[]   = $product_name . ': ' . $status_label;
 
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $assets = $wpdb->get_col(
                 $wpdb->prepare(
                     "SELECT a.inventory_number FROM %i aa INNER JOIN %i a ON a.id = aa.asset_id WHERE aa.booking_id = %d AND aa.status <> 'cancelled' ORDER BY a.inventory_number, a.id",
@@ -498,6 +510,7 @@ final class RMWC_V2_Integrations {
             }
             unset( $meta_row );
 
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $booking = $wpdb->get_row(
                 $wpdb->prepare(
                     "SELECT * FROM %i WHERE order_id = %d AND order_item_id = %d AND status <> 'cancelled' ORDER BY id DESC LIMIT 1",
@@ -513,6 +526,7 @@ final class RMWC_V2_Integrations {
                 $this->append_rest_meta( $meta_data, __( 'Mietstatus', 'patsch9-rental-engine' ), $status_label );
                 $statuses[] = $product_name . ': ' . $status_label;
 
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                 $assets = $wpdb->get_col(
                     $wpdb->prepare(
                         "SELECT a.inventory_number FROM %i aa INNER JOIN %i a ON a.id = aa.asset_id WHERE aa.booking_id = %d AND aa.status <> 'cancelled' ORDER BY a.inventory_number, a.id",

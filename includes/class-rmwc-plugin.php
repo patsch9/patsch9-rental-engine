@@ -4,6 +4,7 @@ defined( 'ABSPATH' ) || exit;
 
 final class RMWC_Plugin {
     private static $instance = null;
+    private $admin_page_hook = '';
 
     public static function instance() {
         if ( null === self::$instance ) {
@@ -656,22 +657,22 @@ final class RMWC_Plugin {
             update_post_meta( $post_id, $key, min( 7, max( 1, $value ) ) );
         }
 
-        /* phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Product nonce/capability verified above; every nested value is validated below. */
-        $blocked_pickup = isset( $_POST['clr_blocked_pickup_days'] ) && is_array( $_POST['clr_blocked_pickup_days'] )
-            ? $this->sanitize_weekday_list( wp_unslash( $_POST['clr_blocked_pickup_days'] ) )
+        $raw_blocked_pickup = isset( $_POST['clr_blocked_pickup_days'] )
+            ? map_deep( wp_unslash( $_POST['clr_blocked_pickup_days'] ), 'sanitize_text_field' )
             : [];
-        /* phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Product nonce/capability verified above; every nested value is validated below. */
-        $blocked_return = isset( $_POST['clr_blocked_return_days'] ) && is_array( $_POST['clr_blocked_return_days'] )
-            ? $this->sanitize_weekday_list( wp_unslash( $_POST['clr_blocked_return_days'] ) )
+        $blocked_pickup = $this->sanitize_weekday_list( is_array( $raw_blocked_pickup ) ? $raw_blocked_pickup : [] );
+        $raw_blocked_return = isset( $_POST['clr_blocked_return_days'] )
+            ? map_deep( wp_unslash( $_POST['clr_blocked_return_days'] ), 'sanitize_text_field' )
             : [];
+        $blocked_return = $this->sanitize_weekday_list( is_array( $raw_blocked_return ) ? $raw_blocked_return : [] );
         update_post_meta( $post_id, '_clr_blocked_pickup_days', $blocked_pickup );
         update_post_meta( $post_id, '_clr_blocked_return_days', $blocked_return );
 
         $weekday_prices = [];
-        /* phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Product nonce/capability verified above; every nested value is validated below. */
-        $raw_weekday_prices = isset( $_POST['clr_weekday_prices'] ) && is_array( $_POST['clr_weekday_prices'] )
-            ? wp_unslash( $_POST['clr_weekday_prices'] )
+        $raw_weekday_prices = isset( $_POST['clr_weekday_prices'] )
+            ? map_deep( wp_unslash( $_POST['clr_weekday_prices'] ), 'sanitize_text_field' )
             : [];
+        $raw_weekday_prices = is_array( $raw_weekday_prices ) ? $raw_weekday_prices : [];
         for ( $day = 1; $day <= 7; $day++ ) {
             if ( ! isset( $raw_weekday_prices[ $day ] ) && ! isset( $raw_weekday_prices[ (string) $day ] ) ) {
                 continue;
@@ -686,7 +687,8 @@ final class RMWC_Plugin {
 
         $decimal_fields = [ '_clr_unit_price', '_clr_deposit', '_clr_delivery_fee', '_clr_weekend_price' ];
         foreach ( $decimal_fields as $key ) {
-            $value = isset( $_POST[ $key ] ) ? (float) wc_format_decimal( wp_unslash( $_POST[ $key ] ) ) : 0;
+            $raw_value = isset( $_POST[ $key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $key ] ) ) : '0';
+            $value = (float) wc_format_decimal( $raw_value );
             update_post_meta( $post_id, $key, min( 100000000, max( 0, $value ) ) );
         }
         $deposit_notice = isset( $_POST['_clr_deposit_notice'] )
@@ -782,7 +784,7 @@ final class RMWC_Plugin {
             wp_enqueue_style( 'patsch9-rental-engine-admin', RMWC_URL . 'assets/admin.css', [], RMWC_VERSION );
         }
 
-        if ( isset( $_GET['page'] ) && 'clr-rentals' === sanitize_key( wp_unslash( $_GET['page'] ) ) ) {
+        if ( $this->admin_page_hook && $hook === $this->admin_page_hook ) {
             wp_enqueue_style( 'patsch9-rental-engine-admin', RMWC_URL . 'assets/admin.css', [], RMWC_VERSION );
             wp_enqueue_script( 'wc-enhanced-select' );
             wp_enqueue_style( 'woocommerce_admin_styles' );
@@ -1245,7 +1247,7 @@ final class RMWC_Plugin {
                 absint( $exclude_booking )
             );
         }
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Availability uses the plugin's own transactional booking table and must be current.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- $sql is prepared in every branch immediately above; availability uses the plugin's own transactional table and must be current.
         return $wpdb->get_results( $sql, ARRAY_A );
     }
 
@@ -1311,7 +1313,7 @@ final class RMWC_Plugin {
     private function insert_booking_with_lock( $product_id, array $data, array $interval ) {
         global $wpdb;
         $lock_name = $this->booking_lock_name( $product_id );
-        $got_lock  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 8)', $lock_name ) );
+        $got_lock  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 8)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Booking advisory locks must reflect current database state and are intentionally not cached.
         if ( 1 !== $got_lock ) {
             return new WP_Error( 'clr_booking_lock', 'Der Mietbestand konnte gerade nicht sicher gesperrt werden. Bitte erneut versuchen.' );
         }
@@ -1319,13 +1321,13 @@ final class RMWC_Plugin {
             if ( ! $this->capacity_available( $product_id, [ $interval ] ) ) {
                 return new WP_Error( 'clr_booking_capacity', 'Für diesen Zeitraum ist nicht genügend Kapazität frei.' );
             }
-            $ok = $wpdb->insert( $this->table(), $data, [ '%d','%s','%s','%s','%s','%s','%d','%s','%s','%s','%s','%s' ] );
+            $ok = $wpdb->insert( $this->table(), $data, [ '%d','%s','%s','%s','%s','%s','%d','%s','%s','%s','%s','%s' ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Writes to the plugin's transactional booking table must not be cached.
             if ( false === $ok ) {
                 return new WP_Error( 'clr_booking_database', 'Der Zeitraum konnte nicht gespeichert werden. Bitte erneut versuchen.' );
             }
             return (int) $wpdb->insert_id;
         } finally {
-            $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
+            $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Releases the matching booking advisory lock immediately; caching is invalid here.
         }
     }
 
@@ -1339,9 +1341,12 @@ final class RMWC_Plugin {
                 continue;
             }
             $r = $item['clr_rental'];
+            if ( empty( $r['start_at'] ) || empty( $r['end_at'] ) ) {
+                continue;
+            }
             $intervals[] = [
-                'start_at' => $interval_check['start_at'],
-                'end_at'   => $interval_check['end_at'],
+                'start_at' => sanitize_text_field( (string) $r['start_at'] ),
+                'end_at'   => sanitize_text_field( (string) $r['end_at'] ),
                 'quantity' => max( 1, (int) ( $item['quantity'] ?? 1 ) ),
             ];
         }
@@ -1457,7 +1462,7 @@ final class RMWC_Plugin {
             wp_send_json_error( [ 'message' => 'Zu viele Entfernungsabfragen. Bitte später erneut versuchen.' ], 429 );
         }
         $product_id = isset( $_POST['product_id'] ) ? absint( wp_unslash( $_POST['product_id'] ) ) : 0;
-        $address    = $this->sanitize_address( isset( $_POST['address'] ) ? wp_unslash( $_POST['address'] ) : '' );
+        $address    = $this->sanitize_address( isset( $_POST['address'] ) ? sanitize_text_field( wp_unslash( $_POST['address'] ) ) : '' );
         if ( ! $product_id || ! $this->public_rental_product( $product_id ) || 'yes' !== get_post_meta( $product_id, '_clr_allow_delivery', true ) ) {
             wp_send_json_error( [ 'message' => 'Ungültiges Mietprodukt oder Lieferung nicht aktiviert.' ], 400 );
         }
@@ -1482,13 +1487,13 @@ final class RMWC_Plugin {
         ] );
     }
 
-    private function delivery_data_from_request( $product_id ) {
+    private function delivery_data_from_request( $product_id, $address_input = '', $zone_input = '' ) {
         if ( 'yes' !== get_post_meta( $product_id, '_clr_allow_delivery', true ) ) {
             return new WP_Error( 'clr_delivery_disabled', 'Für dieses Produkt ist keine Lieferung möglich.' );
         }
 
         $zones   = $this->get_delivery_zones( $product_id );
-        $address = $this->sanitize_address( isset( $_POST['clr_delivery_address'] ) ? wp_unslash( $_POST['clr_delivery_address'] ) : '' );
+        $address = $this->sanitize_address( sanitize_text_field( (string) $address_input ) );
         if ( strlen( $address ) < 5 || strlen( $address ) > 250 ) {
             return new WP_Error( 'clr_destination', 'Bitte eine vollständige Lieferadresse angeben.' );
         }
@@ -1521,7 +1526,7 @@ final class RMWC_Plugin {
             return [ 'fee' => $zone['price'], 'zone' => $zone['label'], 'zone_index' => $zone['index'], 'distance' => $distance, 'address' => $address ];
         }
 
-        $zone_raw = isset( $_POST['clr_delivery_zone'] ) ? trim( (string) wp_unslash( $_POST['clr_delivery_zone'] ) ) : '';
+        $zone_raw = trim( sanitize_text_field( (string) $zone_input ) );
         if ( '' === $zone_raw || ! ctype_digit( $zone_raw ) ) {
             return new WP_Error( 'clr_delivery_zone', 'Bitte eine gültige Lieferzone auswählen.' );
         }
@@ -1550,7 +1555,8 @@ final class RMWC_Plugin {
             return $passed;
         }
 
-        if ( ! $this->frontend_rental_nonce_valid( $product_id ) ) {
+        $rental_nonce = isset( $_POST['clr_rental_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_rental_nonce'] ) ) : '';
+        if ( ! $rental_nonce || ! wp_verify_nonce( $rental_nonce, 'clr_add_rental_' . absint( $product_id ) ) ) {
             wc_add_notice( 'Die Mietdaten konnten nicht verifiziert werden. Bitte Seite neu laden.', 'error' );
             return false;
         }
@@ -1585,7 +1591,9 @@ final class RMWC_Plugin {
                 wc_add_notice( 'Lieferung und Abholung durch den Vermieter ist für dieses Produkt nicht verfügbar.', 'error' );
                 return false;
             }
-            $delivery = $this->delivery_data_from_request( $config_id );
+            $delivery_address = isset( $_POST['clr_delivery_address'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_delivery_address'] ) ) : '';
+            $delivery_zone    = isset( $_POST['clr_delivery_zone'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_delivery_zone'] ) ) : '';
+            $delivery = $this->delivery_data_from_request( $config_id, $delivery_address, $delivery_zone );
             if ( is_wp_error( $delivery ) ) {
                 wc_add_notice( $delivery->get_error_message(), 'error' );
                 return false;
@@ -1601,7 +1609,8 @@ final class RMWC_Plugin {
             return $data;
         }
         // The same signed form must still be valid when cart-item metadata is built.
-        if ( ! $this->frontend_rental_nonce_valid( $product_id ) ) {
+        $rental_nonce = isset( $_POST['clr_rental_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_rental_nonce'] ) ) : '';
+        if ( ! $rental_nonce || ! wp_verify_nonce( $rental_nonce, 'clr_add_rental_' . absint( $product_id ) ) ) {
             return $data;
         }
 
@@ -1639,7 +1648,8 @@ final class RMWC_Plugin {
 
         $addons   = get_post_meta( $config_id, '_clr_addons', true );
         $addons   = is_array( $addons ) ? $addons : [];
-        $selected_raw = isset( $_POST['clr_addon'] ) && is_array( $_POST['clr_addon'] ) ? wp_unslash( $_POST['clr_addon'] ) : [];
+        $selected_raw = isset( $_POST['clr_addon'] ) ? map_deep( wp_unslash( $_POST['clr_addon'] ), 'sanitize_text_field' ) : [];
+        $selected_raw = is_array( $selected_raw ) ? $selected_raw : [];
         $selected = [];
         foreach ( array_slice( $selected_raw, 0, 50 ) as $selected_value ) {
             $selected_value = is_scalar( $selected_value ) ? trim( (string) $selected_value ) : '';
@@ -1669,7 +1679,9 @@ final class RMWC_Plugin {
         $delivery_return_ok = 'yes' === get_post_meta( $config_id, '_clr_allow_delivery_return', true );
         if ( in_array( $fulfilment, [ 'delivery', 'delivery_return' ], true )
             && ( ( 'delivery' === $fulfilment && $delivery_ok ) || ( 'delivery_return' === $fulfilment && $delivery_return_ok ) ) ) {
-            $delivery = $this->delivery_data_from_request( $config_id );
+            $delivery_address = isset( $_POST['clr_delivery_address'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_delivery_address'] ) ) : '';
+            $delivery_zone    = isset( $_POST['clr_delivery_zone'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_delivery_zone'] ) ) : '';
+            $delivery = $this->delivery_data_from_request( $config_id, $delivery_address, $delivery_zone );
             if ( ! is_wp_error( $delivery ) ) {
                 $legs = 'delivery_return' === $fulfilment ? 2 : 1;
                 $rental['fulfilment']       = $fulfilment;
@@ -1685,7 +1697,9 @@ final class RMWC_Plugin {
             $rental['transport_legs'] = 0;
         } elseif ( $delivery_ok || $delivery_return_ok ) {
             $fallback_mode = $delivery_ok ? 'delivery' : 'delivery_return';
-            $delivery = $this->delivery_data_from_request( $config_id );
+            $delivery_address = isset( $_POST['clr_delivery_address'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_delivery_address'] ) ) : '';
+            $delivery_zone    = isset( $_POST['clr_delivery_zone'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_delivery_zone'] ) ) : '';
+            $delivery = $this->delivery_data_from_request( $config_id, $delivery_address, $delivery_zone );
             if ( ! is_wp_error( $delivery ) ) {
                 $legs = 'delivery_return' === $fallback_mode ? 2 : 1;
                 $rental['fulfilment'] = $fallback_mode;
@@ -1751,11 +1765,23 @@ final class RMWC_Plugin {
             $deposit_mode = sanitize_key( $r['deposit_mode'] ?? 'choice' );
 
             if ( 'online' === $deposit_mode ) {
-                $deposit_text = sprintf( __( '%s – online mit der Bestellung hinterlegen', 'patsch9-rental-engine' ), $deposit_amount );
+                $deposit_text = sprintf(
+                    /* translators: %s: formatted refundable deposit amount. */
+                    __( '%s – online mit der Bestellung hinterlegen', 'patsch9-rental-engine' ),
+                    $deposit_amount
+                );
             } elseif ( 'cash' === $deposit_mode ) {
-                $deposit_text = sprintf( __( '%s – separat: Überweisung oder bar bei Abholung', 'patsch9-rental-engine' ), $deposit_amount );
+                $deposit_text = sprintf(
+                    /* translators: %s: formatted refundable deposit amount. */
+                    __( '%s – separat: Überweisung oder bar bei Abholung', 'patsch9-rental-engine' ),
+                    $deposit_amount
+                );
             } else {
-                $deposit_text = sprintf( __( '%s – Auswahl im Checkout: online oder separat (Überweisung / bar bei Abholung)', 'patsch9-rental-engine' ), $deposit_amount );
+                $deposit_text = sprintf(
+                    /* translators: %s: formatted refundable deposit amount. */
+                    __( '%s – Auswahl im Checkout: online oder separat (Überweisung / bar bei Abholung)', 'patsch9-rental-engine' ),
+                    $deposit_amount
+                );
             }
 
             $item_data[] = [
@@ -2140,7 +2166,7 @@ final class RMWC_Plugin {
             $order->update_meta_data( '_clr_booking_conflict', $result->get_error_code() );
             $order->add_order_note( 'Vermietung: Bestellung vor Zahlung gestoppt – ' . $result->get_error_message() );
             $order->save();
-            throw new Exception( sanitize_text_field( $result->get_error_message() ) );
+            throw new Exception( esc_html( $result->get_error_message() ) );
         }
     }
 
@@ -2153,7 +2179,7 @@ final class RMWC_Plugin {
             $order->update_meta_data( '_clr_booking_conflict', $result->get_error_code() );
             $order->add_order_note( 'Vermietung: Bestellung vor Zahlung gestoppt – ' . $result->get_error_message() );
             $order->save();
-            throw new Exception( sanitize_text_field( $result->get_error_message() ) );
+            throw new Exception( esc_html( $result->get_error_message() ) );
         }
     }
 
@@ -2191,6 +2217,7 @@ final class RMWC_Plugin {
             if ( ! $product_id || ! $this->is_rental( $product_id ) ) {
                 return new WP_Error( 'clr_booking_product', 'Ein Mietartikel ist nicht mehr gültig konfiguriert.' );
             }
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM %i WHERE order_id = %d AND order_item_id = %d AND status IN ('reserved','blocked') LIMIT 1", $table, $order->get_id(), $item_id ) );
             if ( $exists ) {
                 continue;
@@ -2219,7 +2246,7 @@ final class RMWC_Plugin {
         try {
             foreach ( array_keys( $groups ) as $product_id ) {
                 $lock_name = $this->booking_lock_name( $product_id );
-                $got_lock  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 8)', $lock_name ) );
+                $got_lock  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 8)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Booking advisory locks must reflect current database state and are intentionally not cached.
                 if ( 1 !== $got_lock ) {
                     return new WP_Error( 'clr_booking_lock', 'Der Mietbestand konnte gerade nicht sicher reserviert werden. Bitte Bestellung erneut versuchen.' );
                 }
@@ -2230,6 +2257,7 @@ final class RMWC_Plugin {
             foreach ( $groups as $product_id => $entries ) {
                 $intervals = [];
                 foreach ( $entries as $entry ) {
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                     $exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM %i WHERE order_id = %d AND order_item_id = %d AND status IN ('reserved','blocked') LIMIT 1", $table, $order->get_id(), $entry['item_id'] ) );
                     if ( $exists ) {
                         continue;
@@ -2247,11 +2275,13 @@ final class RMWC_Plugin {
 
             foreach ( $groups as $product_id => $entries ) {
                 foreach ( $entries as $entry ) {
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                     $exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM %i WHERE order_id = %d AND order_item_id = %d AND status IN ('reserved','blocked') LIMIT 1", $table, $order->get_id(), $entry['item_id'] ) );
                     if ( $exists ) {
                         continue;
                     }
                     $interval = $entry['interval'];
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                     $ok = $wpdb->insert( $table, [
                         'product_id'     => $product_id,
                         'order_id'       => $order->get_id(),
@@ -2270,6 +2300,7 @@ final class RMWC_Plugin {
                     ], [ '%d','%d','%d','%s','%s','%s','%s','%s','%d','%s','%s','%s','%s','%s' ] );
                     if ( false === $ok ) {
                         foreach ( $inserted_ids as $booking_id ) {
+                            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                             $wpdb->delete( $table, [ 'id' => $booking_id ], [ '%d' ] );
                         }
                         return new WP_Error( 'clr_booking_database', 'Die Mietreservierung konnte nicht sicher gespeichert werden. Es wurde nichts belastet; bitte erneut versuchen.' );
@@ -2281,6 +2312,7 @@ final class RMWC_Plugin {
             $finalized = apply_filters( 'rmwc_finalize_booking_reservation', true, $order, $inserted_ids );
             if ( is_wp_error( $finalized ) || false === $finalized ) {
                 foreach ( $inserted_ids as $booking_id ) {
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                     $wpdb->delete( $table, [ 'id' => $booking_id ], [ '%d' ] );
                     do_action( 'rmwc_booking_cancelled', $booking_id, $order->get_id() );
                 }
@@ -2299,7 +2331,7 @@ final class RMWC_Plugin {
             return true;
         } finally {
             foreach ( array_reverse( $locks ) as $lock_name ) {
-                $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
+                $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Releases the matching booking advisory lock immediately; caching is invalid here.
             }
         }
     }
@@ -2328,6 +2360,7 @@ final class RMWC_Plugin {
 
     private function order_has_active_rental_reservation( WC_Order $order ) {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         return 0 < (int) $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT COUNT(*) FROM %i WHERE order_id = %d AND status IN ('reserved','blocked')",
@@ -2439,7 +2472,9 @@ final class RMWC_Plugin {
         if ( ! $order_id ) {
             return;
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $ids = $wpdb->get_col( $wpdb->prepare( 'SELECT id FROM %i WHERE order_id = %d AND status <> %s', $this->table(), $order_id, 'cancelled' ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $wpdb->update( $this->table(), [ 'status' => 'cancelled' ], [ 'order_id' => $order_id ], [ '%s' ], [ '%d' ] );
         foreach ( array_map( 'absint', is_array( $ids ) ? $ids : [] ) as $booking_id ) {
             if ( $booking_id ) {
@@ -2519,8 +2554,10 @@ final class RMWC_Plugin {
         $status  = in_array( $status, $allowed, true ) ? $status : 'offen';
         $order->update_meta_data( '_clr_deposit_status', $status );
         $total = max( 0, $this->order_deposit_total( $order ) );
-        $refunded = min( $total, max( 0, (float) wc_format_decimal( wp_unslash( $_POST['clr_deposit_refunded'] ?? 0 ) ) ) );
-        $retained = min( $total, max( 0, (float) wc_format_decimal( wp_unslash( $_POST['clr_deposit_retained'] ?? 0 ) ) ) );
+        $refunded_raw = isset( $_POST['clr_deposit_refunded'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_deposit_refunded'] ) ) : '0';
+        $retained_raw = isset( $_POST['clr_deposit_retained'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_deposit_retained'] ) ) : '0';
+        $refunded = min( $total, max( 0, (float) wc_format_decimal( $refunded_raw ) ) );
+        $retained = min( $total, max( 0, (float) wc_format_decimal( $retained_raw ) ) );
         if ( $refunded + $retained > $total ) {
             $retained = max( 0, $total - $refunded );
         }
@@ -2543,11 +2580,13 @@ final class RMWC_Plugin {
     }
 
     public function admin_menu() {
-        add_submenu_page( 'woocommerce', 'Vermietungen', 'Vermietungen', 'manage_woocommerce', 'clr-rentals', [ $this, 'admin_bookings_page' ] );
+        $hook = add_submenu_page( 'woocommerce', 'Vermietungen', 'Vermietungen', 'manage_woocommerce', 'clr-rentals', [ $this, 'admin_bookings_page' ] );
+        $this->admin_page_hook = is_string( $hook ) ? $hook : '';
     }
 
     private function admin_booking_row( $booking_id ) {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $row = $wpdb->get_row(
             $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d LIMIT 1', $this->table(), absint( $booking_id ) ),
             ARRAY_A
@@ -2571,7 +2610,7 @@ final class RMWC_Plugin {
         check_admin_referer( 'clr_admin_action', 'clr_admin_nonce' );
 
         if ( 'save_settings' === $action ) {
-            $origin = $this->sanitize_address( isset( $_POST['clr_delivery_origin'] ) ? wp_unslash( $_POST['clr_delivery_origin'] ) : '' );
+            $origin = $this->sanitize_address( isset( $_POST['clr_delivery_origin'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_delivery_origin'] ) ) : '' );
             update_option( 'clr_delivery_origin', $origin, false );
             update_option( 'clr_google_routes_enabled', isset( $_POST['clr_google_routes_enabled'] ) ? 'yes' : 'no', false );
             $hold_minutes = isset( $_POST['clr_unpaid_hold_minutes'] ) ? absint( wp_unslash( $_POST['clr_unpaid_hold_minutes'] ) ) : 60;
@@ -2612,7 +2651,7 @@ final class RMWC_Plugin {
                 : min( $this->capacity( $product_id ), max( 1, absint( wp_unslash( $_POST['quantity'] ?? $row['quantity'] ) ) ) );
 
             $lock_name = $this->booking_lock_name( $product_id );
-            $got_lock  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 8)', $lock_name ) );
+            $got_lock  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 8)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Booking advisory locks must reflect current database state and are intentionally not cached.
             if ( 1 !== $got_lock ) {
                 return '<div class="notice notice-error"><p>' . esc_html__( 'Die Buchung konnte gerade nicht sicher gesperrt werden. Bitte erneut versuchen.', 'patsch9-rental-engine' ) . '</p></div>';
             }
@@ -2675,6 +2714,7 @@ final class RMWC_Plugin {
                 foreach ( array_keys( $updated ) as $key ) {
                     $formats[] = 'quantity' === $key ? '%d' : '%s';
                 }
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                 $db_updated = $wpdb->update( $this->table(), $updated, [ 'id' => $booking_id ], $formats, [ '%d' ] );
                 if ( false === $db_updated ) {
                     // The workflow filter may already have moved physical device
@@ -2693,6 +2733,7 @@ final class RMWC_Plugin {
                             $restore[ $key ] = $row[ $key ];
                             $restore_formats[] = 'quantity' === $key ? '%d' : '%s';
                         }
+                        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                         $wpdb->update( $this->table(), $restore, [ 'id' => $booking_id ], $restore_formats, [ '%d' ] );
                         apply_filters( 'rmwc_validate_booking_update', true, $new_row, $row );
                         return '<div class="notice notice-error"><p>' . esc_html__( 'Die WooCommerce-Bestellposition zur Buchung wurde nicht gefunden. Die Änderung wurde zurückgesetzt.', 'patsch9-rental-engine' ) . '</p></div>';
@@ -2708,6 +2749,7 @@ final class RMWC_Plugin {
                             $restore[ $key ] = $row[ $key ];
                             $restore_formats[] = 'quantity' === $key ? '%d' : '%s';
                         }
+                        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                         $wpdb->update( $this->table(), $restore, [ 'id' => $booking_id ], $restore_formats, [ '%d' ] );
                         apply_filters( 'rmwc_validate_booking_update', true, $new_row, $row );
                         return '<div class="notice notice-error"><p>' . esc_html__( 'Die Mietdaten der WooCommerce-Bestellposition sind unvollständig. Die Änderung wurde zurückgesetzt.', 'patsch9-rental-engine' ) . '</p></div>';
@@ -2735,6 +2777,7 @@ final class RMWC_Plugin {
                             $restore[ $key ] = $row[ $key ];
                             $restore_formats[] = 'quantity' === $key ? '%d' : '%s';
                         }
+                        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                         $wpdb->update( $this->table(), $restore, [ 'id' => $booking_id ], $restore_formats, [ '%d' ] );
                         apply_filters( 'rmwc_validate_booking_update', true, $new_row, $row );
 
@@ -2755,7 +2798,7 @@ final class RMWC_Plugin {
                 do_action( 'rmwc_booking_updated', $booking_id, $row, $new_row );
                 return '<div class="notice notice-success"><p>' . esc_html__( 'Buchung wurde aktualisiert.', 'patsch9-rental-engine' ) . '</p></div>';
             } finally {
-                $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
+                $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Releases the matching booking advisory lock immediately; caching is invalid here.
             }
         }
 
@@ -2770,6 +2813,7 @@ final class RMWC_Plugin {
                 return '<div class="notice notice-error"><p>' . esc_html__( 'Eine bereits übergebene, zurückgegebene oder anderweitig abgeschlossene Buchung kann aus Nachweisgründen nicht gelöscht oder storniert werden.', 'patsch9-rental-engine' ) . '</p></div>';
             }
             if ( 'order' === $row['source'] ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                 $wpdb->update( $this->table(), [ 'status' => 'cancelled' ], [ 'id' => $booking_id ], [ '%s' ], [ '%d' ] );
                 do_action( 'rmwc_booking_cancelled', $booking_id, absint( $row['order_id'] ) );
                 $order = wc_get_order( (int) $row['order_id'] );
@@ -2786,6 +2830,7 @@ final class RMWC_Plugin {
             }
 
             do_action( 'rmwc_booking_cancelled', $booking_id, 0 );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $wpdb->delete( $this->table(), [ 'id' => $booking_id ], [ '%d' ] );
             return '<div class="notice notice-success"><p>' . esc_html__( 'Manuelle Buchung/Sperre wurde gelöscht.', 'patsch9-rental-engine' ) . '</p></div>';
         }
@@ -2801,6 +2846,7 @@ final class RMWC_Plugin {
                 if ( ! in_array( sanitize_key( $row['status'] ?? '' ), [ 'reserved', 'blocked' ], true ) || 'reserved' !== sanitize_key( $row['workflow_status'] ?? 'reserved' ) ) {
                     return '<div class="notice notice-error"><p>' . esc_html__( 'Eine bereits übergebene oder abgeschlossene Buchung kann nicht mehr freigegeben werden.', 'patsch9-rental-engine' ) . '</p></div>';
                 }
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                 $updated = $wpdb->update( $this->table(), [ 'status' => 'cancelled' ], [ 'id' => $booking_id ], [ '%s' ], [ '%d' ] );
                 if ( false === $updated ) {
                     return '<div class="notice notice-error"><p>' . esc_html__( 'Die Buchung konnte nicht freigegeben werden.', 'patsch9-rental-engine' ) . '</p></div>';
@@ -2850,6 +2896,7 @@ final class RMWC_Plugin {
             $assignment = apply_filters( 'rmwc_finalize_manual_booking', true, absint( $result ) );
             if ( is_wp_error( $assignment ) || false === $assignment ) {
                 global $wpdb;
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                 $wpdb->delete( $this->table(), [ 'id' => absint( $result ) ], [ '%d' ] );
                 $message = is_wp_error( $assignment ) ? $assignment->get_error_message() : __( 'Die Gerätezuordnung konnte nicht abgeschlossen werden.', 'patsch9-rental-engine' );
                 return '<div class="notice notice-error"><p>' . esc_html( $message ) . '</p></div>';
@@ -2916,6 +2963,7 @@ final class RMWC_Plugin {
         }
 
         $notice = $this->admin_handle_actions();
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin view/filter parameter; no state-changing action is performed.
         $tab = sanitize_key( wp_unslash( $_GET['tab'] ?? 'calendar' ) );
         if ( ! in_array( $tab, [ 'calendar', 'workflow', 'settings', 'terms', 'inventory' ], true ) ) {
             $tab = 'calendar';
@@ -2988,12 +3036,14 @@ final class RMWC_Plugin {
     }
 
     private function render_admin_calendar_and_bookings() {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin view/filter parameter; no state-changing action is performed.
         $month = sanitize_text_field( wp_unslash( $_GET['month'] ?? wp_date( 'Y-m' ) ) );
         $month_start = preg_match( '/^\d{4}-\d{2}$/', $month ) ? DateTimeImmutable::createFromFormat( '!Y-m-d', $month . '-01', wp_timezone() ) : false;
         if ( ! $month_start || $month_start->format( 'Y-m' ) !== $month ) {
             $month = wp_date( 'Y-m' );
             $month_start = DateTimeImmutable::createFromFormat( '!Y-m-d', $month . '-01', wp_timezone() );
         }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin view/filter parameter; no state-changing action is performed.
         $product_filter = absint( wp_unslash( $_GET['product_id'] ?? 0 ) );
         $month_end   = $month_start->modify( 'last day of this month' )->setTime( 23, 59, 59 );
         $prev = $month_start->modify( '-1 month' )->format( 'Y-m' );
@@ -3001,6 +3051,7 @@ final class RMWC_Plugin {
 
         global $wpdb;
         if ( $product_filter ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $calendar_rows = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT * FROM %i WHERE status IN ('reserved','blocked') AND start_at <= %s AND end_at >= %s AND product_id = %d ORDER BY start_at",
@@ -3012,6 +3063,7 @@ final class RMWC_Plugin {
                 ARRAY_A
             );
         } else {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $calendar_rows = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT * FROM %i WHERE status IN ('reserved','blocked') AND start_at <= %s AND end_at >= %s ORDER BY start_at",
@@ -3022,7 +3074,9 @@ final class RMWC_Plugin {
                 ARRAY_A
             );
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $list_rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM %i ORDER BY start_at DESC, id DESC LIMIT 500", $this->table() ), ARRAY_A );
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin view/filter parameter; no state-changing action is performed.
         $edit_booking_id = isset( $_GET['edit_booking'] ) ? absint( wp_unslash( $_GET['edit_booking'] ) ) : 0;
         $edit_row = $edit_booking_id ? $this->admin_booking_row( $edit_booking_id ) : null;
         ?>
@@ -3191,6 +3245,7 @@ final class RMWC_Plugin {
         global $wpdb;
         $scope = ( defined( 'DB_NAME' ) ? (string) DB_NAME : '' ) . '|' . $wpdb->prefix . '|' . get_current_blog_id();
         $lock  = 'clr_rem_' . substr( hash( 'sha256', $scope ), 0, 32 );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $got   = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 0)', $lock ) );
         if ( 1 !== $got ) {
             return;
@@ -3200,6 +3255,7 @@ final class RMWC_Plugin {
             $now   = new DateTimeImmutable( 'now', wp_timezone() );
             $until = $now->modify( '+' . $hours . ' hours' );
             $table = $this->table();
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $rows  = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT * FROM %i WHERE status = 'reserved' AND reminder_sent_at IS NULL AND customer_email != '' AND start_at > %s AND start_at <= %s ORDER BY start_at LIMIT 100",
@@ -3233,11 +3289,13 @@ final class RMWC_Plugin {
                 if ( $mailer instanceof WC_Emails ) {
                     $body = $mailer->wrap_message( $subject, $message );
                     if ( $mailer->send( $recipient, $subject, $body ) ) {
+                        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                         $wpdb->update( $table, [ 'reminder_sent_at' => current_time( 'mysql' ) ], [ 'id' => (int) $row['id'] ], [ '%s' ], [ '%d' ] );
                     }
                 }
             }
         } finally {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
         }
     }
@@ -3249,6 +3307,7 @@ final class RMWC_Plugin {
         global $wpdb;
         $table = $this->table();
         for ( $batch = 0; $batch < 20; $batch++ ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $rows = $wpdb->get_results( $wpdb->prepare( "SELECT id, product_id, start_date, end_date FROM %i WHERE (start_at IS NULL OR start_at = '0000-00-00 00:00:00') AND start_date IS NOT NULL AND end_date IS NOT NULL LIMIT 500", $table ), ARRAY_A );
             if ( ! $rows ) {
                 break;
@@ -3259,9 +3318,11 @@ final class RMWC_Plugin {
                 $interval = $this->build_interval( (int) $row['product_id'], $row['start_date'], $legacy_end_date );
                 if ( is_wp_error( $interval ) ) {
                     // Mark impossible legacy rows as cancelled rather than silently blocking forever.
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                     $wpdb->update( $table, [ 'status' => 'cancelled' ], [ 'id' => (int) $row['id'] ], [ '%s' ], [ '%d' ] );
                     continue;
                 }
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                 $wpdb->update( $table, [ 'start_at' => $interval['start_at'], 'end_at' => $interval['end_at'] ], [ 'id' => (int) $row['id'] ], [ '%s','%s' ], [ '%d' ] );
             }
         }
@@ -3287,6 +3348,7 @@ final class RMWC_Plugin {
         $per_page = 50;
         $offset   = ( $page - 1 ) * $per_page;
         $table    = $this->table();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM %i WHERE customer_email = %s ORDER BY id ASC LIMIT %d OFFSET %d", $table, $email, $per_page, $offset ), ARRAY_A );
         $data = [];
         foreach ( $rows as $row ) {
@@ -3331,6 +3393,7 @@ final class RMWC_Plugin {
         $per_page = 50;
         $table    = $this->table();
         $now      = current_time( 'mysql' );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $rows     = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT id FROM %i WHERE customer_email = %s AND NOT (status IN ('reserved','blocked') AND end_at IS NOT NULL AND end_at >= %s) ORDER BY id ASC LIMIT %d",
@@ -3344,6 +3407,7 @@ final class RMWC_Plugin {
 
         $removed = false;
         foreach ( $rows as $row ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $updated = $wpdb->update(
                 $table,
                 [
@@ -3360,6 +3424,7 @@ final class RMWC_Plugin {
             }
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $retained = (bool) $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT 1 FROM %i WHERE customer_email = %s AND status IN ('reserved','blocked') AND end_at IS NOT NULL AND end_at >= %s LIMIT 1",

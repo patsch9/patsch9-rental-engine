@@ -72,6 +72,7 @@ final class RMWC_V2_Inventory {
 
     private function get_asset( $asset_id ) {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $row = $wpdb->get_row(
             $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d LIMIT 1', $this->table(), absint( $asset_id ) ),
             ARRAY_A
@@ -85,16 +86,20 @@ final class RMWC_V2_Inventory {
         }
 
         global $wpdb;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only inventory admin navigation/filter parameter; no state change occurs here.
         $product_id = isset( $_GET['product_id'] ) ? absint( wp_unslash( $_GET['product_id'] ) ) : 0;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only inventory admin navigation/filter parameter; no state change occurs here.
         $edit_id    = isset( $_GET['asset_id'] ) ? absint( wp_unslash( $_GET['asset_id'] ) ) : 0;
         $editing    = $edit_id ? $this->get_asset( $edit_id ) : null;
 
         if ( $product_id ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $rows = $wpdb->get_results(
                 $wpdb->prepare( 'SELECT * FROM %i WHERE product_id = %d ORDER BY inventory_number ASC, id ASC LIMIT 1000', $this->table(), $product_id ),
                 ARRAY_A
             );
         } else {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $rows = $wpdb->get_results(
                 $wpdb->prepare( 'SELECT * FROM %i ORDER BY product_id ASC, inventory_number ASC, id ASC LIMIT 1000', $this->table() ),
                 ARRAY_A
@@ -102,6 +107,7 @@ final class RMWC_V2_Inventory {
         }
         $rows = is_array( $rows ) ? $rows : [];
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only inventory admin navigation/filter parameter; no state change occurs here.
         $notice = isset( $_GET['clr_asset_notice'] ) ? sanitize_key( wp_unslash( $_GET['clr_asset_notice'] ) ) : '';
         if ( $notice ) {
             $messages = [
@@ -246,8 +252,8 @@ final class RMWC_V2_Inventory {
             $status = 'available';
         }
 
-        $purchase = $this->valid_date_or_null( isset( $_POST['purchase_date'] ) ? wp_unslash( $_POST['purchase_date'] ) : '' );
-        $service  = $this->valid_date_or_null( isset( $_POST['last_service_date'] ) ? wp_unslash( $_POST['last_service_date'] ) : '' );
+        $purchase = $this->valid_date_or_null( isset( $_POST['purchase_date'] ) ? sanitize_text_field( wp_unslash( $_POST['purchase_date'] ) ) : '' );
+        $service  = $this->valid_date_or_null( isset( $_POST['last_service_date'] ) ? sanitize_text_field( wp_unslash( $_POST['last_service_date'] ) ) : '' );
         $serial       = isset( $_POST['serial_number'] ) ? sanitize_text_field( wp_unslash( $_POST['serial_number'] ) ) : '';
         $notes        = isset( $_POST['notes'] ) ? sanitize_textarea_field( wp_unslash( $_POST['notes'] ) ) : '';
         $known_damage = isset( $_POST['known_damage'] ) ? sanitize_textarea_field( wp_unslash( $_POST['known_damage'] ) ) : '';
@@ -256,6 +262,7 @@ final class RMWC_V2_Inventory {
         $known_damage = function_exists( 'mb_substr' ) ? mb_substr( $known_damage, 0, 4000 ) : substr( $known_damage, 0, 4000 );
 
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $duplicate = (int) $wpdb->get_var(
             $wpdb->prepare(
                 'SELECT id FROM %i WHERE inventory_number = %s AND id <> %d LIMIT 1',
@@ -273,6 +280,7 @@ final class RMWC_V2_Inventory {
             if ( ! $existing_asset ) {
                 wp_die( esc_html__( 'Gerät nicht gefunden.', 'patsch9-rental-engine' ), '', [ 'response' => 404 ] );
             }
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $history = (int) $wpdb->get_var(
                 $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE asset_id = %d', $this->assignment_table(), $asset_id )
             );
@@ -295,10 +303,12 @@ final class RMWC_V2_Inventory {
         $format = [ '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ];
 
         if ( $asset_id ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $result = $wpdb->update( $this->table(), $data, [ 'id' => $asset_id ], $format, [ '%d' ] );
         } else {
             $data['created_at'] = current_time( 'mysql', true );
             $format[] = '%s';
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $result = $wpdb->insert( $this->table(), $data, $format );
         }
         if ( false === $result ) {
@@ -322,6 +332,7 @@ final class RMWC_V2_Inventory {
         }
 
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $active = (int) $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT COUNT(*) FROM %i WHERE asset_id = %d AND status IN ('reserved','handed_over')",
@@ -333,10 +344,12 @@ final class RMWC_V2_Inventory {
             $this->redirect( 'active_assignment', $asset_id );
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $history = (int) $wpdb->get_var(
             $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE asset_id = %d', $this->assignment_table(), $asset_id )
         );
         if ( $history > 0 ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $result = $wpdb->update(
                 $this->table(),
                 [ 'status' => 'out_of_service', 'updated_at' => current_time( 'mysql', true ) ],
@@ -350,6 +363,7 @@ final class RMWC_V2_Inventory {
             $this->redirect( 'archived' );
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $result = $wpdb->delete( $this->table(), [ 'id' => $asset_id ], [ '%d' ] );
         if ( false === $result ) {
             $this->redirect( 'db_error', $asset_id );

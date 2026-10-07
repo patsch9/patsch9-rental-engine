@@ -1,98 +1,101 @@
 === Patsch9 Rental Engine for WooCommerce ===
 Contributors: patsch9
-Tags: woocommerce, rental, booking, vermietung, kaution
+Tags: woocommerce, rental, booking, deposits, inventory
 Requires at least: 6.9.5
-Tested up to: 7.0
+Tested up to: 7.1
 Requires PHP: 8.2
 Stable tag: 2026.10.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Vermietungs- und Gerätebuchungen für WooCommerce mit Verfügbarkeit, Preisen, Kautionen, Dokumenten und Übergabe-/Rückgabe-Workflow.
+Rental and equipment booking workflows for WooCommerce with availability, pricing, deposits, documents, inventory, and handover/return management.
 
 == Description ==
 
-Patsch9 Rental Engine erweitert WooCommerce um einen vollständigen Vermietungsprozess. Mietprodukte können zeitabhängige Verfügbarkeit, Preise, Kautionen, Bedingungen, Dokumente, Zubehör, konkrete Geräte sowie Übergabe- und Rückgabeabläufe verwenden.
+Patsch9 Rental Engine adds rental and equipment booking workflows to WooCommerce. Rental products can use date-based availability, configurable pricing, refundable deposits, rental terms, documents, accessories, physical inventory assignments, and handover/return workflows.
 
-Das Plugin unterstützt den klassischen WooCommerce-Checkout sowie Cart/Checkout Blocks und deklariert HPOS-Kompatibilität.
+The plugin supports the classic WooCommerce checkout as well as Cart and Checkout Blocks and declares High-Performance Order Storage (HPOS) compatibility.
 
-**Markenhinweis:** WooCommerce® ist eine Marke von Automattic Inc. Dieses Plugin ist eine unabhängige Drittanbieter-Erweiterung und wird nicht von Automattic herausgegeben, gesponsert oder unterstützt.
+**Trademark notice:** WooCommerce® is a trademark of Automattic Inc. This is an independent third-party extension and is not produced, sponsored, or endorsed by Automattic.
 
-== Funktionen ==
+== Features ==
 
-* Mietzeiträume mit Start-/Enddatum und Uhrzeiten.
-* Serverseitige Verfügbarkeits- und Kapazitätsprüfung.
-* Wochentags-/Wochenendpreise, Sperrtage und Buchungsvorlauf.
-* Rückzahlbare Kautionen mit unterschiedlichen Hinterlegungswegen.
-* Versionierte allgemeine und produktspezifische Mietbedingungen.
-* Mietvertrag, Kautionsbelege sowie Übergabe-/Rückgabeprotokolle als PDF.
-* Zubehör, Verbrauchsmaterial und mietgebundene Zusatzartikel.
-* Physische Gerätezuordnung und Workflow für Übergabe und Rückgabe.
-* Abholung und optionale Liefer-/Abholprozesse.
+* Rental periods with start/end dates and configurable times.
+* Server-side availability and capacity validation.
+* Weekday and weekend pricing, blocked weekdays, and advance booking limits.
+* Refundable deposits with multiple deposit handling options.
+* Versioned global and product-specific rental terms.
+* Rental contracts, deposit receipts, and handover/return protocols as PDF documents.
+* Accessories, consumables, and rental-bound add-on products.
+* Physical inventory assignment and handover/return workflow.
+* Customer pickup and optional delivery/collection workflows.
+* Classic Checkout and WooCommerce Cart/Checkout Blocks.
+* HPOS compatibility.
 
-== Voraussetzungen ==
+== Requirements ==
 
-* WordPress 6.9.5 oder neuer.
-* PHP 8.2 oder neuer.
-* WooCommerce 10.9.4 oder neuer.
+* WordPress 6.9.5 or newer.
+* PHP 8.2 or newer.
+* WooCommerce 10.9.4 or newer.
 
 == Installation ==
 
-1. WooCommerce installieren und aktivieren.
-2. Plugin-ZIP hochladen und aktivieren.
-3. Ein WooCommerce-Produkt bearbeiten.
-4. Im Produktdatenbereich die Vermietungsfunktion aktivieren und konfigurieren.
+1. Install and activate WooCommerce.
+2. Upload and activate this plugin.
+3. Edit a WooCommerce product.
+4. Enable and configure the rental option in the product data section.
 
-== Konfiguration ==
+== Configuration ==
 
-Die wesentlichen Einstellungen werden direkt am WooCommerce-Produkt gepflegt. Dazu gehören Mietdauer, Zeiten, Preise, Kaution, Zubehör, Lieferoptionen und Übergaberegeln. Globale Mietbedingungen und Workflow-Funktionen werden in den vom Plugin bereitgestellten Administrationsbereichen verwaltet.
+Most rental settings are configured directly on the WooCommerce product. These include rental duration, times, prices, deposits, accessories, delivery options, and handover rules. Global rental terms, inventory, document, and workflow settings are available in the plugin's WooCommerce administration screens.
 
 == External Services ==
 
 = Google Routes API =
 
-Optional kann die automatische Lieferentfernung über die Google Routes API unter `https://routes.googleapis.com/directions/v2:computeRoutes` berechnet werden. Die Funktion ist standardmäßig deaktiviert.
+The optional automatic delivery-distance calculation uses the Google Routes API at `https://routes.googleapis.com/directions/v2:computeRoutes`. This feature is disabled by default.
 
-Bei aktivierter Funktion werden die konfigurierte Ausgangsadresse und die vom Kunden eingegebene Zieladresse zusammen mit den technisch erforderlichen Verbindungsdaten an Google übertragen. Das Plugin speichert Routenantworten nicht dauerhaft zwischen.
+When enabled, the configured origin address and the delivery address entered by the customer are sent to Google together with the technical connection data required for the request. Route responses are not persistently cached by this plugin.
 
 Google Maps Platform Terms: https://cloud.google.com/maps-platform/terms
-Google Datenschutz: https://policies.google.com/privacy
+Google Privacy Policy: https://policies.google.com/privacy
 
-Der Website-Betreiber ist für die korrekte Datenschutzinformation und die Einhaltung der anwendbaren Google-Bedingungen verantwortlich.
+The site operator is responsible for providing the required privacy information and for complying with the applicable Google terms.
 
-== Datenschutz ==
+== Privacy ==
 
-Die Kernfunktionen arbeiten lokal in WordPress/WooCommerce. Eine Datenübertragung an Google erfolgt nur, wenn die optionale Routenberechnung ausdrücklich aktiviert wurde.
+Core rental functionality runs locally in WordPress and WooCommerce. Delivery addresses are sent to Google only when the optional automatic route calculation is explicitly enabled.
 
-== Kompatibilität ==
+The plugin stores rental booking data required for availability management and may create immutable business-document snapshots containing order, rental, deposit, and accepted-terms data.
 
-* WooCommerce HPOS wird deklariert.
-* Classic Checkout und Cart/Checkout Blocks werden unterstützt.
-* Historische interne Speicherbezeichner bleiben aus Gründen der Abwärtskompatibilität erhalten.
+== Compatibility ==
+
+* WooCommerce HPOS compatibility is declared.
+* Classic Checkout and Cart/Checkout Blocks are supported.
+* Historical internal storage identifiers are retained for backward compatibility.
 
 == Frequently Asked Questions ==
 
-= Sind Mietprodukte normale WooCommerce-Versandartikel? =
+= Are rental products normal WooCommerce shipping products? =
 
-Nein. Übergabe, Abholung und optionale Vermieter-Lieferung werden durch den Mietprozess gesteuert.
+No. Handover, customer pickup, and optional delivery or collection by the rental operator are managed by the rental workflow.
 
-= Können mietgebundene Zubehörartikel separat gekauft werden? =
+= Can rental-bound accessories be purchased separately? =
 
-Nein. Als mietgebunden konfigurierte Zubehörartikel werden nur im Zusammenhang mit einem passenden Mietprodukt angeboten.
+No. Accessories configured as rental-bound items are offered only in connection with a compatible rental product.
 
-= Ist die Kaution normaler Mietumsatz? =
+= Is a refundable deposit treated as normal rental revenue? =
 
-Das Plugin behandelt rückzahlbare Kautionen getrennt von der normalen Mietpreisberechnung. Die rechtliche und steuerliche Einordnung bleibt Aufgabe des Betreibers.
+The plugin handles refundable deposits separately from normal rental pricing. The legal and tax treatment remains the responsibility of the site operator.
 
 == Changelog ==
 
 = 2026.10.0 =
-* Erstes stabiles öffentliches Release im neuen projektweiten Versionsschema `YYYY.M.PATCH`.
-* Enthält den konsolidierten Funktions- und Sicherheitsstand aller bisherigen internen Vorabversionen bis einschließlich 2.0.29.
-* Dokumentation vollständig vereinheitlicht und auf Deutsch aktualisiert.
-* Checkout-Block-Abhängigkeiten, HPOS-Pfade, Dokumentdownloads, Preis-/Verfügbarkeitsprüfung und externe Routenintegration erneut verifiziert.
+* First stable public release using the project-wide `YYYY.M.PATCH` versioning scheme.
+* Consolidates the functional and security changes from all previous internal prerelease versions through 2.0.29.
+* Revalidated Checkout Blocks integration, HPOS paths, protected document downloads, pricing and availability checks, and the optional routes integration.
 
 == Upgrade Notice ==
 
 = 2026.10.0 =
-Erstes stabiles Release der neuen öffentlichen Versionslinie. Bestehende Installationen aus der Vorabphase sollten vor dem Update gesichert und anschließend funktional geprüft werden.
+First stable release of the new public version line. Back up existing prerelease installations and perform a functional rental checkout test after upgrading.

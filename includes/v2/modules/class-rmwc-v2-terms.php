@@ -63,6 +63,7 @@ final class RMWC_V2_Terms {
     public function active_terms() {
         global $wpdb;
         $table = $this->table();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $row = $wpdb->get_row( $wpdb->prepare( "SELECT id, version, content, content_hash, created_at FROM %i WHERE active = 1 ORDER BY id DESC LIMIT 1", $table ), ARRAY_A );
         return $this->validate_terms_row( $row );
     }
@@ -73,6 +74,7 @@ final class RMWC_V2_Terms {
         if ( ! $id ) {
             return null;
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $row = $wpdb->get_row( $wpdb->prepare( "SELECT id, version, content, content_hash, created_at FROM %i WHERE id = %d LIMIT 1", $this->table(), $id ), ARRAY_A );
         return $this->validate_terms_row( $row );
     }
@@ -319,7 +321,7 @@ final class RMWC_V2_Terms {
             return;
         }
         update_post_meta( $post_id, '_clr_terms_required', isset( $_POST['_clr_terms_required'] ) ? 'yes' : 'no' );
-        $product_terms = isset( $_POST['_clr_product_terms_content'] ) ? wp_unslash( $_POST['_clr_product_terms_content'] ) : '';
+        $product_terms = isset( $_POST['_clr_product_terms_content'] ) ? wp_kses_post( wp_unslash( $_POST['_clr_product_terms_content'] ) ) : '';
         $this->save_product_terms_version( $post_id, $product_terms );
     }
 
@@ -404,7 +406,7 @@ final class RMWC_V2_Terms {
         if ( ! $has_general && ! $has_product ) {
             return $passed;
         }
-        $accepted = isset( $_POST['clr_terms_accepted'] ) ? sanitize_key( wp_unslash( $_POST['clr_terms_accepted'] ) ) : '';
+        $accepted = isset( $_POST['clr_terms_accepted'] ) ? sanitize_key( wp_unslash( $_POST['clr_terms_accepted'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- frontend_nonce_valid() verified the product-specific rental nonce immediately above.
         if ( 'yes' !== $accepted ) {
             wc_add_notice( __( 'Bitte bestätigen Sie die Mietbedingungen.', 'patsch9-rental-engine' ), 'error' );
             return false;
@@ -774,6 +776,7 @@ final class RMWC_V2_Terms {
         }
         global $wpdb;
         $active = $this->active_terms();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $history = $wpdb->get_results( $wpdb->prepare( "SELECT id, version, content_hash, active, created_at, created_by FROM %i ORDER BY id DESC LIMIT 30", $this->table() ), ARRAY_A );
         ?>
         <div class="clr-v2-admin-card">
@@ -868,6 +871,7 @@ final class RMWC_V2_Terms {
         try {
             $wpdb->query( 'START TRANSACTION' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $existing_version = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM %i WHERE version = %s LIMIT 1", $table, $version ) );
             if ( $existing_version ) {
                 $version .= '-' . wp_date( 'His' );
@@ -878,6 +882,7 @@ final class RMWC_V2_Terms {
                 throw new RuntimeException( 'Could not deactivate previous terms version.' );
             }
 
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $inserted = $wpdb->insert(
                 $table,
                 [
