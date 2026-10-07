@@ -1,0 +1,83 @@
+name: Fix listed warnings
+
+on:
+  push:
+    branches:
+      - fix/plugin-check-2026-10-06
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/plugin-check-2026-10-06
+      - name: Apply targeted WordPress warning fixes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('includes/class-rmwc-plugin.php')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = [
+              (
+                  "final class RMWC_Plugin {\n    private static $instance = null;\n",
+                  "final class RMWC_Plugin {\n    private static $instance = null;\n    private $admin_page_hook = '';\n",
+              ),
+              (
+                  "        /* phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Product nonce/capability verified above; every nested value is validated below. */\n        $blocked_pickup = isset( $_POST['clr_blocked_pickup_days'] ) && is_array( $_POST['clr_blocked_pickup_days'] )\n            ? $this->sanitize_weekday_list( wp_unslash( $_POST['clr_blocked_pickup_days'] ) )\n            : [];\n        /* phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Product nonce/capability verified above; every nested value is validated below. */\n        $blocked_return = isset( $_POST['clr_blocked_return_days'] ) && is_array( $_POST['clr_blocked_return_days'] )\n            ? $this->sanitize_weekday_list( wp_unslash( $_POST['clr_blocked_return_days'] ) )\n            : [];\n",
+                  "        $raw_blocked_pickup = isset( $_POST['clr_blocked_pickup_days'] )\n            ? map_deep( wp_unslash( $_POST['clr_blocked_pickup_days'] ), 'sanitize_text_field' )\n            : [];\n        $blocked_pickup = $this->sanitize_weekday_list( is_array( $raw_blocked_pickup ) ? $raw_blocked_pickup : [] );\n        $raw_blocked_return = isset( $_POST['clr_blocked_return_days'] )\n            ? map_deep( wp_unslash( $_POST['clr_blocked_return_days'] ), 'sanitize_text_field' )\n            : [];\n        $blocked_return = $this->sanitize_weekday_list( is_array( $raw_blocked_return ) ? $raw_blocked_return : [] );\n",
+              ),
+              (
+                  "        $weekday_prices = [];\n        /* phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Product nonce/capability verified above; every nested value is validated below. */\n        $raw_weekday_prices = isset( $_POST['clr_weekday_prices'] ) && is_array( $_POST['clr_weekday_prices'] )\n            ? wp_unslash( $_POST['clr_weekday_prices'] )\n            : [];\n",
+                  "        $weekday_prices = [];\n        $raw_weekday_prices = isset( $_POST['clr_weekday_prices'] )\n            ? map_deep( wp_unslash( $_POST['clr_weekday_prices'] ), 'sanitize_text_field' )\n            : [];\n        $raw_weekday_prices = is_array( $raw_weekday_prices ) ? $raw_weekday_prices : [];\n",
+              ),
+              (
+                  "        $decimal_fields = [ '_clr_unit_price', '_clr_deposit', '_clr_delivery_fee', '_clr_weekend_price' ];\n        foreach ( $decimal_fields as $key ) {\n            $value = isset( $_POST[ $key ] ) ? (float) wc_format_decimal( wp_unslash( $_POST[ $key ] ) ) : 0;\n            update_post_meta( $post_id, $key, min( 100000000, max( 0, $value ) ) );\n        }\n",
+                  "        $decimal_fields = [ '_clr_unit_price', '_clr_deposit', '_clr_delivery_fee', '_clr_weekend_price' ];\n        foreach ( $decimal_fields as $key ) {\n            $raw_value = isset( $_POST[ $key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $key ] ) ) : '0';\n            $value = (float) wc_format_decimal( $raw_value );\n            update_post_meta( $post_id, $key, min( 100000000, max( 0, $value ) ) );\n        }\n",
+              ),
+              (
+                  "        if ( isset( $_GET['page'] ) && 'clr-rentals' === sanitize_key( wp_unslash( $_GET['page'] ) ) ) {\n",
+                  "        if ( $this->admin_page_hook && $hook === $this->admin_page_hook ) {\n",
+              ),
+              (
+                  "    public function admin_menu() {\n        add_submenu_page( 'woocommerce', 'Vermietungen', 'Vermietungen', 'manage_woocommerce', 'clr-rentals', [ $this, 'admin_bookings_page' ] );\n    }\n",
+                  "    public function admin_menu() {\n        $hook = add_submenu_page( 'woocommerce', 'Vermietungen', 'Vermietungen', 'manage_woocommerce', 'clr-rentals', [ $this, 'admin_bookings_page' ] );\n        $this->admin_page_hook = is_string( $hook ) ? $hook : '';\n    }\n",
+              ),
+              (
+                  "        $got_lock  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 8)', $lock_name ) );\n",
+                  "        $got_lock  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 8)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Advisory locks must reflect current database state and are intentionally not cached.\n",
+              ),
+              (
+                  "            $ok = $wpdb->insert( $this->table(), $data, [ '%d','%s','%s','%s','%s','%s','%d','%s','%s','%s','%s','%s' ] );\n",
+                  "            $ok = $wpdb->insert( $this->table(), $data, [ '%d','%s','%s','%s','%s','%s','%d','%s','%s','%s','%s','%s' ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Writes to the plugin's transactional booking table must not be cached.\n",
+              ),
+              (
+                  "            $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );\n",
+                  "            $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Releases the matching advisory lock immediately; caching is invalid here.\n",
+              ),
+          ]
+
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'Expected exactly one match, found {count}: {old[:100]!r}')
+              text = text.replace(old, new, 1)
+
+          path.write_text(text, encoding='utf-8')
+
+          workflow = Path('.github/workflows/fix-listed-warnings.yml')
+          workflow.unlink()
+      - name: Commit fixes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add includes/class-rmwc-plugin.php .github/workflows/fix-listed-warnings.yml
+          git commit -m "Fix remaining input, nonce and DB check warnings"
+          git push origin HEAD:fix/plugin-check-2026-10-06
