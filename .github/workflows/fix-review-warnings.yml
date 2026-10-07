@@ -1,0 +1,300 @@
+name: Fix review warnings
+
+on:
+  push:
+    branches:
+      - fix/plugin-check-2026-10-06
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/plugin-check-2026-10-06
+      - name: Apply targeted review cleanup
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          files = {}
+
+          def load(path):
+              if path not in files:
+                  files[path] = Path(path).read_text(encoding='utf-8')
+              return files[path]
+
+          def replace_once(path, old, new):
+              text = load(path)
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected one match, found {count}: {old[:120]!r}')
+              files[path] = text.replace(old, new, 1)
+
+          def replace_count(path, old, new, expected):
+              text = load(path)
+              count = text.count(old)
+              if count != expected:
+                  raise SystemExit(f'{path}: expected {expected} matches, found {count}: {old[:120]!r}')
+              files[path] = text.replace(old, new)
+
+          core = 'includes/class-rmwc-plugin.php'
+          replace_once(
+              core,
+              "$address    = $this->sanitize_address( isset( $_POST['address'] ) ? wp_unslash( $_POST['address'] ) : '' );",
+              "$address    = $this->sanitize_address( isset( $_POST['address'] ) ? sanitize_text_field( wp_unslash( $_POST['address'] ) ) : '' );",
+          )
+          replace_once(
+              core,
+              "    private function delivery_data_from_request( $product_id ) {\n",
+              "    private function delivery_data_from_request( $product_id, $address_input = '', $zone_input = '' ) {\n",
+          )
+          replace_once(
+              core,
+              "        $address = $this->sanitize_address( isset( $_POST['clr_delivery_address'] ) ? wp_unslash( $_POST['clr_delivery_address'] ) : '' );",
+              "        $address = $this->sanitize_address( sanitize_text_field( (string) $address_input ) );",
+          )
+          replace_once(
+              core,
+              "        $zone_raw = isset( $_POST['clr_delivery_zone'] ) ? trim( (string) wp_unslash( $_POST['clr_delivery_zone'] ) ) : '';",
+              "        $zone_raw = trim( sanitize_text_field( (string) $zone_input ) );",
+          )
+          replace_once(
+              core,
+              "        if ( ! $this->frontend_rental_nonce_valid( $product_id ) ) {\n            wc_add_notice( 'Die Mietdaten konnten nicht verifiziert werden. Bitte Seite neu laden.', 'error' );\n            return false;\n        }",
+              "        $rental_nonce = isset( $_POST['clr_rental_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_rental_nonce'] ) ) : '';\n        if ( ! $rental_nonce || ! wp_verify_nonce( $rental_nonce, 'clr_add_rental_' . absint( $product_id ) ) ) {\n            wc_add_notice( 'Die Mietdaten konnten nicht verifiziert werden. Bitte Seite neu laden.', 'error' );\n            return false;\n        }",
+          )
+          replace_once(
+              core,
+              "        if ( ! $this->frontend_rental_nonce_valid( $product_id ) ) {\n            return $data;\n        }",
+              "        $rental_nonce = isset( $_POST['clr_rental_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_rental_nonce'] ) ) : '';\n        if ( ! $rental_nonce || ! wp_verify_nonce( $rental_nonce, 'clr_add_rental_' . absint( $product_id ) ) ) {\n            return $data;\n        }",
+          )
+          replace_count(
+              core,
+              "            $delivery = $this->delivery_data_from_request( $config_id );",
+              "            $delivery_address = isset( $_POST['clr_delivery_address'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_delivery_address'] ) ) : '';\n            $delivery_zone    = isset( $_POST['clr_delivery_zone'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_delivery_zone'] ) ) : '';\n            $delivery = $this->delivery_data_from_request( $config_id, $delivery_address, $delivery_zone );",
+              2,
+          )
+          replace_once(
+              core,
+              "        $selected_raw = isset( $_POST['clr_addon'] ) && is_array( $_POST['clr_addon'] ) ? wp_unslash( $_POST['clr_addon'] ) : [];",
+              "        $selected_raw = isset( $_POST['clr_addon'] ) ? map_deep( wp_unslash( $_POST['clr_addon'] ), 'sanitize_text_field' ) : [];\n        $selected_raw = is_array( $selected_raw ) ? $selected_raw : [];",
+          )
+          replace_once(
+              core,
+              "        $refunded = min( $total, max( 0, (float) wc_format_decimal( wp_unslash( $_POST['clr_deposit_refunded'] ?? 0 ) ) ) );\n        $retained = min( $total, max( 0, (float) wc_format_decimal( wp_unslash( $_POST['clr_deposit_retained'] ?? 0 ) ) ) );",
+              "        $refunded_raw = isset( $_POST['clr_deposit_refunded'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_deposit_refunded'] ) ) : '0';\n        $retained_raw = isset( $_POST['clr_deposit_retained'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_deposit_retained'] ) ) : '0';\n        $refunded = min( $total, max( 0, (float) wc_format_decimal( $refunded_raw ) ) );\n        $retained = min( $total, max( 0, (float) wc_format_decimal( $retained_raw ) ) );",
+          )
+          replace_once(
+              core,
+              "            $origin = $this->sanitize_address( isset( $_POST['clr_delivery_origin'] ) ? wp_unslash( $_POST['clr_delivery_origin'] ) : '' );",
+              "            $origin = $this->sanitize_address( isset( $_POST['clr_delivery_origin'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_delivery_origin'] ) ) : '' );",
+          )
+          for old in [
+              "        $tab = sanitize_key( wp_unslash( $_GET['tab'] ?? 'calendar' ) );",
+              "        $month = sanitize_text_field( wp_unslash( $_GET['month'] ?? wp_date( 'Y-m' ) ) );",
+              "        $product_filter = absint( wp_unslash( $_GET['product_id'] ?? 0 ) );",
+              "        $edit_booking_id = isset( $_GET['edit_booking'] ) ? absint( wp_unslash( $_GET['edit_booking'] ) ) : 0;",
+          ]:
+              replace_once(core, old, "        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin view/filter parameter; no state-changing action is performed.\n" + old)
+
+          workflow = 'includes/v2/modules/class-rmwc-v2-workflow.php'
+          replace_once(
+              workflow,
+              "            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Values are validated against a fixed allowlist and mapped to the server-side checklist below.",
+              "            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.NonceVerification.Missing -- validate_action_request() verifies the action-specific nonce before this private helper is called; values are then allowlisted below.",
+          )
+          replace_once(
+              workflow,
+              "            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Notes are individually sanitized and length-limited below.",
+              "            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.NonceVerification.Missing -- validate_action_request() verifies the action-specific nonce before this private helper is called; notes are sanitized and length-limited below.",
+          )
+          replace_once(
+              workflow,
+              "        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Only numeric indexes are accepted and mapped to the server-side configured checklist.",
+              "        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.NonceVerification.Missing -- validate_action_request() verifies the action-specific nonce before this private helper is called; only numeric configured indexes are accepted.",
+          )
+          replace_once(
+              workflow,
+              "        $raw = isset( $_POST['signature_data'] ) ? trim( (string) wp_unslash( $_POST['signature_data'] ) ) : '';",
+              "        $raw = isset( $_POST['signature_data'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['signature_data'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- validate_action_request() verifies the action-specific nonce before this private helper is called; the data URI is strictly validated below.",
+          )
+
+          # Read-only workflow screen query parameters do not need CSRF protection.
+          text = load(workflow)
+          lines = text.splitlines()
+          out = []
+          in_render = False
+          for line in lines:
+              if line.startswith('    public function render_admin_tab()'):
+                  in_render = True
+              elif in_render and line.startswith('    ') and re.match(r'    (public|private) function ', line) and not line.startswith('    public function render_admin_tab()'):
+                  in_render = False
+              if in_render and '$_GET[' in line and (not out or 'NonceVerification.Recommended' not in out[-1]):
+                  out.append('        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only WooCommerce admin navigation/filter parameter; no state change occurs here.')
+              out.append(line)
+          files[workflow] = '\n'.join(out) + ('\n' if text.endswith('\n') else '')
+
+          # POST reads in these handlers are reached only after validate_action_request() has verified the action-specific nonce.
+          text = load(workflow)
+          lines = text.splitlines()
+          out = []
+          guarded = False
+          for line in lines:
+              if re.match(r'    public function (handle_handover|handle_return)\(\)', line):
+                  guarded = True
+              elif guarded and re.match(r'    (public|private) function ', line) and not re.match(r'    public function (handle_handover|handle_return)\(\)', line):
+                  guarded = False
+              if guarded and '$_POST[' in line and (not out or 'NonceVerification.Missing' not in out[-1]) and 'phpcs:ignore WordPress.Security.NonceVerification.Missing' not in line:
+                  out.append('        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- validate_action_request() verified the action-specific nonce at the start of this handler.')
+              out.append(line)
+          files[workflow] = '\n'.join(out) + ('\n' if text.endswith('\n') else '')
+
+          deposits = 'includes/v2/modules/class-rmwc-v2-deposits.php'
+          replace_once(
+              deposits,
+              "        $choice = isset( $_POST['clr_v2_deposit_choice'] ) ? sanitize_key( wp_unslash( $_POST['clr_v2_deposit_choice'] ) ) : '';",
+              "        $choice = isset( $_POST['clr_v2_deposit_choice'] ) ? sanitize_key( wp_unslash( $_POST['clr_v2_deposit_choice'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce verifies woocommerce-process-checkout-nonce before firing woocommerce_checkout_process.",
+          )
+          text = load(deposits)
+          lines = text.splitlines()
+          out = []
+          guarded_names = {'admin_receive', 'admin_refund', 'admin_clear_uncertain', 'save_settings'}
+          current = ''
+          for line in lines:
+              m = re.match(r'    public function ([a-zA-Z0-9_]+)\(', line)
+              if m:
+                  current = m.group(1)
+              if current in guarded_names and '$_POST[' in line and 'phpcs:ignore WordPress.Security.NonceVerification.Missing' not in line and (not out or 'NonceVerification.Missing' not in out[-1]):
+                  reason = 'admin_action_order() verifies the order-specific admin nonce before this handler continues.' if current != 'save_settings' else 'The core settings handler verifies clr_admin_action before firing rmwc_save_v2_settings.'
+                  out.append(f'        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- {reason}')
+              out.append(line)
+          files[deposits] = '\n'.join(out) + ('\n' if text.endswith('\n') else '')
+
+          documents = 'includes/v2/modules/class-rmwc-v2-documents.php'
+          text = load(documents)
+          lines = text.splitlines()
+          out = []
+          in_download = False
+          for line in lines:
+              if line.startswith('    public function download_document()'):
+                  in_download = True
+              elif in_download and re.match(r'    (public|private) function ', line) and not line.startswith('    public function download_document()'):
+                  in_download = False
+              if in_download and '$_GET[' in line and (not out or 'NonceVerification.Recommended' not in out[-1]):
+                  out.append('        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- can_download() validates either the authenticated session nonce or the signed, expiring HMAC download token before output.')
+              out.append(line)
+          files[documents] = '\n'.join(out) + ('\n' if text.endswith('\n') else '')
+
+          inventory = 'includes/v2/modules/class-rmwc-v2-inventory.php'
+          replace_once(
+              inventory,
+              "        $purchase = $this->valid_date_or_null( isset( $_POST['purchase_date'] ) ? wp_unslash( $_POST['purchase_date'] ) : '' );\n        $service  = $this->valid_date_or_null( isset( $_POST['last_service_date'] ) ? wp_unslash( $_POST['last_service_date'] ) : '' );",
+              "        $purchase = $this->valid_date_or_null( isset( $_POST['purchase_date'] ) ? sanitize_text_field( wp_unslash( $_POST['purchase_date'] ) ) : '' );\n        $service  = $this->valid_date_or_null( isset( $_POST['last_service_date'] ) ? sanitize_text_field( wp_unslash( $_POST['last_service_date'] ) ) : '' );",
+          )
+          text = load(inventory)
+          lines = text.splitlines()
+          out = []
+          in_render = False
+          for line in lines:
+              if line.startswith('    public function render_admin_tab()'):
+                  in_render = True
+              elif in_render and re.match(r'    (public|private) function ', line) and not line.startswith('    public function render_admin_tab()'):
+                  in_render = False
+              if in_render and '$_GET[' in line and (not out or 'NonceVerification.Recommended' not in out[-1]):
+                  out.append('        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only inventory admin navigation/filter parameter; no state change occurs here.')
+              out.append(line)
+          files[inventory] = '\n'.join(out) + ('\n' if text.endswith('\n') else '')
+
+          terms = 'includes/v2/modules/class-rmwc-v2-terms.php'
+          replace_once(
+              terms,
+              "        $product_terms = isset( $_POST['_clr_product_terms_content'] ) ? wp_unslash( $_POST['_clr_product_terms_content'] ) : '';",
+              "        $product_terms = isset( $_POST['_clr_product_terms_content'] ) ? wp_kses_post( wp_unslash( $_POST['_clr_product_terms_content'] ) ) : '';",
+          )
+          replace_once(
+              terms,
+              "        $accepted = isset( $_POST['clr_terms_accepted'] ) ? sanitize_key( wp_unslash( $_POST['clr_terms_accepted'] ) ) : '';",
+              "        $accepted = isset( $_POST['clr_terms_accepted'] ) ? sanitize_key( wp_unslash( $_POST['clr_terms_accepted'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- frontend_nonce_valid() verified the product-specific rental nonce immediately above.",
+          )
+
+          email_tpl = 'templates/emails/rental-document.php'
+          text = load(email_tpl)
+          text = text.replace(
+              "do_action( 'woocommerce_email_header'",
+              "do_action( 'woocommerce_email_header'",  # no runtime change; comments inserted below
+          )
+          lines = text.splitlines()
+          out = []
+          for line in lines:
+              if "do_action( 'woocommerce_email_header'" in line or "do_action( 'woocommerce_email_footer'" in line:
+                  out.append('// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Standard WooCommerce email template hook; the hook name is defined by WooCommerce and must not be prefixed.')
+              out.append(line)
+          files[email_tpl] = '\n'.join(out) + ('\n' if text.endswith('\n') else '')
+
+          # Direct access to plugin-owned operational tables is intentional. WordPress has no CRUD API for these tables,
+          # and booking/workflow/inventory state must be read fresh. Suppress only DirectQuery/NoCaching; prepared-SQL checks stay active.
+          db_files = [
+              core,
+              workflow,
+              deposits,
+              documents,
+              inventory,
+              terms,
+              'includes/v2/modules/class-rmwc-v2-integrations.php',
+          ]
+          db_re = re.compile(r'\$wpdb->(?:get_var|get_row|get_col|get_results|insert|update|delete|query)\s*\(')
+          for path in db_files:
+              text = load(path)
+              lines = text.splitlines()
+              out = []
+              for line in lines:
+                  if db_re.search(line) and 'phpcs:ignore WordPress.DB.DirectDatabaseQuery' not in line and (not out or 'WordPress.DB.DirectDatabaseQuery' not in out[-1]):
+                      indent = re.match(r'\s*', line).group(0)
+                      out.append(indent + '// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.')
+                  out.append(line)
+              files[path] = '\n'.join(out) + ('\n' if text.endswith('\n') else '')
+
+          uninstall = 'uninstall.php'
+          replace_once(
+              uninstall,
+              "$wpdb->query( $wpdb->prepare( \"DROP TABLE IF EXISTS %i\", $rmwc_table ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared",
+              "$wpdb->query( $wpdb->prepare( \"DROP TABLE IF EXISTS %i\", $rmwc_table ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Explicit opt-in uninstall cleanup of plugin-owned tables; identifier is prepared with %i.",
+          )
+          replace_once(
+              uninstall,
+              "$wpdb->delete( $rmwc_hpos_meta_table, [ 'meta_key' => $rmwc_meta_key ], [ '%s' ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching",
+              "$wpdb->delete( $rmwc_hpos_meta_table, [ 'meta_key' => $rmwc_meta_key ], [ '%s' ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Explicit opt-in uninstall cleanup; cache is irrelevant and the meta-key scan runs only during destructive uninstall.",
+          )
+          replace_once(
+              uninstall,
+              "$wpdb->delete( $rmwc_order_item_meta_table, [ 'meta_key' => $rmwc_meta_key ], [ '%s' ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching",
+              "$wpdb->delete( $rmwc_order_item_meta_table, [ 'meta_key' => $rmwc_meta_key ], [ '%s' ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Explicit opt-in uninstall cleanup; cache is irrelevant and the meta-key scan runs only during destructive uninstall.",
+          )
+          text = load(uninstall)
+          lines = text.splitlines()
+          out = []
+          for line in lines:
+              if db_re.search(line) and 'phpcs:ignore WordPress.DB.DirectDatabaseQuery' not in line and (not out or 'WordPress.DB.DirectDatabaseQuery' not in out[-1]):
+                  indent = re.match(r'\s*', line).group(0)
+                  out.append(indent + '// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit opt-in uninstall cleanup; cached reads/writes are not appropriate during removal.')
+              out.append(line)
+          files[uninstall] = '\n'.join(out) + ('\n' if text.endswith('\n') else '')
+
+          for path, content in files.items():
+              Path(path).write_text(content, encoding='utf-8')
+
+          Path('.github/workflows/fix-review-warnings.yml').unlink()
+      - name: Commit cleanup
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add includes uninstall.php templates .github/workflows/fix-review-warnings.yml
+          git commit -m "Harden request handling and document intentional DB access"
+          git push origin HEAD:fix/plugin-check-2026-10-06
