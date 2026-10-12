@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Build a complete bundled de_DE catalogue from the final English POT."""
+"""Build a complete bundled de_DE catalogue from the final English POT.
+
+Existing reviewed German translations are preserved whenever the English msgid
+and context remain unchanged. Newly converted German source strings restore
+their original wording through the one-off source map; only genuinely new
+English strings fall back to local machine translation.
+"""
 from __future__ import annotations
 
 import json
@@ -25,10 +31,17 @@ MANUAL_DE = {
     "requires WooCommerce.": "benötigt WooCommerce.",
     "requires WooCommerce 10.9.4 or newer.": "benötigt WooCommerce 10.9.4 oder höher.",
     "Rental": "Vermietung",
+    "Rentals": "Vermietungen",
     "Security deposit": "Kaution",
     "Rental price": "Mietpreis",
     "Rental agreement": "Mietvertrag",
     "Rental terms": "Mietbedingungen",
+    "General rental terms": "Allgemeine Mietbedingungen",
+    "Accepted rental terms": "Akzeptierte Mietbedingungen",
+    "Pickup": "Abholung",
+    "Return": "Rückgabe",
+    "Rental duration": "Mietdauer",
+    "Transport / handover": "Transport / Übergabe",
     "Pickup and return by customer": "Abholung und Rückgabe durch Kunde",
     "Delivery by rental operator and return by customer": "Lieferung durch Vermieter und Rückgabe durch Kunde",
     "Delivery and collection by rental operator": "Lieferung und Abholung durch Vermieter",
@@ -70,10 +83,27 @@ def normalize_german(text: str) -> str:
     return text.strip()
 
 
+def existing_translation_map(path: Path) -> dict[tuple[str, str, str], dict]:
+    if not path.exists():
+        return {}
+    existing = polib.pofile(str(path))
+    result: dict[tuple[str, str, str], dict] = {}
+    for entry in existing:
+        if not entry.msgid or not entry.translated():
+            continue
+        key = (entry.msgctxt or "", entry.msgid, entry.msgid_plural or "")
+        result[key] = {
+            "msgstr": entry.msgstr,
+            "msgstr_plural": dict(entry.msgstr_plural),
+        }
+    return result
+
+
 def main() -> None:
     old_to_new = json.loads(MAP.read_text(encoding="utf-8"))
     new_to_old = {english: german for german, english in old_to_new.items()}
     pot = polib.pofile(str(POT))
+    preserved = existing_translation_map(OUT)
 
     po = polib.POFile()
     po.metadata = {
@@ -105,30 +135,35 @@ def main() -> None:
             flags=entry.flags,
             msgctxt=entry.msgctxt,
         )
+        preserved_key = (entry.msgctxt or "", entry.msgid, entry.msgid_plural or "")
+        old = preserved.get(preserved_key)
 
         if entry.msgid_plural:
-            singular_de = MANUAL_DE.get(entry.msgid) or new_to_old.get(entry.msgid)
-            plural_de = MANUAL_DE.get(entry.msgid_plural) or new_to_old.get(entry.msgid_plural)
-            if singular_de and plural_de:
-                new_entry.msgstr_plural[0] = singular_de
-                new_entry.msgstr_plural[1] = plural_de
+            if old and old.get("msgstr_plural"):
+                new_entry.msgstr_plural.update(old["msgstr_plural"])
             else:
-                protected_s, ph_s = protect(entry.msgid)
-                protected_p, ph_p = protect(entry.msgid_plural)
-                missing.append((new_entry, protected_s, ph_s, False))
-                missing.append((new_entry, protected_p, ph_p, True))
+                singular_de = MANUAL_DE.get(entry.msgid) or new_to_old.get(entry.msgid)
+                plural_de = MANUAL_DE.get(entry.msgid_plural) or new_to_old.get(entry.msgid_plural)
+                if singular_de and plural_de:
+                    new_entry.msgstr_plural[0] = singular_de
+                    new_entry.msgstr_plural[1] = plural_de
+                else:
+                    protected_s, ph_s = protect(entry.msgid)
+                    protected_p, ph_p = protect(entry.msgid_plural)
+                    missing.append((new_entry, protected_s, ph_s, False))
+                    missing.append((new_entry, protected_p, ph_p, True))
         else:
-            german = MANUAL_DE.get(entry.msgid) or new_to_old.get(entry.msgid)
-            if german:
-                new_entry.msgstr = german
+            if old and old.get("msgstr"):
+                new_entry.msgstr = old["msgstr"]
             else:
-                protected, placeholders = protect(entry.msgid)
-                missing.append((new_entry, protected, placeholders, False))
+                german = MANUAL_DE.get(entry.msgid) or new_to_old.get(entry.msgid)
+                if german:
+                    new_entry.msgstr = german
+                else:
+                    protected, placeholders = protect(entry.msgid)
+                    missing.append((new_entry, protected, placeholders, False))
         po.append(new_entry)
 
-    # Translate only entries that were already English in the old source or
-    # were newly introduced during the refactor. Original German strings are
-    # restored exactly from new_to_old above.
     for offset in range(0, len(missing), 12):
         batch = missing[offset : offset + 12]
         encoded = tokenizer(
@@ -161,7 +196,7 @@ def main() -> None:
     untranslated = [entry.msgid for entry in po if not entry.translated()]
     if untranslated:
         raise RuntimeError(f"Untranslated German catalogue entries: {untranslated[:10]!r}")
-    print(f"Created {OUT.relative_to(ROOT)} with {len(po)} translated entries")
+    print(f"Created {OUT.relative_to(ROOT)} with {len(po)} translated entries; preserved {len(preserved)} existing translations")
 
 
 if __name__ == "__main__":
