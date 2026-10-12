@@ -31,6 +31,12 @@ LEGACY_ALLOWED = {
     "Transport – ",
     "Abholung",
     "Rückgabe",
+    # Internal prerelease status enum retained to avoid rewriting historic orders.
+    "einbehalten",
+    # Historic order-item label recognized alongside the current translated key.
+    "Kautionshinterlegung",
+    # Compatibility parser for Germanized/WooCommerce tax labels; not UI output.
+    "/(?:MwSt\.?|Umsatzsteuer|Mehrwertsteuer|VAT)/iu",
 }
 
 

@@ -768,20 +768,20 @@ final class RMWC_V2_Documents {
         $snapshot = is_array( $document['snapshot_data'] ?? null ) ? $document['snapshot_data'] : [];
         $type     = sanitize_key( $document['type'] ?? '' );
         if ( in_array( $type, [ 'contract', 'contract_revision' ], true ) ) {
-            $prefix = 'missing_terms_appendix' === sanitize_key( $snapshot['correction']['type'] ?? '' ) ? 'rental-agreement-corrected' : __( 'Rental agreement', 'patsch9-rental-engine' );
+            $prefix = 'missing_terms_appendix' === sanitize_key( $snapshot['correction']['type'] ?? '' ) ? 'rental-agreement-corrected' : 'rental-agreement';
         } elseif ( 'handover_protocol' === $type ) {
-            $prefix = 'uebergabeprotokoll';
+            $prefix = 'handover-protocol';
         } elseif ( 'return_protocol' === $type ) {
-            $prefix = 'rueckgabeprotokoll';
+            $prefix = 'return-protocol';
         } elseif ( 'deposit_received' === $type ) {
-            $prefix = 'kautionsquittung';
+            $prefix = 'security-deposit-receipt';
         } elseif ( 'deposit_refund' === $type ) {
-            $prefix = 'kautionsrueckzahlung';
+            $prefix = 'security-deposit-refund';
         } else {
-            $prefix = 'mietdokument';
+            $prefix = 'rental-document';
         }
         $base = sanitize_file_name( $prefix . '-' . ( $document['document_number'] ?? $document['id'] ) . '.pdf' );
-        return $base ?: 'mietdokument.pdf';
+        return $base ?: 'rental-document.pdf';
     }
 
     /**
@@ -797,7 +797,7 @@ final class RMWC_V2_Documents {
         $safe_name = sanitize_file_name( $filename );
         $stem      = sanitize_file_name( pathinfo( $safe_name, PATHINFO_FILENAME ) );
         if ( '' === $stem ) {
-            $stem = 'mietdokument';
+            $stem = 'rental-document';
         }
         $bytes  = (string) $pdf_bytes;
         $length = strlen( $bytes );
@@ -1170,7 +1170,7 @@ final class RMWC_V2_Documents {
             $sent = false;
             if ( function_exists( 'wc_get_logger' ) ) {
                 wc_get_logger()->error(
-                    'Mietdokument-E-Mail konnte nicht versendet werden: ' . substr( sanitize_text_field( $exception->getMessage() ), 0, 500 ),
+                    'Rental document email could not be sent: ' . substr( sanitize_text_field( $exception->getMessage() ), 0, 500 ),
                     [ 'source' => 'patsch9-rental-engine' ]
                 );
             }

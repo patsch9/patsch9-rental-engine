@@ -209,7 +209,8 @@ final class RMWC_V2_Integrations {
     }
 
     public function display_order_item_meta_value( $display_value, $meta, $item ) {
-        if ( ! $item instanceof WC_Order_Item_Product || ! is_object( $meta ) || 'Kautionshinterlegung' !== (string) ( $meta->key ?? '' ) ) {
+        $deposit_meta_keys = [ __( 'Security deposit method', 'patsch9-rental-engine' ), 'Kautionshinterlegung' ];
+        if ( ! $item instanceof WC_Order_Item_Product || ! is_object( $meta ) || ! in_array( (string) ( $meta->key ?? '' ), $deposit_meta_keys, true ) ) {
             return $display_value;
         }
         $rental = $item->get_meta( '_rmwc_rental_data', true );
@@ -285,8 +286,8 @@ final class RMWC_V2_Integrations {
                 $periods[] = sprintf(
                     '%s: %s - %s',
                     $product_name,
-                    wp_date( 'd.m.Y H:i', strtotime( $start_at ) ),
-                    wp_date( 'd.m.Y H:i', strtotime( $end_at ) )
+                    wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $start_at ), wp_timezone() ),
+                    wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $end_at ), wp_timezone() )
                 );
             }
             $fulfilment = sanitize_key( $rental['fulfilment'] ?? '' );
@@ -487,8 +488,8 @@ final class RMWC_V2_Integrations {
                 $periods[] = sprintf(
                     '%s: %s - %s',
                     $product_name,
-                    wp_date( 'd.m.Y H:i', strtotime( $start_at ) ),
-                    wp_date( 'd.m.Y H:i', strtotime( $end_at ) )
+                    wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $start_at ), wp_timezone() ),
+                    wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $end_at ), wp_timezone() )
                 );
             }
             if ( (float) ( $rental['deposit'] ?? 0 ) > 0 ) {
@@ -502,8 +503,9 @@ final class RMWC_V2_Integrations {
             }
 
             $meta_data = isset( $line_item['meta_data'] ) && is_array( $line_item['meta_data'] ) ? $line_item['meta_data'] : [];
+            $deposit_meta_keys = [ __( 'Security deposit method', 'patsch9-rental-engine' ), 'Kautionshinterlegung' ];
             foreach ( $meta_data as &$meta_row ) {
-                if ( is_array( $meta_row ) && 'Kautionshinterlegung' === (string) ( $meta_row['key'] ?? '' ) && (float) ( $rental['deposit'] ?? 0 ) > 0 ) {
+                if ( is_array( $meta_row ) && in_array( (string) ( $meta_row['key'] ?? '' ), $deposit_meta_keys, true ) && (float) ( $rental['deposit'] ?? 0 ) > 0 ) {
                     $meta_row['value'] = 'cash' === sanitize_key( $rental['deposit_method'] ?? 'online' )
                         ? __( 'Transfer separately or deposit cash at collection', 'patsch9-rental-engine' )
                         : __( 'Provided online with the order', 'patsch9-rental-engine' );
