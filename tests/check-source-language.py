@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Reject German UI literals in production source.
+"""Reject German UI literals in production PHP source.
 
 The WordPress.org-facing source language is English. Historic German labels from
 prerelease builds are allowed only as explicit compatibility fallbacks so old
 orders can still be recognized after upgrading.
+
+This deliberately scans PHP string literals rather than comments/documentation.
 """
 from __future__ import annotations
 
@@ -31,8 +33,6 @@ LEGACY_ALLOWED = {
     "Rückgabe",
 }
 
-STRING_RE = re.compile(r"(?P<quote>['\"])(?P<body>(?:\\.|(?!\1).)*)(?P=quote)", re.DOTALL)
-
 
 def iter_php_files():
     for root in SOURCE_ROOTS:
@@ -40,6 +40,62 @@ def iter_php_files():
             yield root
         else:
             yield from sorted(root.rglob("*.php"))
+
+
+def php_string_literals(text: str):
+    """Yield (line, quote, raw body) while skipping PHP comments."""
+    i = 0
+    line = 1
+    length = len(text)
+
+    while i < length:
+        ch = text[i]
+
+        if ch == "\n":
+            line += 1
+            i += 1
+            continue
+
+        if text.startswith("//", i) or ch == "#":
+            newline = text.find("\n", i)
+            if newline < 0:
+                return
+            i = newline
+            continue
+
+        if text.startswith("/*", i):
+            end = text.find("*/", i + 2)
+            if end < 0:
+                return
+            line += text.count("\n", i, end + 2)
+            i = end + 2
+            continue
+
+        if ch not in {"'", '"'}:
+            i += 1
+            continue
+
+        quote = ch
+        start_line = line
+        i += 1
+        body: list[str] = []
+        while i < length:
+            ch = text[i]
+            if ch == "\\" and i + 1 < length:
+                body.append(ch)
+                body.append(text[i + 1])
+                if text[i + 1] == "\n":
+                    line += 1
+                i += 2
+                continue
+            if ch == quote:
+                i += 1
+                yield start_line, quote, "".join(body)
+                break
+            if ch == "\n":
+                line += 1
+            body.append(ch)
+            i += 1
 
 
 def decode_php_string(body: str, quote: str) -> str:
@@ -52,11 +108,10 @@ def main() -> int:
     findings: list[tuple[str, int, str]] = []
     for path in iter_php_files():
         text = path.read_text(encoding="utf-8")
-        for match in STRING_RE.finditer(text):
-            value = decode_php_string(match.group("body"), match.group("quote"))
+        for line, quote, body in php_string_literals(text):
+            value = decode_php_string(body, quote)
             if value in LEGACY_ALLOWED or not GERMAN_CUES.search(value):
                 continue
-            line = text.count("\n", 0, match.start()) + 1
             findings.append((str(path.relative_to(ROOT)), line, value.replace("\n", "\\n")))
 
     if findings:
