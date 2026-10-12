@@ -26,7 +26,7 @@ jobs:
         run: |
           python3 -m pip install --disable-pip-version-check polib
           curl -sSLo /tmp/wp-cli.phar https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
-          php /tmp/wp-cli.phar package install wp-cli/i18n-command:^2
+          php /tmp/wp-cli.phar i18n make-pot --help >/dev/null
       - name: Rewrite reviewed source strings
         shell: bash
         run: |
