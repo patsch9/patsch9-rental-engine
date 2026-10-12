@@ -1,0 +1,40 @@
+name: Apply review fixes once
+
+on:
+  push:
+    branches:
+      - fix/wordpress-org-rental-review-2026-10-12
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true
+      - name: Apply refactor
+        run: python3 tools/apply-review-fixes.py
+      - name: Validate syntax before commit
+        shell: bash
+        run: |
+          find . -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          find . -type f -name '*.js' -print0 | while IFS= read -r -d '' file; do
+            node --check "$file"
+          done
+      - name: Commit refactor
+        shell: bash
+        run: |
+          git add .
+          if git diff --cached --quiet; then
+            echo "No refactor changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "fix: address WordPress.org rental review findings"
+          git push
