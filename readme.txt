@@ -72,7 +72,7 @@ The plugin stores rental booking data required for availability management and m
 
 * WooCommerce HPOS compatibility is declared.
 * Classic Checkout and Cart/Checkout Blocks are supported.
-* Historical internal storage identifiers are retained for backward compatibility.
+* Historic prerelease storage identifiers are recognized during upgrade and migrated to the canonical `rmwc_` namespace.
 
 == Frequently Asked Questions ==
 
@@ -91,9 +91,9 @@ The plugin handles refundable deposits separately from normal rental pricing. Th
 == Changelog ==
 
 = 2026.10.1 =
-* WordPress.org review hardening: canonical rmwc_ namespace with safe migration from historic identifiers.
+* WordPress.org review hardening: canonical `rmwc_` namespace with safe migration from historic identifiers.
 * Corrected WordPress minimum-version metadata and Accounting Bridge integration hook.
-* Added complete internationalization infrastructure with English source strings and bundled German translation.
+* Added English source strings with a complete bundled German translation and translation catalogue checks.
 
 = 2026.10.0 =
 * First stable public release using the project-wide `YYYY.M.PATCH` versioning scheme.
@@ -103,7 +103,7 @@ The plugin handles refundable deposits separately from normal rental pricing. Th
 == Upgrade Notice ==
 
 = 2026.10.1 =
-Migrates historic internal identifiers to the canonical rmwc_ namespace. Back up before updating from prerelease builds.
+Migrates historic internal identifiers to the canonical `rmwc_` namespace. Back up before updating from prerelease builds.
 
 = 2026.10.0 =
 First stable release of the new public version line. Back up existing prerelease installations and perform a functional rental checkout test after upgrading.

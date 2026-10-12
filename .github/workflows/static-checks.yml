@@ -34,6 +34,32 @@ jobs:
             node --check "$file"
           done
 
+  release-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Translation catalogue integrity
+        run: python3 tests/check-translations.py
+      - name: Reject short legacy identifiers outside migration layer
+        shell: bash
+        run: |
+          matches="$(grep -RInE --include='*.php' --exclude='class-rmwc-legacy-migration.php' '\bclr_' includes patsch9-rental-engine.php || true)"
+          if [ -n "$matches" ]; then
+            echo "Legacy clr_ identifiers remain outside the migration layer:"
+            echo "$matches"
+            exit 1
+          fi
+      - name: Reject retired Accounting Bridge hook
+        shell: bash
+        run: |
+          if grep -RIn --include='*.php' 'wlc_payment_terms_addition' includes patsch9-rental-engine.php; then
+            echo "Retired Accounting Bridge hook detected."
+            exit 1
+          fi
+
   wordpress-plugin-check:
     runs-on: ubuntu-latest
     timeout-minutes: 30
