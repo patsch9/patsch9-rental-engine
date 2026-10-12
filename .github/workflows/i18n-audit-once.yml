@@ -1,0 +1,33 @@
+name: One-off i18n audit
+
+on:
+  push:
+    branches:
+      - fix/wordpress-org-rental-review-2026-10-12
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true
+      - name: Extract i18n candidates
+        run: python3 tools/i18n-audit.py
+      - name: Commit audit output
+        shell: bash
+        run: |
+          if git diff --quiet -- tools/i18n-candidates.json; then
+            echo "No audit changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/i18n-candidates.json
+          git commit -m "chore: generate rental i18n audit"
+          git push
