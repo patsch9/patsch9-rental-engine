@@ -25,3 +25,4 @@
 /.release-build/
 *.zip
 /tools/
+/.release-build-wordpress-org/

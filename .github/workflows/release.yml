@@ -156,6 +156,23 @@ jobs:
         with:
           build-dir: .release-build/patsch9-rental-engine
 
+      - name: Build WordPress.org review package
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          python3 tools/build-wordpress-org-package.py \
+            "patsch9-rental-engine-${VERSION}.zip" \
+            "patsch9-rental-engine-${VERSION}-wordpress-org.zip"
+          sha256sum "patsch9-rental-engine-${VERSION}-wordpress-org.zip" > "patsch9-rental-engine-${VERSION}-wordpress-org.zip.sha256"
+          mkdir -p .release-build-wordpress-org
+          unzip -q "patsch9-rental-engine-${VERSION}-wordpress-org.zip" -d .release-build-wordpress-org
+
+      - name: WordPress Plugin Check on WordPress.org package
+        uses: ./.github/actions/plugin-check
+        with:
+          build-dir: .release-build-wordpress-org/patsch9-rental-engine
+
       - name: Store release assets
         if: github.event_name == 'push'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -164,6 +181,8 @@ jobs:
           path: |
             patsch9-rental-engine-${{ steps.version.outputs.version }}.zip
             patsch9-rental-engine-${{ steps.version.outputs.version }}.zip.sha256
+            patsch9-rental-engine-${{ steps.version.outputs.version }}-wordpress-org.zip
+            patsch9-rental-engine-${{ steps.version.outputs.version }}-wordpress-org.zip.sha256
           if-no-files-found: error
           retention-days: 7
 
@@ -202,6 +221,8 @@ jobs:
             release create "$GITHUB_REF_NAME"
             "${SLUG}-${VERSION}.zip"
             "${SLUG}-${VERSION}.zip.sha256"
+            "${SLUG}-${VERSION}-wordpress-org.zip"
+            "${SLUG}-${VERSION}-wordpress-org.zip.sha256"
             --repo "$GH_REPO"
             --verify-tag
             --title "${RELEASE_TITLE} ${VERSION}"

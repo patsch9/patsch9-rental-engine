@@ -1429,7 +1429,10 @@ final class RMWC_V2_Deposits {
         if ( ! current_user_can( 'manage_woocommerce' ) ) {
             return;
         }
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The core settings handler verifies rmwc_admin_action before firing rmwc_save_v2_settings.
+        $nonce = isset( $_POST['rmwc_admin_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['rmwc_admin_nonce'] ) ) : '';
+        if ( ! $nonce || ! wp_verify_nonce( $nonce, 'rmwc_admin_action' ) ) {
+            return;
+        }
         $raw = isset( $_POST['rmwc_v2_offline_gateway_ids'] ) ? sanitize_text_field( wp_unslash( $_POST['rmwc_v2_offline_gateway_ids'] ) ) : 'bacs,cheque,cod';
         $ids = array_values( array_unique( array_filter( array_map( 'sanitize_key', preg_split( '/[\s,;]+/', $raw ) ?: [] ) ) ) );
         update_option( 'rmwc_v2_offline_gateway_ids', implode( ',', array_slice( $ids, 0, 50 ) ), false );

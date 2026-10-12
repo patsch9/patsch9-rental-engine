@@ -191,6 +191,15 @@ function rmwc_deactivate() {
 }
 register_deactivation_hook( __FILE__, 'rmwc_deactivate' );
 
+/** Dependency errors belong to plugin management, not unrelated admin screens. */
+function rmwc_dependency_notice_allowed() {
+    if ( ! current_user_can( 'activate_plugins' ) || ! function_exists( 'get_current_screen' ) ) {
+        return false;
+    }
+    $screen = get_current_screen();
+    return $screen && 'plugins' === $screen->id;
+}
+
 add_action( 'plugins_loaded', function() {
     if ( ! RMWC_Legacy_Migration::run() ) {
         RMWC_Legacy_Migration::register_checkout_guards();
@@ -206,12 +215,18 @@ add_action( 'plugins_loaded', function() {
 
     if ( ! class_exists( 'WooCommerce' ) ) {
         add_action( 'admin_notices', function() {
+            if ( ! rmwc_dependency_notice_allowed() ) {
+                return;
+            }
             echo '<div class="notice notice-error"><p><strong>' . esc_html__( 'Patsch9 Rental Engine for WooCommerce', 'patsch9-rental-engine' ) . '</strong> ' . esc_html__( 'requires WooCommerce.', 'patsch9-rental-engine' ) . '</p></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Both fragments escaped above.
         } );
         return;
     }
     if ( ! defined( 'WC_VERSION' ) || version_compare( WC_VERSION, '10.9.4', '<' ) ) {
         add_action( 'admin_notices', function() {
+            if ( ! rmwc_dependency_notice_allowed() ) {
+                return;
+            }
             echo '<div class="notice notice-error"><p><strong>' . esc_html__( 'Patsch9 Rental Engine for WooCommerce', 'patsch9-rental-engine' ) . '</strong> ' . esc_html__( 'requires WooCommerce 10.9.4 or newer.', 'patsch9-rental-engine' ) . '</p></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Both fragments escaped above.
         } );
         return;

@@ -53,6 +53,8 @@ jobs:
           persist-credentials: false
       - name: Plugin Check result gate regressions
         run: python3 tests/test-plugin-check.py
+      - name: WordPress.org package regressions
+        run: python3 tests/test-wordpress-org-package.py
       - name: English source-language policy
         run: python3 tests/check-source-language.py
       - name: Reject short legacy identifiers outside migration layer
@@ -109,6 +111,8 @@ jobs:
           wp-env run cli wp plugin activate patsch9-rental-engine
       - name: Upgrade and checkout regressions (real WordPress/WooCommerce/database)
         run: wp-env run cli env RMWC_RUN_UPGRADE_TESTS=1 wp eval-file wp-content/plugins/patsch9-rental-engine/tests/test-upgrade.php
+      - name: Review authorization and notice regressions
+        run: wp-env run cli env RMWC_RUN_UPGRADE_TESTS=1 wp eval-file wp-content/plugins/patsch9-rental-engine/tests/test-review-security.php
       - name: WordPress Plugin Check (strict)
         uses: ./.github/actions/plugin-check
         with:
