@@ -12,23 +12,30 @@ jobs:
   translate-sample:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Install translation helper
-        run: python3 -m pip install --disable-pip-version-check 'deep-translator==1.11.4' 'polib==1.2.0'
-      - name: Translate sample
+      - name: Install local translation model dependencies
+        run: python3 -m pip install --disable-pip-version-check 'transformers==4.57.1' 'sentencepiece==0.2.1' 'sacremoses==0.1.1' 'polib==1.2.0'
+      - name: Translate sample locally
+        env:
+          HF_HUB_DISABLE_TELEMETRY: '1'
         shell: bash
         run: |
           python3 - <<'PY'
           import polib
-          from deep_translator import GoogleTranslator
+          from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+          model_name='Helsinki-NLP/opus-mt-de-en'
+          tok=AutoTokenizer.from_pretrained(model_name)
+          model=AutoModelForSeq2SeqLM.from_pretrained(model_name)
           pot=polib.pofile('tools/current-source.pot')
-          rows=[e.msgid for e in pot if any(ch in e.msgid for ch in 'äöüÄÖÜß') or any(w in e.msgid for w in ('Vermiet','Kaution','Buchung','Abholung','Rückgabe','Miet'))]
-          tr=GoogleTranslator(source='de', target='en')
-          for s in rows[:20]:
-              print('DE:', s)
-              print('EN:', tr.translate(s))
+          rows=[e.msgid for e in pot if any(ch in e.msgid for ch in 'äöüÄÖÜß') or any(w in e.msgid for w in ('Vermiet','Kaution','Buchung','Abholung','Rückgabe','Miet'))][:20]
+          batch=tok(rows, return_tensors='pt', padding=True, truncation=True, max_length=512)
+          out=model.generate(**batch, max_new_tokens=512)
+          translations=tok.batch_decode(out, skip_special_tokens=True)
+          for de,en in zip(rows,translations):
+              print('DE:',de)
+              print('EN:',en)
           PY
