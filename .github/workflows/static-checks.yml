@@ -43,6 +43,8 @@ jobs:
           persist-credentials: false
       - name: Translation catalogue integrity
         run: python3 tests/check-translations.py
+      - name: English source-language policy
+        run: python3 tests/check-source-language.py
       - name: Reject short legacy identifiers outside migration layer
         shell: bash
         run: |
@@ -70,9 +72,11 @@ jobs:
       - name: WordPress Plugin Check
         uses: WordPress/plugin-check-action@10857da14b6c2246d15402b3e69f777edcf8c12e # v1
         with:
+          strict: true
           exclude-directories: |
             .github
           exclude-files: |
+            .distignore
             VERSIONING.md
             DOCUMENTATION.md
             MIGRATION.md
