@@ -69,21 +69,56 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: WordPress Plugin Check
-        uses: WordPress/plugin-check-action@10857da14b6c2246d15402b3e69f777edcf8c12e # v1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          strict: true
-          # The one-time legacy namespace migration intentionally performs direct
-          # SQL schema/data moves. Those calls are isolated, prepared where values
-          # are dynamic, and documented in class-rmwc-legacy-migration.php.
-          # Keep every other Plugin Check result strict.
-          ignore-codes: |
-            WordPress.DB.DirectDatabaseQuery.DirectQuery
-            WordPress.DB.DirectDatabaseQuery.NoCaching
-          exclude-directories: |
-            .github
-          exclude-files: |
-            .distignore
-            VERSIONING.md
-            DOCUMENTATION.md
-            MIGRATION.md
+          node-version: '24'
+      - name: Install pinned wp-env test harness
+        shell: bash
+        run: npm -g --no-fund install @wordpress/env@11.16.0
+      - name: Configure WordPress test environment
+        shell: bash
+        run: |
+          cat > .wp-env.json <<EOF
+          {
+            "core": null,
+            "testsEnvironment": false,
+            "port": 8880,
+            "mappings": {
+              "wp-content/plugins/patsch9-rental-engine": "$PWD"
+            }
+          }
+          EOF
+      - name: Start WordPress test environment
+        shell: bash
+        run: wp-env start --update
+      - name: Install Plugin Check and WooCommerce
+        shell: bash
+        run: |
+          wp-env run cli wp plugin install plugin-check --activate
+          wp-env run cli wp plugin install woocommerce --activate
+          wp-env run cli wp plugin activate patsch9-rental-engine
+      - name: WordPress Plugin Check (strict)
+        shell: bash
+        run: |
+          set +e
+          wp-env run cli wp plugin check patsch9-rental-engine \
+            --format=json \
+            --exclude-files=.distignore,VERSIONING.md,DOCUMENTATION.md,MIGRATION.md,.wp-env.json \
+            --exclude-directories=.github \
+            --require=./wp-content/plugins/plugin-check/cli.php \
+            > plugin-check-results.txt
+          status=$?
+          set -e
+
+          if [ -s plugin-check-results.txt ]; then
+            cat plugin-check-results.txt
+            echo "Plugin Check reported findings; strict CI treats warnings and errors as failures."
+            exit 1
+          fi
+
+          if [ "$status" -ne 0 ]; then
+            echo "Plugin Check exited with status $status."
+            exit "$status"
+          fi
+
+          echo "Plugin Check completed without findings."
