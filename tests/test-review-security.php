@@ -82,6 +82,7 @@ $_POST = [ 'rmwc_admin_nonce' => wp_create_nonce( 'rmwc_admin_action' ), 'rmwc_v
 $settings->save_settings();
 $check( 'cheque' === get_option( 'rmwc_v2_offline_gateway_ids' ), 'Authorized settings request still works' );
 
+require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
 require_once ABSPATH . 'wp-admin/includes/screen.php';
 set_current_screen( 'dashboard' );
 $check( ! rmwc_dependency_notice_allowed(), 'Dependency notice hidden on dashboard' );
