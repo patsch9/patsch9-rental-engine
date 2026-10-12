@@ -694,7 +694,7 @@ final class RMWC_V2_Workflow {
                                             <option value="none"><?php esc_html_e( 'No balance', 'patsch9-rental-engine' ); ?></option>
                                             <option value="pending"><?php esc_html_e( 'Repayment of the balance is made later / separately', 'patsch9-rental-engine' ); ?></option>
                                             <option value="damage"><?php esc_html_e( 'Retention due to damage', 'patsch9-rental-engine' ); ?></option>
-                                            <option value="cleaning"><?php esc_html_e( 'Retention due to cleaning / pollution', 'patsch9-rental-engine' ); ?></option>
+                                            <option value="cleaning"><?php esc_html_e( 'Retention due to cleaning', 'patsch9-rental-engine' ); ?></option>
                                             <option value="loss"><?php esc_html_e( 'Retention due to loss / non-return', 'patsch9-rental-engine' ); ?></option>
                                             <option value="other"><?php esc_html_e( 'Other withholding', 'patsch9-rental-engine' ); ?></option>
                                         </select>
@@ -962,7 +962,8 @@ final class RMWC_V2_Workflow {
                 __( 'Attached is the handover protocol for your rental item.', 'patsch9-rental-engine' )
             );
         }
-        $order->add_order_note( sprintf( __( 'Rental: Transfer for booking #%d documented.', 'patsch9-rental-engine' ), (int) $booking['id'] ) );
+        /* translators: %d: Rental booking ID. */
+        $order->add_order_note( sprintf( __( 'Rental: Handover for booking #%d documented.', 'patsch9-rental-engine' ), (int) $booking['id'] ) );
         do_action( 'rmwc_workflow_status_changed', $order, (int) $booking['id'], 'handed_over' );
         $this->redirect( 'handover_saved' );
     }
@@ -1060,6 +1061,7 @@ final class RMWC_V2_Workflow {
                 __( 'Attached is the return protocol for your rental item.', 'patsch9-rental-engine' )
             );
         }
+        /* translators: %d: Rental booking ID. */
         $order->add_order_note( sprintf( __( 'Rental: Return for booking #%d documented.', 'patsch9-rental-engine' ), (int) $booking['id'] ) );
         $this->complete_order_when_all_returns_finished( $order );
         do_action( 'rmwc_workflow_status_changed', $order, (int) $booking['id'], 'returned' );

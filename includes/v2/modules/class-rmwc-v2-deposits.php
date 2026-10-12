@@ -751,7 +751,7 @@ final class RMWC_V2_Deposits {
             ];
             $snapshot = [
                 'order_number' => $order->get_order_number(),
-                'date'          => wp_date( 'd.m.Y H:i' ),
+                'date'          => wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) ),
                 'customer_name' => $order->get_formatted_billing_full_name(),
                 'method'        => $method,
                 'method_label'  => $labels[ $method ],
@@ -774,11 +774,12 @@ final class RMWC_V2_Deposits {
                 (int) $document_id,
                 __( 'Deposit receipt for your rental', 'patsch9-rental-engine' ),
                 __( 'Deposit received', 'patsch9-rental-engine' ),
-                __( 'We confirm receipt of your deposit. You will find the receipt in the appendix.', 'patsch9-rental-engine' )
+                __( 'We confirm receipt of your security deposit. The receipt is attached.', 'patsch9-rental-engine' )
             );
             $order->add_order_note(
                 sprintf(
-                    __( 'Deposit received during the handover process: %s (%s).', 'patsch9-rental-engine' ),
+                    /* translators: 1: Formatted deposit amount. 2: Deposit method label. */
+                    __( 'Deposit received during the handover process: %1$s (%2$s).', 'patsch9-rental-engine' ),
                     wp_strip_all_tags( wc_price( $amount, [ 'currency' => $order->get_currency() ] ) ),
                     $labels[ $method ]
                 )
@@ -830,7 +831,7 @@ final class RMWC_V2_Deposits {
             $reason_labels = [
                 'pending'  => __( 'Repayment of the balance is made later / separately', 'patsch9-rental-engine' ),
                 'damage'   => __( 'Retention due to damage', 'patsch9-rental-engine' ),
-                'cleaning' => __( 'Retention due to cleaning / pollution', 'patsch9-rental-engine' ),
+                'cleaning' => __( 'Retention due to cleaning', 'patsch9-rental-engine' ),
                 'loss'     => __( 'Retention due to loss / non-return', 'patsch9-rental-engine' ),
                 'other'    => __( 'Other withholding', 'patsch9-rental-engine' ),
             ];
@@ -858,7 +859,7 @@ final class RMWC_V2_Deposits {
 
             $snapshot = [
                 'order_number' => $order->get_order_number(),
-                'date'          => wp_date( 'd.m.Y H:i' ),
+                'date'          => wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) ),
                 'customer_name' => $order->get_formatted_billing_full_name(),
                 'method'        => 'manual',
                 'method_label'  => __( 'Cash / manual / separate', 'patsch9-rental-engine' ),
@@ -884,15 +885,16 @@ final class RMWC_V2_Deposits {
                 $is_retention ? __( 'Security deposit statement', 'patsch9-rental-engine' ) : __( 'Refund of your security deposit', 'patsch9-rental-engine' ),
                 $is_retention ? __( 'Security deposit statement', 'patsch9-rental-engine' ) : __( 'Security deposit refunded', 'patsch9-rental-engine' ),
                 $is_retention
-                    ? __( 'In the notes you will receive the billing of your rental deposit with the documented repayment and the retention.', 'patsch9-rental-engine' )
-                    : __( 'We confirm the repayment of your deposit or partial deposit. You can find the refund receipt in the attachment.', 'patsch9-rental-engine' )
+                    ? __( 'The attached statement documents the refunded and retained portions of the security deposit.', 'patsch9-rental-engine' )
+                    : __( 'We confirm the refund of your security deposit or partial security deposit. The refund receipt is attached.', 'patsch9-rental-engine' )
             );
             $note = sprintf(
+                /* translators: %s: Formatted refunded deposit amount. */
                 __( 'Security deposit refunded during the return process: %s.', 'patsch9-rental-engine' ),
                 wp_strip_all_tags( wc_price( $amount, [ 'currency' => $order->get_currency() ] ) )
             );
             if ( $is_retention ) {
-                $note .= ' Einbehalt: ' . wp_strip_all_tags( wc_price( $retained, [ 'currency' => $order->get_currency() ] ) ) . ( $reason_text ? ' – ' . $reason_text : '' ) . '.';
+                $note .= ' ' . __( 'Retained:', 'patsch9-rental-engine' ) . ' ' . wp_strip_all_tags( wc_price( $retained, [ 'currency' => $order->get_currency() ] ) ) . ( $reason_text ? ' – ' . $reason_text : '' ) . '.';
             } elseif ( 'pending' === $retention_reason && $remaining > 0 ) {
                 $note .= __( 'Still open:', 'patsch9-rental-engine' ) . wp_strip_all_tags( wc_price( $remaining, [ 'currency' => $order->get_currency() ] ) ) . '.';
             }
@@ -978,7 +980,7 @@ final class RMWC_V2_Deposits {
         $docs = RMWC_V2_Documents::instance();
         $snapshot = [
             'order_number' => $order->get_order_number(),
-            'date'          => wp_date( 'd.m.Y H:i' ),
+            'date'          => wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) ),
             'customer_name' => $order->get_formatted_billing_full_name(),
             'method'        => 'online',
             'method_label'  => $order->get_payment_method_title() ?: __( 'Online payment', 'patsch9-rental-engine' ),
@@ -1207,7 +1209,7 @@ final class RMWC_V2_Deposits {
                 ];
                 $snapshot = [
                     'order_number' => $order->get_order_number(),
-                    'date'          => wp_date( 'd.m.Y H:i' ),
+                    'date'          => wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) ),
                     'customer_name' => $order->get_formatted_billing_full_name(),
                     'method'        => $method,
                     'method_label'  => $labels[ $method ],
@@ -1224,9 +1226,10 @@ final class RMWC_V2_Deposits {
                         (int) $document_id,
                         __( 'Deposit receipt for your rental', 'patsch9-rental-engine' ),
                         __( 'Deposit received', 'patsch9-rental-engine' ),
-                        __( 'We confirm receipt of your deposit. You will find the receipt in the appendix.', 'patsch9-rental-engine' )
+                        __( 'We confirm receipt of your security deposit. The receipt is attached.', 'patsch9-rental-engine' )
                     );
-                    $order->add_order_note( sprintf( __( 'Deposit received: %s (%s).', 'patsch9-rental-engine' ), wp_strip_all_tags( wc_price( $amount, [ 'currency' => $order->get_currency() ] ) ), $labels[ $method ] ) );
+                    /* translators: 1: Formatted deposit amount. 2: Deposit method label. */
+                    $order->add_order_note( sprintf( __( 'Deposit received: %1$s (%2$s).', 'patsch9-rental-engine' ), wp_strip_all_tags( wc_price( $amount, [ 'currency' => $order->get_currency() ] ) ), $labels[ $method ] ) );
                     $notice = 'received';
                 }
             }
@@ -1336,7 +1339,7 @@ final class RMWC_V2_Deposits {
                         }
                         $snapshot = [
                             'order_number' => $order->get_order_number(),
-                            'date'          => wp_date( 'd.m.Y H:i' ),
+                            'date'          => wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) ),
                             'customer_name' => $order->get_formatted_billing_full_name(),
                             'method'        => 'online' === $method ? 'online' : 'manual',
                             'method_label'  => $method_label,
@@ -1379,9 +1382,10 @@ final class RMWC_V2_Deposits {
                                 (int) $document_id,
                                 __( 'Refund of your security deposit', 'patsch9-rental-engine' ),
                                 __( 'Security deposit refunded', 'patsch9-rental-engine' ),
-                                __( 'We confirm the repayment of your deposit or partial deposit. You can find the refund receipt in the attachment.', 'patsch9-rental-engine' )
+                                __( 'We confirm the refund of your security deposit or partial security deposit. The refund receipt is attached.', 'patsch9-rental-engine' )
                             );
-                            $order->add_order_note( sprintf( __( 'Security deposit refunded: %s (%s).', 'patsch9-rental-engine' ), wp_strip_all_tags( wc_price( $amount, [ 'currency' => $order->get_currency() ] ) ), $method_label ) );
+                            /* translators: 1: Formatted refunded deposit amount. 2: Refund method label. */
+                            $order->add_order_note( sprintf( __( 'Security deposit refunded: %1$s (%2$s).', 'patsch9-rental-engine' ), wp_strip_all_tags( wc_price( $amount, [ 'currency' => $order->get_currency() ] ) ), $method_label ) );
                             $notice = 'refunded';
                         }
                     }

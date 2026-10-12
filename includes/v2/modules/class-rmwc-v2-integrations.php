@@ -403,6 +403,7 @@ final class RMWC_V2_Integrations {
         if ( '' !== $action ) {
             $signature = hash( 'sha256', $action );
             if ( ! hash_equals( (string) $order->get_meta( '_rmwc_mobile_action_note_signature', true ), $signature ) ) {
+                /* translators: %s: URL for the current rental workflow action. */
                 $order->add_order_note( sprintf( __( 'Rental – mobile action: %s', 'patsch9-rental-engine' ), $action ) );
                 $order->update_meta_data( '_rmwc_mobile_action_note_signature', $signature );
                 $order->save_meta_data();
