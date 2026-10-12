@@ -72,6 +72,9 @@ function rmwc_install_database() {
     ) {$charset};";
 
     dbDelta( $sql );
+    if ( '' !== $wpdb->last_error ) {
+        return false;
+    }
 
     $terms_table = $wpdb->prefix . 'rmwc_terms_versions';
     $terms_sql = "CREATE TABLE {$terms_table} (
@@ -88,6 +91,9 @@ function rmwc_install_database() {
         KEY created_at (created_at)
     ) {$charset};";
     dbDelta( $terms_sql );
+    if ( '' !== $wpdb->last_error ) {
+        return false;
+    }
 
     $documents_table = $wpdb->prefix . 'rmwc_documents';
     $documents_sql = "CREATE TABLE {$documents_table} (
@@ -109,6 +115,9 @@ function rmwc_install_database() {
         KEY created_at (created_at)
     ) {$charset};";
     dbDelta( $documents_sql );
+    if ( '' !== $wpdb->last_error ) {
+        return false;
+    }
 
     $assets_table = $wpdb->prefix . 'rmwc_assets';
     $assets_sql = "CREATE TABLE {$assets_table} (
@@ -129,6 +138,9 @@ function rmwc_install_database() {
         KEY serial_number (serial_number(100))
     ) {$charset};";
     dbDelta( $assets_sql );
+    if ( '' !== $wpdb->last_error ) {
+        return false;
+    }
 
     $assignments_table = $wpdb->prefix . 'rmwc_asset_assignments';
     $assignments_sql = "CREATE TABLE {$assignments_table} (
@@ -147,15 +159,21 @@ function rmwc_install_database() {
         KEY order_id (order_id)
     ) {$charset};";
     dbDelta( $assignments_sql );
+    if ( '' !== $wpdb->last_error ) {
+        return false;
+    }
 
-    update_option( 'rmwc_db_version', RMWC_DB_VERSION, false );
+    return update_option( 'rmwc_db_version', RMWC_DB_VERSION, false ) || RMWC_DB_VERSION === get_option( 'rmwc_db_version' );
 }
 
 function rmwc_activate() {
     if ( ! RMWC_Legacy_Migration::run() ) {
         return;
     }
-    rmwc_install_database();
+    if ( ! rmwc_install_database() ) {
+        RMWC_Legacy_Migration::stop();
+        return;
+    }
     if ( ! wp_next_scheduled( 'rmwc_hourly_reminders' ) ) {
         wp_schedule_event( time() + 300, 'hourly', 'rmwc_hourly_reminders' );
     }
@@ -175,10 +193,15 @@ register_deactivation_hook( __FILE__, 'rmwc_deactivate' );
 
 add_action( 'plugins_loaded', function() {
     if ( ! RMWC_Legacy_Migration::run() ) {
+        RMWC_Legacy_Migration::register_checkout_guards();
         return;
     }
     if ( get_option( 'rmwc_db_version' ) !== RMWC_DB_VERSION ) {
-        rmwc_install_database();
+        if ( ! rmwc_install_database() ) {
+            RMWC_Legacy_Migration::stop();
+            RMWC_Legacy_Migration::register_checkout_guards();
+            return;
+        }
     }
 
     if ( ! class_exists( 'WooCommerce' ) ) {
@@ -195,7 +218,10 @@ add_action( 'plugins_loaded', function() {
     }
 
     require_once RMWC_DIR . 'includes/class-rmwc-plugin.php';
-    RMWC_Plugin::instance();
+    if ( ! RMWC_Plugin::instance()->is_ready() ) {
+        RMWC_Legacy_Migration::register_checkout_guards();
+        return;
+    }
 
     require_once RMWC_DIR . 'includes/v2/class-rmwc-v2.php';
     RMWC_V2::instance();

@@ -64,7 +64,9 @@ def main():
     if args.mo:
         with args.mo.open("rb") as stream:
             rebuilt = gettext.GNUTranslations(stream)
-        assert german._catalog == rebuilt._catalog, "Recompile MO: binary catalog is stale"
+        assert {k: v for k, v in german._catalog.items() if k != ""} == {k: v for k, v in rebuilt._catalog.items() if k != ""}, "Recompile MO: binary translations are stale"
+        for field in ("language", "plural-forms", "content-type"):
+            assert german.info().get(field) == rebuilt.info().get(field), f"MO metadata differs: {field}"
 
     for (context, original), entry in po.items():
         if "msgid_plural" in entry:
@@ -88,7 +90,7 @@ def main():
 
     assert german.gettext("Rental") == "Vermietung"
     assert german.gettext("Security deposit") == "Kaution"
-    assert german.gettext("Pickup and return by customer") == "Abholung und Rückgabe durch Kunde"
+    assert german.gettext("Pickup and return by customer") == "Abholung und Rückgabe durch den Kunden"
     assert gettext.NullTranslations().gettext("Rental") == "Rental"
     print(f"OK: {len(pot)} fully translated entries; MO, plurals and placeholders verified.")
 

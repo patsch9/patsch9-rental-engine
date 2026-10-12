@@ -479,7 +479,7 @@ final class RMWC_V2_Materials {
                     $requested_qty = absint( $group_post['qty'][ $id ] );
                 }
                 if ( $requested_qty < 1 ) {
-                    return new WP_Error( 'rmwc_material_quantity', __( 'The amount of selected rental accessories must be at least 1.', 'patsch9-rental-engine' ) );
+                    return new WP_Error( 'rmwc_material_quantity', __( 'The quantity of the selected rental accessory must be at least 1.', 'patsch9-rental-engine' ) );
                 }
                 $max_qty = $this->accessory_max_quantity( $accessory );
                 if ( $accessory->is_sold_individually() ) {
@@ -516,7 +516,7 @@ final class RMWC_V2_Materials {
             $total_qty    = 'per_device' === $row['mode'] ? $customer_qty * max( 1, absint( $quantity ) ) : $customer_qty;
             if ( $accessory->is_sold_individually() && $total_qty > 1 ) {
                 /* translators: %s: accessory option label. */
-                wc_add_notice( sprintf( __( '"%s is configured as an item that can only be sold individually and can therefore only be added once.', 'patsch9-rental-engine' ), $row['label'] ?: $accessory->get_name() ), 'error' );
+                wc_add_notice( sprintf( __( '"%s" is configured as an item that can only be sold individually and can therefore only be added once.', 'patsch9-rental-engine' ), $row['label'] ?: $accessory->get_name() ), 'error' );
                 return false;
             }
             if ( $accessory->managing_stock() && ! $accessory->has_enough_stock( $total_qty ) ) {

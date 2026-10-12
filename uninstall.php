@@ -14,7 +14,6 @@ if ( 'yes' !== get_option( 'rmwc_delete_data_on_uninstall', 'no' ) ) {
 global $wpdb;
 
 wp_clear_scheduled_hook( 'rmwc_hourly_reminders' );
-wp_clear_scheduled_hook( 'rmwc_hourly_reminders' ); // Legacy 1.0.x hook.
 wp_clear_scheduled_hook( 'rmwc_expire_unpaid_order' );
 if ( function_exists( 'as_unschedule_all_actions' ) ) {
     as_unschedule_all_actions( 'rmwc_expire_unpaid_order' );
@@ -79,6 +78,8 @@ foreach ( $rmwc_product_meta_keys as $rmwc_meta_key ) {
 
 $rmwc_options = [
     'rmwc_db_version',
+    'rmwc_legacy_migration_version',
+    'rmwc_legacy_migration_conflict',
     'rmwc_legacy_migration_done_v1',
     'rmwc_delivery_origin',
     'rmwc_google_routes_enabled',
@@ -137,10 +138,6 @@ foreach ( [ '_rmwc_booking_admin_cancelled', '_rmwc_rental_data', '_rmwc_fee_typ
 }
 
 $rmwc_patterns = [
-    '_transient_rmwc_route_%',
-    '_transient_timeout_rmwc_route_%',
-    '_transient_rmwc_rate_%',
-    '_transient_timeout_rmwc_rate_%',
     '_transient_rmwc_route_%',
     '_transient_timeout_rmwc_route_%',
     '_transient_rmwc_rate_%',

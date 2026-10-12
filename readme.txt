@@ -91,6 +91,10 @@ The plugin handles refundable deposits separately from normal rental pricing. Th
 == Changelog ==
 
 = 2026.10.1 =
+* Preserve legacy carts and deposit choices; verify upgrades and block rental checkout while a migration is incomplete.
+* Invalidate metadata and HPOS caches and check every migration database operation.
+* Improve English source wording and German translations.
+* When using Accounting Bridge, upgrade it to 2026.10.5 before upgrading Rental Engine.
 * WordPress.org review hardening: canonical `rmwc_` namespace with safe migration from historic identifiers.
 * Corrected WordPress minimum-version metadata and Accounting Bridge integration hook.
 * Added English source strings with a complete bundled German translation and translation catalogue checks.

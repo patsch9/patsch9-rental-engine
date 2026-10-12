@@ -278,7 +278,7 @@ final class RMWC_V2_Terms {
                 'wrapper_class' => 'rmwc-rental-field-row',
                 'label'         => __( 'Confirm rental conditions', 'patsch9-rental-engine' ),
                 'value'         => $value,
-                'description'   => __( 'Customers must confirm the general and – if deposited – the additional product-specific rental conditions before adding to the shopping cart.', 'patsch9-rental-engine' ),
+                'description'   => __( 'Customers must accept the general rental terms and any additional product-specific terms before adding a rental to the cart.', 'patsch9-rental-engine' ),
                 'desc_tip'      => true,
             ]
         );

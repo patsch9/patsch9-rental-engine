@@ -1,0 +1,41 @@
+name: Strict WordPress Plugin Check
+description: The same pinned harness and strict result gate for source and ZIP.
+inputs:
+  build-dir:
+    description: Plugin directory to check
+    required: true
+  environment-ready:
+    description: Reuse an existing wp-env environment
+    default: 'false'
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        node-version: '24'
+    - name: Configure pinned test harness
+      if: inputs.environment-ready != 'true'
+      shell: bash
+      env:
+        RMWC_BUILD_DIR: ${{ inputs.build-dir }}
+      run: |
+        npm -g --no-fund install @wordpress/env@11.16.0
+        real_build_dir="$(realpath "$RMWC_BUILD_DIR")"
+        jq -n --arg path "$real_build_dir" '{core: null, testsEnvironment: false, port: 8880, mappings: {"wp-content/plugins/patsch9-rental-engine": $path}}' > .wp-env.json
+        wp-env start --update
+        wp-env run cli wp plugin install plugin-check --activate
+        wp-env run cli wp plugin install woocommerce --activate
+        wp-env run cli wp plugin activate patsch9-rental-engine
+    - name: Require successful check with no findings
+      shell: bash
+      run: |
+        set +e
+        wp-env run cli wp plugin check patsch9-rental-engine \
+          --format=strict-json \
+          --exclude-files=.distignore,VERSIONING.md,DOCUMENTATION.md,MIGRATION.md,.wp-env.json \
+          --exclude-directories=.github,tests,.release-build \
+          --require=./wp-content/plugins/plugin-check/cli.php > "$RUNNER_TEMP/rmwc-plugin-check.txt" 2>&1
+        status=$?
+        set -e
+        cat "$RUNNER_TEMP/rmwc-plugin-check.txt"
+        python3 tests/check-plugin-check.py "$RUNNER_TEMP/rmwc-plugin-check.txt" "$status"

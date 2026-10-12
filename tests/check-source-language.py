@@ -36,7 +36,7 @@ LEGACY_ALLOWED = {
     # Historic order-item label recognized alongside the current translated key.
     "Kautionshinterlegung",
     # Compatibility parser for Germanized/WooCommerce tax labels; not UI output.
-    "/(?:MwSt\.?|Umsatzsteuer|Mehrwertsteuer|VAT)/iu",
+    r"/(?:MwSt\.?|Umsatzsteuer|Mehrwertsteuer|VAT)/iu",
 }
 
 

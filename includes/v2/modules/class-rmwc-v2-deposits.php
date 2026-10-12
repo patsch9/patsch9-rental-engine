@@ -273,7 +273,7 @@ final class RMWC_V2_Deposits {
                 <label><input type="radio" name="rmwc_v2_deposit_choice" value="cash" <?php checked( $choice, 'cash' ); ?>> <?php esc_html_e( 'Transfer security deposit separately or deposit cash at collection', 'patsch9-rental-engine' ); ?></label>
             </div>
             <p class="description rmwc-v2-deposit-offline-note" hidden><?php esc_html_e( 'For the currently selected payment method, the deposit is not collected online. It is to be deposited separately according to rental conditions.', 'patsch9-rental-engine' ); ?></p>
-            <p class="description rmwc-v2-deposit-online-note"><?php esc_html_e( 'Deposits deposited online may be refunded after return using the original payment method provided that the payment gateway supports refunds.', 'patsch9-rental-engine' ); ?></p>
+            <p class="description rmwc-v2-deposit-online-note"><?php esc_html_e( 'Security deposits paid online can be refunded after return using the original payment method if the payment gateway supports refunds.', 'patsch9-rental-engine' ); ?></p>
         </div>
         <?php
     }
@@ -1039,11 +1039,11 @@ final class RMWC_V2_Deposits {
         if ( $retained > 0.0001 ) {
             echo '<br><strong>' . esc_html__( 'Retention:', 'patsch9-rental-engine' ) . '</strong> ' . wp_kses_post( wc_price( $retained, [ 'currency' => $order->get_currency() ] ) );
         }
-        echo '<br><strong>' . esc_html__( 'Currently stored / open:', 'patsch9-rental-engine' ) . '</strong> ' . wp_kses_post( wc_price( $available, [ 'currency' => $order->get_currency() ] ) ) . '</p>';
+        echo '<br><strong>' . esc_html__( 'Currently held / outstanding:', 'patsch9-rental-engine' ) . '</strong> ' . wp_kses_post( wc_price( $available, [ 'currency' => $order->get_currency() ] ) ) . '</p>';
 
         if ( $uncertain ) {
             echo '<div class="notice notice-warning inline"><p><strong>' . esc_html__( 'Online refund unclear.', 'patsch9-rental-engine' ) . '</strong><br>' . esc_html__( 'The payment provider did not report any clear success. Please check the payment provider before a new online refund.', 'patsch9-rental-engine' ) . '</p></div>';
-            $this->admin_post_form( 'rmwc_deposit_clear_uncertain', $order, [], __( 'Unlock after testing', 'patsch9-rental-engine' ), 'secondary' );
+            $this->admin_post_form( 'rmwc_deposit_clear_uncertain', $order, [], __( 'Unlock after review', 'patsch9-rental-engine' ), 'secondary' );
         }
 
         if ( $missing > 0 ) {
@@ -1062,7 +1062,7 @@ final class RMWC_V2_Deposits {
         if ( $available > 0 ) {
             echo '<hr><p><strong>' . esc_html__( 'Repayment of deposit', 'patsch9-rental-engine' ) . '</strong></p>';
             $online_available = max( 0, (float) ( $state['online_available'] ?? 0 ) );
-            $options = [ 'manual' => __( 'Bar / manually confirmed', 'patsch9-rental-engine' ) ];
+            $options = [ 'manual' => __( 'Cash / manually confirmed', 'patsch9-rental-engine' ) ];
             if ( $online_available > 0 && ! $uncertain ) {
                 /* translators: %s: maximum refundable online deposit amount. */
                 $options = [ 'online' => sprintf( __( 'Via the original online payment method (max. %s)', 'patsch9-rental-engine' ), wp_strip_all_tags( wc_price( $online_available, [ 'currency' => $order->get_currency() ] ) ) ) ] + $options;

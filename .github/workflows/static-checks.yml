@@ -23,9 +23,16 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           coverage: none
+          tools: wp-cli:2.12.0
       - name: PHP syntax
         shell: bash
         run: find . -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Translation catalogue integrity against fresh source
+        if: matrix.php == '8.2'
+        run: |
+          wp i18n make-pot . /tmp/rmwc-source.pot --domain=patsch9-rental-engine --slug=patsch9-rental-engine --exclude=.github,tests
+          wp i18n make-mo languages/patsch9-rental-engine-de_DE.po /tmp/rmwc-de_DE.mo
+          python3 tests/check-translations.py --pot /tmp/rmwc-source.pot --mo /tmp/rmwc-de_DE.mo
       - name: JavaScript syntax
         if: matrix.php == '8.2'
         shell: bash
@@ -41,8 +48,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Translation catalogue integrity
-        run: python3 tests/check-translations.py
+      - name: Plugin Check result gate regressions
+        run: python3 tests/test-plugin-check.py
       - name: English source-language policy
         run: python3 tests/check-source-language.py
       - name: Reject short legacy identifiers outside migration layer
@@ -97,79 +104,10 @@ jobs:
           wp-env run cli wp plugin install plugin-check --activate
           wp-env run cli wp plugin install woocommerce --activate
           wp-env run cli wp plugin activate patsch9-rental-engine
-      - name: WordPress Plugin Check (strict allowlist)
-        shell: bash
-        run: |
-          set +e
-          wp-env run cli wp plugin check patsch9-rental-engine \
-            --format=json \
-            --exclude-files=.distignore,VERSIONING.md,DOCUMENTATION.md,MIGRATION.md,.wp-env.json \
-            --exclude-directories=.github \
-            --require=./wp-content/plugins/plugin-check/cli.php \
-            > plugin-check-results.txt
-          status=$?
-          set -e
-
-          cat plugin-check-results.txt
-
-          python3 - <<'PY'
-          import json
-          import pathlib
-          import sys
-
-          path = pathlib.Path('plugin-check-results.txt')
-          text = path.read_text(encoding='utf-8') if path.exists() else ''
-          lines = [line.strip() for line in text.splitlines() if line.strip()]
-          findings = []
-          current_file = None
-
-          for line in lines:
-              if line.startswith('FILE: '):
-                  current_file = line[6:]
-                  continue
-              if line.startswith('['):
-                  if current_file is None:
-                      print('Plugin Check JSON appeared without a FILE header.', file=sys.stderr)
-                      sys.exit(1)
-                  try:
-                      entries = json.loads(line)
-                  except json.JSONDecodeError as exc:
-                      print(f'Unable to parse Plugin Check output: {exc}', file=sys.stderr)
-                      sys.exit(1)
-                  for entry in entries:
-                      findings.append((current_file, entry))
-
-          allowed_file = 'includes/class-rmwc-legacy-migration.php'
-          allowed_code = 'WordPress.DB.DirectDatabaseQuery.NoCaching'
-          unexpected = [
-              (file_name, entry)
-              for file_name, entry in findings
-              if file_name != allowed_file or entry.get('code') != allowed_code
-          ]
-
-          if unexpected:
-              print('Unexpected Plugin Check findings:', file=sys.stderr)
-              for file_name, entry in unexpected:
-                  print(f"- {file_name}:{entry.get('line', '?')} {entry.get('type', '?')} {entry.get('code', '?')}: {entry.get('message', '')}", file=sys.stderr)
-              sys.exit(1)
-
-          allowed = [
-              (file_name, entry)
-              for file_name, entry in findings
-              if file_name == allowed_file and entry.get('code') == allowed_code
-          ]
-
-          if len(allowed) > 2:
-              print(f'Expected at most two documented migration NoCaching warnings, found {len(allowed)}.', file=sys.stderr)
-              sys.exit(1)
-
-          if allowed:
-              print(f'Accepted {len(allowed)} documented one-time migration NoCaching warning(s).')
-          else:
-              print('Plugin Check completed without findings.')
-          PY
-
-          if [ "$status" -ne 0 ] && [ ! -s plugin-check-results.txt ]; then
-            echo "Plugin Check exited with status $status without structured findings."
-            exit "$status"
-          fi
+      - name: Upgrade and checkout regressions (real WordPress/WooCommerce/database)
+        run: wp-env run cli env RMWC_RUN_UPGRADE_TESTS=1 wp eval-file wp-content/plugins/patsch9-rental-engine/tests/test-upgrade.php
+      - name: WordPress Plugin Check (strict)
+        uses: ./.github/actions/plugin-check
+        with:
+          build-dir: .
+          environment-ready: true

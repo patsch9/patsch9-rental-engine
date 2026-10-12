@@ -76,7 +76,7 @@ final class RMWC_V2_Workflow {
         <div class="options_group rmwc-workflow-config">
             <div class="rmwc-product-section-head">
                 <h4><?php esc_html_e( 'Handover & return', 'patsch9-rental-engine' ); ?></h4>
-                <p class="description"><?php esc_html_e( 'Define product-specific checkpoints. When a transfer or return is completed, the confirmed points are stored in the respective PDF protocol invariably.', 'patsch9-rental-engine' ); ?></p>
+                <p class="description"><?php esc_html_e( 'Define product-specific checklist items. Completed handovers and returns store the confirmed items in an immutable PDF report.', 'patsch9-rental-engine' ); ?></p>
             </div>
             <div class="rmwc-checklist-config-grid">
                 <section class="rmwc-checklist-config-card">
@@ -431,8 +431,8 @@ final class RMWC_V2_Workflow {
             $messages = [
                 'handover_saved'   => [ 'success', __( 'Handover has been documented.', 'patsch9-rental-engine' ) ],
                 'return_saved'     => [ 'success', __( 'Return has been documented.', 'patsch9-rental-engine' ) ],
-                'checklist'        => [ 'error', __( 'Please confirm or evaluate all test points in full.', 'patsch9-rental-engine' ) ],
-                'checklist_detail' => [ 'error', __( 'For "Difference / missing" a description must be stored.', 'patsch9-rental-engine' ) ],
+                'checklist'        => [ 'error', __( 'Please confirm or assess every checklist item.', 'patsch9-rental-engine' ) ],
+                'checklist_detail' => [ 'error', __( 'A description is required for "Deviation / missing".', 'patsch9-rental-engine' ) ],
                 'signature'        => [ 'error', __( 'The signature could not be processed.', 'patsch9-rental-engine' ) ],
                 'assets'           => [ 'error', __( 'The equipment assignment could not be completed.', 'patsch9-rental-engine' ) ],
                 'deposit_required' => [ 'error', __( 'The required deposit must be fully recorded before the handover is completed.', 'patsch9-rental-engine' ) ],
@@ -475,7 +475,7 @@ final class RMWC_V2_Workflow {
         ?>
         <div class="rmwc-v2-admin-card">
             <h2><?php esc_html_e( 'Handovers & returns', 'patsch9-rental-engine' ); ?></h2>
-            <p><?php esc_html_e( 'The operational rental process is documented here. An invariable PDF protocol is created per conclusion in the corresponding order.', 'patsch9-rental-engine' ); ?></p>
+            <p><?php esc_html_e( 'Document the rental workflow here. Each completed handover or return creates an immutable PDF report in the corresponding order.', 'patsch9-rental-engine' ); ?></p>
             <table class="widefat striped rmwc-workflow-table">
                 <thead><tr>
                     <th><?php esc_html_e( 'Date / time', 'patsch9-rental-engine' ); ?></th>
@@ -589,9 +589,9 @@ final class RMWC_V2_Workflow {
             );
             ?>
             <?php if ( $assets_with_damage ) : ?>
-                <section class="rmwc-workflow-known-damage" aria-label="<?php esc_attr_e( 'Known pre-damages', 'patsch9-rental-engine' ); ?>">
-                    <div class="rmwc-workflow-known-damage-title"><?php esc_html_e( 'Known pre-damage / signs of wear', 'patsch9-rental-engine' ); ?></div>
-                    <p><?php esc_html_e( 'This information comes from the inventory log and is automatically transferred to the log. Check if it continues to apply when it is handed over.', 'patsch9-rental-engine' ); ?></p>
+                <section class="rmwc-workflow-known-damage" aria-label="<?php esc_attr_e( 'Known pre-existing damage', 'patsch9-rental-engine' ); ?>">
+                    <div class="rmwc-workflow-known-damage-title"><?php esc_html_e( 'Known pre-existing damage / signs of wear', 'patsch9-rental-engine' ); ?></div>
+                    <p><?php esc_html_e( 'This information comes from the equipment record and is copied to the handover report. Check that it is still accurate when handing over the equipment.', 'patsch9-rental-engine' ); ?></p>
                     <ul>
                         <?php foreach ( $assets_with_damage as $asset ) : ?>
                             <li><strong><?php echo esc_html( $asset['inventory_number'] ?? '' ); ?>:</strong> <?php echo esc_html( $asset['known_damage'] ); ?></li>
@@ -607,9 +607,9 @@ final class RMWC_V2_Workflow {
 
                 <?php if ( $checklist ) : ?>
                     <fieldset class="rmwc-workflow-checklist rmwc-workflow-form-section <?php echo 'return' === $mode ? 'rmwc-workflow-return-checklist' : ''; ?>">
-                        <legend><?php esc_html_e( 'Test points', 'patsch9-rental-engine' ); ?></legend>
+                        <legend><?php esc_html_e( 'Checklist items', 'patsch9-rental-engine' ); ?></legend>
                         <?php if ( 'return' === $mode ) : ?>
-                            <p class="description rmwc-workflow-checklist-help"><?php esc_html_e( 'Each check point has to be evaluated. In case of "Difference / missing", a short description is mandatory and is stored in the return log.', 'patsch9-rental-engine' ); ?></p>
+                            <p class="description rmwc-workflow-checklist-help"><?php esc_html_e( 'Assess every checklist item. For "Deviation / missing", a short description is required and is saved in the return report.', 'patsch9-rental-engine' ); ?></p>
                             <?php foreach ( $checklist as $index => $item ) : ?>
                                 <div class="rmwc-workflow-return-check-row" data-check-index="<?php echo esc_attr( $index ); ?>">
                                     <div class="rmwc-workflow-return-check-label"><strong><?php echo esc_html( $item ); ?></strong></div>
@@ -620,7 +620,7 @@ final class RMWC_V2_Workflow {
                                     </div>
                                     <label class="rmwc-workflow-return-check-note">
                                         <span><?php esc_html_e( 'Documentation / note', 'patsch9-rental-engine' ); ?></span>
-                                        <textarea name="checklist_note[<?php echo esc_attr( $index ); ?>]" rows="2" maxlength="700" placeholder="<?php esc_attr_e( 'In case of deviation e.g. "Measurement cup is missing" or "very dirty"', 'patsch9-rental-engine' ); ?>"></textarea>
+                                        <textarea name="checklist_note[<?php echo esc_attr( $index ); ?>]" rows="2" maxlength="700" placeholder="<?php esc_attr_e( 'For a deviation, e.g. "Measuring cup missing" or "very dirty"', 'patsch9-rental-engine' ); ?>"></textarea>
                                     </label>
                                 </div>
                             <?php endforeach; ?>
@@ -637,7 +637,7 @@ final class RMWC_V2_Workflow {
                         <div class="rmwc-workflow-section-head">
                             <div>
                                 <h3><?php esc_html_e( 'Security deposit', 'patsch9-rental-engine' ); ?></h3>
-                                <p><?php esc_html_e( 'The deposit stand is documented in the log together with this process.', 'patsch9-rental-engine' ); ?></p>
+                                <p><?php esc_html_e( 'The security deposit balance is recorded in the report for this handover or return.', 'patsch9-rental-engine' ); ?></p>
                             </div>
                         </div>
                         <div class="rmwc-workflow-deposit-grid">
@@ -652,7 +652,7 @@ final class RMWC_V2_Workflow {
                                 <p><?php
                                     printf(
                                         /* translators: %s: still missing refundable deposit. */
-                                        esc_html__( 'Before handing over %s deposit is still open. The open amount must now be recorded.', 'patsch9-rental-engine' ),
+                                        esc_html__( 'A security deposit balance of %s must be recorded before completing the handover.', 'patsch9-rental-engine' ),
                                         esc_html( wp_strip_all_tags( wc_price( $deposit_state['missing'], [ 'currency' => $order->get_currency() ] ) ) )
                                     );
                                 ?></p>
@@ -700,7 +700,7 @@ final class RMWC_V2_Workflow {
                                         </select>
                                     </label></p>
                                     <p class="rmwc-workflow-field"><label><strong><?php esc_html_e( 'Reason/details', 'patsch9-rental-engine' ); ?></strong><br>
-                                        <textarea name="rmwc_workflow_deposit_retention_note" rows="3" maxlength="700" placeholder="<?php esc_attr_e( 'Optional supplement, e.g. "cleaning allowance due to heavy pollution" or "missing measuring cup"', 'patsch9-rental-engine' ); ?>"></textarea>
+                                        <textarea name="rmwc_workflow_deposit_retention_note" rows="3" maxlength="700" placeholder="<?php esc_attr_e( 'Optional details, e.g. "cleaning charge due to heavy soiling" or "missing measuring cup"', 'patsch9-rental-engine' ); ?>"></textarea>
                                     </label></p>
                                 </div>
                             </div>
@@ -780,7 +780,7 @@ final class RMWC_V2_Workflow {
                 $note = isset( $raw_notes[ $index ] ) ? sanitize_textarea_field( $raw_notes[ $index ] ) : '';
                 $note = trim( function_exists( 'mb_substr' ) ? mb_substr( $note, 0, 700 ) : substr( $note, 0, 700 ) );
                 if ( 'issue' === $status && '' === $note ) {
-                    return new WP_Error( 'rmwc_workflow_checklist_detail', __( 'For "Difference / missing" a description must be stored.', 'patsch9-rental-engine' ) );
+                    return new WP_Error( 'rmwc_workflow_checklist_detail', __( 'A description is required for "Deviation / missing".', 'patsch9-rental-engine' ) );
                 }
                 $snapshot[] = [
                     'label'  => sanitize_text_field( $label ),
@@ -957,9 +957,9 @@ final class RMWC_V2_Workflow {
             $documents->send_document_email(
                 $order,
                 (int) $document_id,
-                __( 'Handover protocol for your rental', 'patsch9-rental-engine' ),
-                __( 'Handover protocol', 'patsch9-rental-engine' ),
-                __( 'Attached is the handover protocol for your rental item.', 'patsch9-rental-engine' )
+                __( 'Handover report for your rental', 'patsch9-rental-engine' ),
+                __( 'Handover report', 'patsch9-rental-engine' ),
+                __( 'The handover report for your rental item is attached.', 'patsch9-rental-engine' )
             );
         }
         /* translators: %d: Rental booking ID. */
@@ -1056,9 +1056,9 @@ final class RMWC_V2_Workflow {
             $documents->send_document_email(
                 $order,
                 (int) $document_id,
-                __( 'Return protocol for your rental', 'patsch9-rental-engine' ),
-                __( 'Return protocol', 'patsch9-rental-engine' ),
-                __( 'Attached is the return protocol for your rental item.', 'patsch9-rental-engine' )
+                __( 'Return report for your rental', 'patsch9-rental-engine' ),
+                __( 'Return report', 'patsch9-rental-engine' ),
+                __( 'The return report for your rental item is attached.', 'patsch9-rental-engine' )
             );
         }
         /* translators: %d: Rental booking ID. */

@@ -113,7 +113,7 @@ final class RMWC_V2_Inventory {
             $messages = [
                 'saved'              => [ 'success', __( 'Device saved.', 'patsch9-rental-engine' ) ],
                 'deleted'            => [ 'success', __( 'Unused device has been deleted.', 'patsch9-rental-engine' ) ],
-                'archived'           => [ 'success', __( 'The device already has history and was therefore set to "outside operation" instead of disappearing from old processes.', 'patsch9-rental-engine' ) ],
+                'archived'           => [ 'success', __( 'This device has a rental history and has been marked as "Out of service" instead of being removed from historical records.', 'patsch9-rental-engine' ) ],
                 'active_assignment'  => [ 'error', __( 'The device is assigned to an active or ongoing rental and cannot currently be deleted/archived.', 'patsch9-rental-engine' ) ],
                 'history_product'    => [ 'error', __( 'The rental product of an already used device cannot be changed afterwards. To do so, create a new device.', 'patsch9-rental-engine' ) ],
                 'duplicate'          => [ 'error', __( 'This inventory number is already assigned.', 'patsch9-rental-engine' ) ],
@@ -175,7 +175,7 @@ final class RMWC_V2_Inventory {
                         <label><strong><?php esc_html_e( 'Known damage / signs of wear', 'patsch9-rental-engine' ); ?></strong><br>
                             <textarea name="known_damage" rows="4" maxlength="4000" style="width:100%"><?php echo esc_textarea( $editing['known_damage'] ?? '' ); ?></textarea>
                         </label>
-                        <span class="description"><?php esc_html_e( 'Only enter known pre-damages. They are displayed at the handover and are documented in transfer and return logs.', 'patsch9-rental-engine' ); ?></span>
+                        <span class="description"><?php esc_html_e( 'Only record known pre-existing damage. It is shown during handover and saved in the handover and return reports.', 'patsch9-rental-engine' ); ?></span>
                     </p>
                     <p><label><strong><?php esc_html_e( 'Internal note', 'patsch9-rental-engine' ); ?></strong><br><textarea name="notes" rows="4" maxlength="2000" style="width:100%"><?php echo esc_textarea( $editing['notes'] ?? '' ); ?></textarea></label></p>
                 </div>

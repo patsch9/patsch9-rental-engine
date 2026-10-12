@@ -414,7 +414,7 @@ final class RMWC_V2_Documents {
             $blocks[] = [ 'type' => 'row', 'label' => __( 'Return', 'patsch9-rental-engine' ), 'value' => $this->display_datetime( $item['return'] ?? '' ) ];
             $blocks[] = [ 'type' => 'row', 'label' => __( 'Transport / handover', 'patsch9-rental-engine' ), 'value' => $this->fulfilment_label( $item['fulfilment'] ?? '' ) ];
             if ( ! empty( $item['delivery'] ) ) {
-                $blocks[] = [ 'type' => 'row', 'label' => __( 'Delivery/receipt address', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $item['delivery'] ) ];
+                $blocks[] = [ 'type' => 'row', 'label' => __( 'Delivery/collection address', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $item['delivery'] ) ];
             }
             foreach ( $item['addons'] ?? [] as $addon ) {
                 if ( ! is_array( $addon ) ) {
@@ -565,7 +565,7 @@ final class RMWC_V2_Documents {
                 'type' => 'notice',
                 'text' => sprintf(
                     /* translators: %s: original rental-contract document number. */
-                    __( 'This version complements the technically non-embedded version of the rental conditions accepted when ordering with the original document %s. The remaining contract data remains unchanged.', 'patsch9-rental-engine' ),
+                    __( 'This version adds the rental terms accepted when ordering that were missing from the original document %s. The remaining contract details are unchanged.', 'patsch9-rental-engine' ),
                     sanitize_text_field( $snapshot['correction']['original_document_number'] ?? '' )
                 ),
             ];
@@ -619,7 +619,7 @@ final class RMWC_V2_Documents {
             'type' => 'notice',
             'text' => $is_refund
                 ? ( $has_retention
-                    ? __( 'This document documents the repayment of the partial deposit as well as the stated retention in accordance with rental conditions.', 'patsch9-rental-engine' )
+                    ? __( 'This receipt records the partial security deposit refund and the stated retention in accordance with the rental terms.', 'patsch9-rental-engine' )
                     : __( 'This document confirms the repayment of the above deposit or partial deposit in accordance with rental conditions.', 'patsch9-rental-engine' ) )
                 : __( 'This document confirms the receipt of the refundable guarantee referred to above in accordance with rental conditions.', 'patsch9-rental-engine' ),
         ];
@@ -634,9 +634,9 @@ final class RMWC_V2_Documents {
 
     private function render_workflow_pdf( array $document, array $snapshot ) {
         $is_return = 'return_protocol' === ( $document['type'] ?? '' );
-        $title     = $is_return ? __( 'Return protocol', 'patsch9-rental-engine' ) : __( 'Handover protocol', 'patsch9-rental-engine' );
+        $title     = $is_return ? __( 'Return report', 'patsch9-rental-engine' ) : __( 'Handover report', 'patsch9-rental-engine' );
         $blocks    = [
-            [ 'type' => 'row', 'label' => __( 'Protocol number', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $document['document_number'] ?? '' ) ],
+            [ 'type' => 'row', 'label' => __( 'Report number', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $document['document_number'] ?? '' ) ],
             [ 'type' => 'row', 'label' => __( 'Order', 'patsch9-rental-engine' ), 'value' => '#' . sanitize_text_field( $snapshot['order_number'] ?? '' ) ],
             [ 'type' => 'row', 'label' => __( 'Booking', 'patsch9-rental-engine' ), 'value' => '#' . absint( $snapshot['booking_id'] ?? 0 ) ],
             [ 'type' => 'row', 'label' => __( 'Documented on', 'patsch9-rental-engine' ), 'value' => $this->display_datetime( $snapshot['event_at'] ?? '' ) ],
@@ -650,7 +650,7 @@ final class RMWC_V2_Documents {
         if ( ! empty( $snapshot['fulfilment'] ) ) {
             $blocks[] = [ 'type' => 'row', 'label' => __( 'Transport / handover', 'patsch9-rental-engine' ), 'value' => $this->fulfilment_label( $snapshot['fulfilment'] ) ];
             if ( ! empty( $snapshot['delivery_address'] ) && in_array( sanitize_key( $snapshot['fulfilment'] ), [ 'delivery', 'delivery_return' ], true ) ) {
-                $blocks[] = [ 'type' => 'row', 'label' => __( 'Delivery/receipt address', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $snapshot['delivery_address'] ) ];
+                $blocks[] = [ 'type' => 'row', 'label' => __( 'Delivery/collection address', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $snapshot['delivery_address'] ) ];
             }
         }
 
@@ -670,7 +670,7 @@ final class RMWC_V2_Documents {
             }
             $blocks[] = [ 'type' => 'row', 'label' => __( 'Open / held', 'patsch9-rental-engine' ), 'value' => $plain_price( $deposit['available'] ?? 0 ) ];
             if ( ! $is_return && (float) ( $deposit['missing'] ?? 0 ) > 0.0001 ) {
-                $blocks[] = [ 'type' => 'notice', 'text' => __( 'At the time of the protocol, the required security deposit was not yet fully recorded.', 'patsch9-rental-engine' ) ];
+                $blocks[] = [ 'type' => 'notice', 'text' => __( 'At the time of this report, the required security deposit had not been fully recorded.', 'patsch9-rental-engine' ) ];
             }
         }
 
@@ -1016,8 +1016,8 @@ final class RMWC_V2_Documents {
             'contract_revision' => __( 'Change in rental contract', 'patsch9-rental-engine' ),
             'deposit_received'  => __( 'Deposit receipt', 'patsch9-rental-engine' ),
             'deposit_refund'    => __( 'Deposit repayment receipt', 'patsch9-rental-engine' ),
-            'handover_protocol' => __( 'Handover protocol', 'patsch9-rental-engine' ),
-            'return_protocol'   => __( 'Return protocol', 'patsch9-rental-engine' ),
+            'handover_protocol' => __( 'Handover report', 'patsch9-rental-engine' ),
+            'return_protocol'   => __( 'Return report', 'patsch9-rental-engine' ),
         ];
         return $labels[ $type ] ?? __( 'Rental document', 'patsch9-rental-engine' );
     }
@@ -1224,7 +1224,7 @@ final class RMWC_V2_Documents {
             $contract_id,
             __( 'Your rental contract for your order #{order_number}', 'patsch9-rental-engine' ),
             __( 'Rental contract and conditions', 'patsch9-rental-engine' ),
-            __( 'Thank you very much for your rental order. In the appendix you will receive your rental contract. The version of the rental conditions accepted by you when ordering is included in the rental contract as a whole and will be added as a separate PDF. Please keep the documents for the rental period.', 'patsch9-rental-engine' )
+            __( 'Thank you for your rental order. Your rental contract is attached and includes the full rental terms you accepted when ordering. The terms are also attached as a separate PDF. Please keep these documents for the rental period.', 'patsch9-rental-engine' )
         );
         if ( $sent ) {
             $order->update_meta_data( '_rmwc_contract_email_document_id', $contract_id );
@@ -1269,7 +1269,7 @@ final class RMWC_V2_Documents {
                 $contract_id,
                 __( 'Your rental contract for your order #{order_number}', 'patsch9-rental-engine' ),
                 __( 'Rental contract and conditions', 'patsch9-rental-engine' ),
-                __( 'In the appendix you will receive your rental contract again, including the fully enclosed rental terms accepted by you. The rental terms will also be appended as a separate PDF.', 'patsch9-rental-engine' )
+                __( 'Your rental contract is attached again, including the rental terms you accepted. The terms are also attached as a separate PDF.', 'patsch9-rental-engine' )
             )
             : false;
 
