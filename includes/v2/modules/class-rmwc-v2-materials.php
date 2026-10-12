@@ -160,7 +160,7 @@ final class RMWC_V2_Materials {
                 <div class="rmwc-v2-material-group-settings">
                     <div class="rmwc-v2-field rmwc-v2-group-name">
                         <label><?php esc_html_e( 'Gruppenname', 'patsch9-rental-engine' ); ?></label>
-                        <input type="text" name="rmwc_v2_accessory_groups[<?php echo esc_attr( $group_index ); ?>][label]" value="<?php echo esc_attr( $group['label'] ?? '' ); ?>" placeholder="Material" maxlength="100" required>
+                        <input type="text" name="rmwc_v2_accessory_groups[<?php echo esc_attr( $group_index ); ?>][label]" value="<?php echo esc_attr( $group['label'] ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Material', 'patsch9-rental-engine' ); ?>" maxlength="100" required>
                     </div>
                     <div class="rmwc-v2-field rmwc-v2-group-selection">
                         <label><?php esc_html_e( 'Auswahlart', 'patsch9-rental-engine' ); ?></label>
@@ -179,7 +179,7 @@ final class RMWC_V2_Materials {
                 </div>
                 <div class="rmwc-v2-material-group-actions">
                     <button type="button" class="button rmwc-v2-add-material-option"><?php esc_html_e( '+ Add accessories', 'patsch9-rental-engine' ); ?></button>
-                    <button type="button" class="button-link-delete rmwc-remove-material-group" aria-label="<?php esc_attr_e( 'Remove accessory group', 'patsch9-rental-engine' ); ?>">&times;</button>
+                    <button type="button" class="button-link-delete rmwc-remove-material-group" aria-label="<?php esc_attr_e( 'Remove accessory group', 'patsch9-rental-engine' ); ?>"><?php esc_html_e( '×', 'patsch9-rental-engine' ); ?></button>
                 </div>
             </div>
             <div class="rmwc-v2-material-options-list">
@@ -205,7 +205,7 @@ final class RMWC_V2_Materials {
             </div>
             <div class="rmwc-v2-field rmwc-v2-field-label">
                 <label><?php esc_html_e( 'Display for customers', 'patsch9-rental-engine' ); ?></label>
-                <input type="text" name="rmwc_v2_accessory_groups[<?php echo esc_attr( $group_index ); ?>][options][<?php echo esc_attr( $option_index ); ?>][label]" value="<?php echo esc_attr( $row['label'] ?? '' ); ?>" placeholder="z. B. für ca. 1 kg süßes Popcorn" maxlength="150">
+                <input type="text" name="rmwc_v2_accessory_groups[<?php echo esc_attr( $group_index ); ?>][options][<?php echo esc_attr( $option_index ); ?>][label]" value="<?php echo esc_attr( $row['label'] ?? '' ); ?>" placeholder="<?php esc_attr_e( 'e.g. for about 1 kg sweet popcorn', 'patsch9-rental-engine' ); ?>" maxlength="150">
                 <p class="description"><?php esc_html_e( 'Optional. Leer = Produktname verwenden.', 'patsch9-rental-engine' ); ?></p>
             </div>
             <div class="rmwc-v2-field rmwc-v2-field-mode">
@@ -215,7 +215,7 @@ final class RMWC_V2_Materials {
                     <option value="per_device" <?php selected( $row['mode'] ?? 'once', 'per_device' ); ?>><?php esc_html_e( 'Per rented unit', 'patsch9-rental-engine' ); ?></option>
                 </select>
             </div>
-            <button type="button" class="button-link-delete rmwc-remove-material-option" aria-label="<?php esc_attr_e( 'Remove rental accessories from group', 'patsch9-rental-engine' ); ?>">&times;</button>
+            <button type="button" class="button-link-delete rmwc-remove-material-option" aria-label="<?php esc_attr_e( 'Remove rental accessories from group', 'patsch9-rental-engine' ); ?>"><?php esc_html_e( '×', 'patsch9-rental-engine' ); ?></button>
         </div>
         <?php
     }

@@ -116,7 +116,7 @@ final class RMWC_V2_Inventory {
                 'archived'           => [ 'success', __( 'The device already has history and was therefore set to "outside operation" instead of disappearing from old processes.', 'patsch9-rental-engine' ) ],
                 'active_assignment'  => [ 'error', __( 'The device is assigned to an active or ongoing rental and cannot currently be deleted/archived.', 'patsch9-rental-engine' ) ],
                 'history_product'    => [ 'error', __( 'The rental product of an already used device cannot be changed afterwards. To do so, create a new device.', 'patsch9-rental-engine' ) ],
-                'duplicate'          => [ 'error', __( 'Diese Inventarnummer ist bereits vergeben.', 'patsch9-rental-engine' ) ],
+                'duplicate'          => [ 'error', __( 'This inventory number is already assigned.', 'patsch9-rental-engine' ) ],
                 'invalid_product'    => [ 'error', __( 'Please select a valid rental product.', 'patsch9-rental-engine' ) ],
                 'invalid_inventory'  => [ 'error', __( 'Please specify an inventory number.', 'patsch9-rental-engine' ) ],
                 'db_error'           => [ 'error', __( 'The device change could not be safely stored in the database. Please try again.', 'patsch9-rental-engine' ) ],
@@ -156,8 +156,8 @@ final class RMWC_V2_Inventory {
                             </select>
                         </label>
                     </p>
-                    <p><label><strong><?php esc_html_e( 'Inventarnummer', 'patsch9-rental-engine' ); ?></strong><br><input type="text" name="inventory_number" maxlength="100" value="<?php echo esc_attr( $editing['inventory_number'] ?? '' ); ?>" required></label></p>
-                    <p><label><strong><?php esc_html_e( 'Seriennummer', 'patsch9-rental-engine' ); ?></strong><br><input type="text" name="serial_number" maxlength="190" value="<?php echo esc_attr( $editing['serial_number'] ?? '' ); ?>"></label></p>
+                    <p><label><strong><?php esc_html_e( 'Inventory number', 'patsch9-rental-engine' ); ?></strong><br><input type="text" name="inventory_number" maxlength="100" value="<?php echo esc_attr( $editing['inventory_number'] ?? '' ); ?>" required></label></p>
+                    <p><label><strong><?php esc_html_e( 'Serial number', 'patsch9-rental-engine' ); ?></strong><br><input type="text" name="serial_number" maxlength="190" value="<?php echo esc_attr( $editing['serial_number'] ?? '' ); ?>"></label></p>
                     <p>
                         <label><strong><?php esc_html_e( 'Status', 'patsch9-rental-engine' ); ?></strong><br>
                             <select name="status">
@@ -187,9 +187,9 @@ final class RMWC_V2_Inventory {
             <h2><?php esc_html_e( 'Inventar', 'patsch9-rental-engine' ); ?></h2>
             <table class="widefat striped rmwc-assets-table">
                 <thead><tr>
-                    <th><?php esc_html_e( 'Produkt', 'patsch9-rental-engine' ); ?></th>
+                    <th><?php esc_html_e( 'Product', 'patsch9-rental-engine' ); ?></th>
                     <th><?php esc_html_e( 'Inventar', 'patsch9-rental-engine' ); ?></th>
-                    <th><?php esc_html_e( 'Seriennummer', 'patsch9-rental-engine' ); ?></th>
+                    <th><?php esc_html_e( 'Serial number', 'patsch9-rental-engine' ); ?></th>
                     <th><?php esc_html_e( 'Status', 'patsch9-rental-engine' ); ?></th>
                     <th><?php esc_html_e( 'Known damage', 'patsch9-rental-engine' ); ?></th>
                     <th><?php esc_html_e( 'Wartung', 'patsch9-rental-engine' ); ?></th>

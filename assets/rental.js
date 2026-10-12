@@ -284,7 +284,8 @@ jQuery(function($){
     });
     const total=(perItem*count)+accessoryTotal+deliveryFee;
     $('#rmwc_price_preview').text(currency(total));
-    $('#rmwc_duration_preview').text(`${days} Miettag(e), ${base.label}; ${iso(start)} ${rules.pickupTime} – ${iso(end)} ${rules.returnTime}`);
+    const dayLabel=days===1?t('rentalDay','rental day'):t('rentalDays','rental days');
+    $('#rmwc_duration_preview').text(`${days} ${dayLabel}, ${base.label}; ${iso(start)} ${rules.pickupTime} – ${iso(end)} ${rules.returnTime}`);
   }
 
   box.on('change','select[name^="rmwc_addon"],input[name="rmwc_fulfilment"],#rmwc_delivery_zone',updatePrice);
@@ -335,7 +336,7 @@ jQuery(function($){
       $card.toggleClass('is-selected',selected);
       let label=t('select','Select');
       if(selected){
-        label=$choice.val()==='0'?'Ohne Zusatz gewählt':t('selected','Selected');
+        label=$choice.val()==='0'?t('withoutAddonSelected','No add-on selected'):t('selected','Selected');
       }else if($choice.val()==='0'){
         label=t('withoutAddon','Without add-on');
       }
@@ -348,7 +349,7 @@ jQuery(function($){
       const $first=$group.find('.rmwc-accessory-choice').first();
       if($first.length){
         const anySelected=$group.find('.rmwc-accessory-choice:checked').length>0;
-        $first.get(0).setCustomValidity(anySelected?'':'Bitte wählen Sie mindestens eine Zubehör-Option aus.');
+        $first.get(0).setCustomValidity(anySelected?'':t('selectAccessory','Please select at least one accessory option.'));
       }
     }
   }

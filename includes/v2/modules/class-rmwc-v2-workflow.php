@@ -86,7 +86,7 @@ final class RMWC_V2_Workflow {
                     </div>
                     <div class="rmwc-checklist-items" data-checklist="handover">
                         <?php foreach ( $handover as $item ) : ?>
-                            <div class="rmwc-checklist-item"><input type="text" maxlength="220" name="rmwc_handover_checklist[]" value="<?php echo esc_attr( $item ); ?>"><button type="button" class="button-link-delete rmwc-remove-checklist-item" aria-label="<?php esc_attr_e( 'Remove checkpoint', 'patsch9-rental-engine' ); ?>">&times;</button></div>
+                            <div class="rmwc-checklist-item"><input type="text" maxlength="220" name="rmwc_handover_checklist[]" value="<?php echo esc_attr( $item ); ?>"><button type="button" class="button-link-delete rmwc-remove-checklist-item" aria-label="<?php esc_attr_e( 'Remove checkpoint', 'patsch9-rental-engine' ); ?>"><?php esc_html_e( '×', 'patsch9-rental-engine' ); ?></button></div>
                         <?php endforeach; ?>
                     </div>
                     <p class="description"><?php esc_html_e( 'Example: Device clean, accessories complete, instruction done.', 'patsch9-rental-engine' ); ?></p>
@@ -98,7 +98,7 @@ final class RMWC_V2_Workflow {
                     </div>
                     <div class="rmwc-checklist-items" data-checklist="return">
                         <?php foreach ( $return as $item ) : ?>
-                            <div class="rmwc-checklist-item"><input type="text" maxlength="220" name="rmwc_return_checklist[]" value="<?php echo esc_attr( $item ); ?>"><button type="button" class="button-link-delete rmwc-remove-checklist-item" aria-label="<?php esc_attr_e( 'Remove checkpoint', 'patsch9-rental-engine' ); ?>">&times;</button></div>
+                            <div class="rmwc-checklist-item"><input type="text" maxlength="220" name="rmwc_return_checklist[]" value="<?php echo esc_attr( $item ); ?>"><button type="button" class="button-link-delete rmwc-remove-checklist-item" aria-label="<?php esc_attr_e( 'Remove checkpoint', 'patsch9-rental-engine' ); ?>"><?php esc_html_e( '×', 'patsch9-rental-engine' ); ?></button></div>
                         <?php endforeach; ?>
                     </div>
                     <p class="description"><?php esc_html_e( 'Example: boiler cleaned, accessories complete, no visible damage.', 'patsch9-rental-engine' ); ?></p>
@@ -432,7 +432,7 @@ final class RMWC_V2_Workflow {
                 'handover_saved'   => [ 'success', __( 'Handover has been documented.', 'patsch9-rental-engine' ) ],
                 'return_saved'     => [ 'success', __( 'Return has been documented.', 'patsch9-rental-engine' ) ],
                 'checklist'        => [ 'error', __( 'Please confirm or evaluate all test points in full.', 'patsch9-rental-engine' ) ],
-                'checklist_detail' => [ 'error', __( 'Bei „Abweichung / fehlt“ muss eine Beschreibung hinterlegt werden.', 'patsch9-rental-engine' ) ],
+                'checklist_detail' => [ 'error', __( 'For "Difference / missing" a description must be stored.', 'patsch9-rental-engine' ) ],
                 'signature'        => [ 'error', __( 'The signature could not be processed.', 'patsch9-rental-engine' ) ],
                 'assets'           => [ 'error', __( 'The equipment assignment could not be completed.', 'patsch9-rental-engine' ) ],
                 'deposit_required' => [ 'error', __( 'The required deposit must be fully recorded before the handover is completed.', 'patsch9-rental-engine' ) ],
@@ -573,7 +573,7 @@ final class RMWC_V2_Workflow {
             <div class="rmwc-workflow-summary">
                 <div class="rmwc-workflow-summary-item"><span><?php esc_html_e( 'Rental goods', 'patsch9-rental-engine' ); ?></span><strong><?php echo esc_html( $product->get_name() ); ?></strong></div>
                 <div class="rmwc-workflow-summary-item"><span><?php esc_html_e( 'Order / customer', 'patsch9-rental-engine' ); ?></span><strong>#<?php echo esc_html( $order->get_order_number() ); ?></strong><small><?php echo esc_html( $order->get_formatted_billing_full_name() ); ?></small></div>
-                <div class="rmwc-workflow-summary-item"><span><?php esc_html_e( 'Zeitraum', 'patsch9-rental-engine' ); ?></span><strong><?php echo esc_html( wp_date( 'd.m.Y H:i', strtotime( $booking['start_at'] ) ) . ' – ' . wp_date( 'd.m.Y H:i', strtotime( $booking['end_at'] ) ) ); ?></strong></div>
+                <div class="rmwc-workflow-summary-item"><span><?php esc_html_e( 'Period', 'patsch9-rental-engine' ); ?></span><strong><?php echo esc_html( wp_date( 'd.m.Y H:i', strtotime( $booking['start_at'] ) ) . ' – ' . wp_date( 'd.m.Y H:i', strtotime( $booking['end_at'] ) ) ); ?></strong></div>
                 <?php if ( $fulfilment ) : ?>
                     <div class="rmwc-workflow-summary-item"><span><?php esc_html_e( 'Transport / handover', 'patsch9-rental-engine' ); ?></span><strong><?php echo esc_html( $this->fulfilment_label( $fulfilment ) ); ?></strong><?php if ( in_array( $fulfilment, [ 'delivery', 'delivery_return' ], true ) && ! empty( $rental_data['delivery_address'] ) ) : ?><small><?php echo esc_html( $rental_data['delivery_address'] ); ?></small><?php endif; ?></div>
                 <?php endif; ?>
@@ -642,7 +642,7 @@ final class RMWC_V2_Workflow {
                         </div>
                         <div class="rmwc-workflow-deposit-grid">
                             <div><span><?php esc_html_e( 'Erforderlich', 'patsch9-rental-engine' ); ?></span><strong><?php echo wp_kses_post( wc_price( $deposit_state['required'], [ 'currency' => $order->get_currency() ] ) ); ?></strong></div>
-                            <div><span><?php esc_html_e( 'Erhalten', 'patsch9-rental-engine' ); ?></span><strong><?php echo wp_kses_post( wc_price( $deposit_state['received'], [ 'currency' => $order->get_currency() ] ) ); ?></strong></div>
+                            <div><span><?php esc_html_e( 'Received', 'patsch9-rental-engine' ); ?></span><strong><?php echo wp_kses_post( wc_price( $deposit_state['received'], [ 'currency' => $order->get_currency() ] ) ); ?></strong></div>
                             <div><span><?php esc_html_e( 'Repaid', 'patsch9-rental-engine' ); ?></span><strong><?php echo wp_kses_post( wc_price( $deposit_state['refunded'], [ 'currency' => $order->get_currency() ] ) ); ?></strong></div>
                             <div><span><?php esc_html_e( 'Aktuell hinterlegt', 'patsch9-rental-engine' ); ?></span><strong><?php echo wp_kses_post( wc_price( $deposit_state['available'], [ 'currency' => $order->get_currency() ] ) ); ?></strong></div>
                         </div>
@@ -694,9 +694,9 @@ final class RMWC_V2_Workflow {
                                             <option value="none"><?php esc_html_e( 'No balance', 'patsch9-rental-engine' ); ?></option>
                                             <option value="pending"><?php esc_html_e( 'Repayment of the balance is made later / separately', 'patsch9-rental-engine' ); ?></option>
                                             <option value="damage"><?php esc_html_e( 'Retention due to damage', 'patsch9-rental-engine' ); ?></option>
-                                            <option value="cleaning"><?php esc_html_e( 'Einbehalt wegen Reinigung / Verschmutzung', 'patsch9-rental-engine' ); ?></option>
+                                            <option value="cleaning"><?php esc_html_e( 'Retention due to cleaning / pollution', 'patsch9-rental-engine' ); ?></option>
                                             <option value="loss"><?php esc_html_e( 'Retention due to loss / non-return', 'patsch9-rental-engine' ); ?></option>
-                                            <option value="other"><?php esc_html_e( 'Sonstiger Einbehalt', 'patsch9-rental-engine' ); ?></option>
+                                            <option value="other"><?php esc_html_e( 'Other withholding', 'patsch9-rental-engine' ); ?></option>
                                         </select>
                                     </label></p>
                                     <p class="rmwc-workflow-field"><label><strong><?php esc_html_e( 'Reason/details', 'patsch9-rental-engine' ); ?></strong><br>
@@ -780,7 +780,7 @@ final class RMWC_V2_Workflow {
                 $note = isset( $raw_notes[ $index ] ) ? sanitize_textarea_field( $raw_notes[ $index ] ) : '';
                 $note = trim( function_exists( 'mb_substr' ) ? mb_substr( $note, 0, 700 ) : substr( $note, 0, 700 ) );
                 if ( 'issue' === $status && '' === $note ) {
-                    return new WP_Error( 'rmwc_workflow_checklist_detail', __( 'Bei „Abweichung / fehlt“ muss eine Beschreibung hinterlegt werden.', 'patsch9-rental-engine' ) );
+                    return new WP_Error( 'rmwc_workflow_checklist_detail', __( 'For "Difference / missing" a description must be stored.', 'patsch9-rental-engine' ) );
                 }
                 $snapshot[] = [
                     'label'  => sanitize_text_field( $label ),
@@ -962,7 +962,7 @@ final class RMWC_V2_Workflow {
                 __( 'In the appendix you will receive the minutes of the delivery of your rental item.', 'patsch9-rental-engine' )
             );
         }
-        $order->add_order_note( sprintf( 'Vermietung: Übergabe für Buchung #%d dokumentiert.', (int) $booking['id'] ) );
+        $order->add_order_note( sprintf( __( 'Rental: Transfer for booking #%d documented.', 'patsch9-rental-engine' ), (int) $booking['id'] ) );
         do_action( 'rmwc_workflow_status_changed', $order, (int) $booking['id'], 'handed_over' );
         $this->redirect( 'handover_saved' );
     }
@@ -1060,7 +1060,7 @@ final class RMWC_V2_Workflow {
                 __( 'In the Appendix you will receive the log for the return of your rental item.', 'patsch9-rental-engine' )
             );
         }
-        $order->add_order_note( sprintf( 'Vermietung: Rückgabe für Buchung #%d dokumentiert.', (int) $booking['id'] ) );
+        $order->add_order_note( sprintf( __( 'Rental: Return for booking #%d documented.', 'patsch9-rental-engine' ), (int) $booking['id'] ) );
         $this->complete_order_when_all_returns_finished( $order );
         do_action( 'rmwc_workflow_status_changed', $order, (int) $booking['id'], 'returned' );
         $this->redirect( 'return_saved' );

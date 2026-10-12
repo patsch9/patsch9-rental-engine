@@ -793,7 +793,7 @@ final class RMWC_V2_Terms {
                 <?php wp_nonce_field( 'rmwc_save_terms', 'rmwc_terms_nonce' ); ?>
                 <p>
                     <label for="rmwc_terms_version"><strong><?php esc_html_e( 'Versionsbezeichnung', 'patsch9-rental-engine' ); ?></strong></label><br>
-                    <input type="text" class="regular-text" maxlength="50" id="rmwc_terms_version" name="rmwc_terms_version" placeholder="z. B. 2026-08-13">
+                    <input type="text" class="regular-text" maxlength="50" id="rmwc_terms_version" name="rmwc_terms_version" placeholder="<?php esc_attr_e( 'z. B. 2026-08-13', 'patsch9-rental-engine' ); ?>">
                 </p>
                 <?php
                 wp_editor(
@@ -821,7 +821,7 @@ final class RMWC_V2_Terms {
                 <?php else : foreach ( $history as $row ) : ?>
                     <tr>
                         <td><strong><?php echo esc_html( $row['version'] ); ?></strong></td>
-                        <td><?php echo (int) $row['active'] === 1 ? esc_html__( 'Aktiv', 'patsch9-rental-engine' ) : esc_html__( 'Archiv', 'patsch9-rental-engine' ); ?></td>
+                        <td><?php echo (int) $row['active'] === 1 ? esc_html__( 'Active', 'patsch9-rental-engine' ) : esc_html__( 'Archiv', 'patsch9-rental-engine' ); ?></td>
                         <td><?php echo esc_html( mysql2date( 'd.m.Y H:i', $row['created_at'] ) ); ?></td>
                         <td><code><?php echo esc_html( substr( $row['content_hash'], 0, 16 ) ); ?>…</code></td>
                     </tr>
