@@ -9,10 +9,7 @@ Alle stabilen Releases ab Oktober 2026 verwenden das in [VERSIONING.md](VERSIONI
 - `Requires at least` auf Major/Minor korrigiert.
 - Accounting-Bridge-Integration auf `patsacbr_payment_terms_addition` aktualisiert.
 - Internationalisierung auf englische Originaltexte mit vollständigem deutschem `de_DE`-Katalog umgestellt.
-
-## Noch nicht veröffentlicht
-
-Keine Änderungen.
+- CI-Prüfungen für Sprachkataloge, englische Quelltexte, Legacy-Präfixe und den veralteten Accounting-Bridge-Hook ergänzt.
 
 ## 2026.10.0 – 2026-10-06
 
