@@ -2,6 +2,8 @@
 
 Aktuelle stabile Version: **2026.10.0**
 
+Vorbereiteter Release-Kandidat: **2026.10.1** (noch nicht veröffentlicht).
+
 Patsch9 Rental Engine erweitert WooCommerce um Vermietungs- und Gerätebuchungsprozesse mit Verfügbarkeit, zeitabhängigen Preisen, Kautionen, Mietbedingungen, Dokumenten sowie Übergabe- und Rückgabeabläufen.
 
 ## Funktionsumfang
@@ -53,7 +55,9 @@ Der Website-Betreiber ist für die korrekte Datenschutzinformation und die Einha
 - WooCommerce HPOS (`custom_order_tables`) wird deklariert und über WooCommerce-CRUD berücksichtigt.
 - Cart/Checkout Blocks (`cart_checkout_blocks`) werden deklariert.
 - Der klassische WooCommerce-Checkout bleibt unterstützt.
-- Persistierte historische Schlüssel wie `clr_*` und interne `RMWC_*`-Bezeichner bleiben aus Gründen der Abwärtskompatibilität bestehen.
+- Ab `2026.10.1` werden historische `clr_*`-Tabellen, Optionen und Metadaten kontrolliert auf `rmwc_*` migriert. Bestehende Warenkörbe werden beim Laden übernommen. Fehler und Datenkonflikte sperren den Miet-Checkout bis zur erfolgreichen Wiederaufnahme.
+- Bei gemeinsamer Nutzung zuerst Accounting Bridge `2026.10.5` installieren; siehe [MIGRATION.md](MIGRATION.md).
+- Quelltexte sind Englisch; eine deutsche `de_DE`-Übersetzung ist enthalten.
 
 ## Versionsschema
 

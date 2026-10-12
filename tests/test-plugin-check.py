@@ -1,0 +1,15 @@
+import importlib.util
+from pathlib import Path
+spec = importlib.util.spec_from_file_location("gate", Path(__file__).with_name("check-plugin-check.py"))
+gate = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(gate)
+assert gate.clean_result("Success: Checks complete. No errors found.\n", 0)
+assert not gate.clean_result("Error: 'check' is not a registered subcommand of 'plugin'.", 1)
+assert not gate.clean_result("Error: execution failed", 0)
+assert not gate.clean_result("", 0)
+assert not gate.clean_result("Unrecognized output", 0)
+assert not gate.clean_result('FILE: includes/migration.php\n[{"type":"WARNING"}]', 0)
+assert not gate.clean_result('[{"type":"ERROR"}]', 0)
+assert not gate.clean_result("Success: Checks complete. No errors found.\nWarning: missing check", 0)
+assert not gate.clean_result("Success: Checks complete. No errors found.", 1)
+print("PASS: 9 fail-closed Plugin Check gate cases.")

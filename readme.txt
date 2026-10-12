@@ -1,10 +1,10 @@
 === Patsch9 Rental Engine for WooCommerce ===
 Contributors: patsch9
 Tags: woocommerce, rental, booking, deposits, inventory
-Requires at least: 6.9.5
+Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 2026.10.0
+Stable tag: 2026.10.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,7 +34,7 @@ The plugin supports the classic WooCommerce checkout as well as Cart and Checkou
 
 == Requirements ==
 
-* WordPress 6.9.5 or newer.
+* WordPress 6.9 or newer.
 * PHP 8.2 or newer.
 * WooCommerce 10.9.4 or newer.
 
@@ -72,7 +72,7 @@ The plugin stores rental booking data required for availability management and m
 
 * WooCommerce HPOS compatibility is declared.
 * Classic Checkout and Cart/Checkout Blocks are supported.
-* Historical internal storage identifiers are retained for backward compatibility.
+* Historic prerelease storage identifiers are recognized during upgrade and migrated to the canonical `rmwc_` namespace.
 
 == Frequently Asked Questions ==
 
@@ -90,12 +90,24 @@ The plugin handles refundable deposits separately from normal rental pricing. Th
 
 == Changelog ==
 
+= 2026.10.1 =
+* Preserve legacy carts and deposit choices; verify upgrades and block rental checkout while a migration is incomplete.
+* Invalidate metadata and HPOS caches and check every migration database operation.
+* Improve English source wording and German translations.
+* When using Accounting Bridge, upgrade it to 2026.10.5 before upgrading Rental Engine.
+* WordPress.org review hardening: canonical `rmwc_` namespace with safe migration from historic identifiers.
+* Corrected WordPress minimum-version metadata and Accounting Bridge integration hook.
+* Added English source strings with a complete bundled German translation and translation catalogue checks.
+
 = 2026.10.0 =
 * First stable public release using the project-wide `YYYY.M.PATCH` versioning scheme.
 * Consolidates the functional and security changes from all previous internal prerelease versions through 2.0.29.
 * Revalidated Checkout Blocks integration, HPOS paths, protected document downloads, pricing and availability checks, and the optional routes integration.
 
 == Upgrade Notice ==
+
+= 2026.10.1 =
+Migrates historic internal identifiers to the canonical `rmwc_` namespace. Back up before updating from prerelease builds.
 
 = 2026.10.0 =
 First stable release of the new public version line. Back up existing prerelease installations and perform a functional rental checkout test after upgrading.

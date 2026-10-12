@@ -1,10 +1,12 @@
 jQuery(function($){
-  const box = $('.clr-rental-box');
+  const box = $('.rmwc-rental-box');
   if (!box.length) return;
 
-  const cal = $('#clr-calendar');
-  const startInput = $('#clr_start_date');
-  const endInput = $('#clr_end_date');
+  const t = (key,fallback) => (RMWCData.strings && Object.prototype.hasOwnProperty.call(RMWCData.strings,key)) ? RMWCData.strings[key] : fallback;
+
+  const cal = $('#rmwc-calendar');
+  const startInput = $('#rmwc_start_date');
+  const endInput = $('#rmwc_end_date');
   let view = new Date();
   view = new Date(view.getFullYear(), view.getMonth(), 1);
   let bookings = [];
@@ -103,7 +105,7 @@ jQuery(function($){
   }
 
   function fetchAvailability(){
-    cal.addClass('clr-calendar-loading');
+    cal.addClass('rmwc-calendar-loading');
     let fromDate=new Date(view.getFullYear(),view.getMonth()-1,1);
     if(start){ const startMonth=new Date(start.getFullYear(),start.getMonth(),1); if(startMonth<fromDate) fromDate=startMonth; }
     const from=iso(fromDate);
@@ -116,20 +118,20 @@ jQuery(function($){
           render(); updatePrice();
         }
       })
-      .always(()=>cal.removeClass('clr-calendar-loading'));
+      .always(()=>cal.removeClass('rmwc-calendar-loading'));
   }
 
   function renderMonth(monthDate){
     const y=monthDate.getFullYear(), m=monthDate.getMonth();
     const first=new Date(y,m,1), last=new Date(y,m+1,0);
-    const names=['Mo','Di','Mi','Do','Fr','Sa','So'];
-    let html=`<div class="clr-month"><div class="clr-month-title">${first.toLocaleDateString('de-DE',{month:'long',year:'numeric'})}</div><div class="clr-cal-grid">`;
-    names.forEach(n=>html+=`<div class="clr-cal-weekday">${n}</div>`);
+    const names=[t('weekdayMon','Mon'),t('weekdayTue','Tue'),t('weekdayWed','Wed'),t('weekdayThu','Thu'),t('weekdayFri','Fri'),t('weekdaySat','Sat'),t('weekdaySun','Sun')];
+    let html=`<div class="rmwc-month"><div class="rmwc-month-title">${first.toLocaleDateString(RMWCData.locale||'en-US',{month:'long',year:'numeric'})}</div><div class="rmwc-cal-grid">`;
+    names.forEach(n=>html+=`<div class="rmwc-cal-weekday">${n}</div>`);
     const offset=(first.getDay()+6)%7;
-    for(let i=0;i<offset;i++) html+='<div class="clr-cal-empty"></div>';
+    for(let i=0;i<offset;i++) html+='<div class="rmwc-cal-empty"></div>';
     for(let day=1; day<=last.getDate(); day++){
       const d=new Date(y,m,day), s=iso(d);
-      let cls='clr-cal-day';
+      let cls='rmwc-cal-day';
       if(dayHasBooking(d)) cls+=' has-booking';
       if(start&&s===iso(start)) cls+=' is-selected';
       if(end&&s===iso(end)) cls+=' is-selected';
@@ -141,14 +143,14 @@ jQuery(function($){
           disabled=false;
         } else if(d<start){
           disabled=!allowedStart(d);
-          if(dayBlocked(rules.blockedPickupDays,d)) title='Keine Abholung / kein Mietbeginn an diesem Wochentag';
+          if(dayBlocked(rules.blockedPickupDays,d)) title=t('noPickupThisWeekday','No pickup or rental start on this weekday');
         } else {
           disabled=!allowedReturn(d,start);
-          if(dayBlocked(rules.blockedReturnDays,d)) title='Keine Rückgabe an diesem Wochentag';
+          if(dayBlocked(rules.blockedReturnDays,d)) title=t('noReturnThisWeekday','No return on this weekday');
         }
       } else {
         disabled=!allowedStart(d);
-        if(dayBlocked(rules.blockedPickupDays,d)) title='Keine Abholung / kein Mietbeginn an diesem Wochentag';
+        if(dayBlocked(rules.blockedPickupDays,d)) title=t('noPickupThisWeekday','No pickup or rental start on this weekday');
       }
       html+=`<button type="button" class="${cls}" data-date="${s}" ${disabled?'disabled':''} ${title?`title="${title}"`:''}>${day}</button>`;
     }
@@ -157,12 +159,12 @@ jQuery(function($){
   }
 
   function render(){
-    cal.html(`<div class="clr-cal-head"><button type="button" class="clr-prev" aria-label="Vorheriger Monat">‹</button><span class="clr-cal-legend"><span class="clr-dot"></span> teilweise/zeitweise belegt</span><button type="button" class="clr-next" aria-label="Nächster Monat">›</button></div><div class="clr-months">${renderMonth(view)}${renderMonth(new Date(view.getFullYear(),view.getMonth()+1,1))}</div>`);
+    cal.html(`<div class="rmwc-cal-head"><button type="button" class="rmwc-prev" aria-label="${t('previousMonth','Previous month')}">‹</button><span class="rmwc-cal-legend"><span class="rmwc-dot"></span>${t('partiallyBooked','partially booked')}</span><button type="button" class="rmwc-next" aria-label="${t('nextMonth','Next month')}">›</button></div><div class="rmwc-months">${renderMonth(view)}${renderMonth(new Date(view.getFullYear(),view.getMonth()+1,1))}</div>`);
   }
 
-  cal.on('click','.clr-prev',()=>{ view=new Date(view.getFullYear(),view.getMonth()-1,1); fetchAvailability(); });
-  cal.on('click','.clr-next',()=>{ view=new Date(view.getFullYear(),view.getMonth()+1,1); fetchAvailability(); });
-  cal.on('click','.clr-cal-day',function(){
+  cal.on('click','.rmwc-prev',()=>{ view=new Date(view.getFullYear(),view.getMonth()-1,1); fetchAvailability(); });
+  cal.on('click','.rmwc-next',()=>{ view=new Date(view.getFullYear(),view.getMonth()+1,1); fetchAvailability(); });
+  cal.on('click','.rmwc-cal-day',function(){
     const d=parseDate($(this).data('date')); if(!d) return;
     if(!start || end || d<start){
       if(!allowedStart(d)) return;
@@ -170,11 +172,11 @@ jQuery(function($){
     }
     else {
       if(dayBlocked(rules.blockedReturnDays,d)){
-        alert('An diesem Wochentag ist keine Rückgabe möglich.');
+        alert(t('returnNotPossible','Returns are not possible on this weekday.'));
         return;
       }
       if(!allowedReturn(d,start)){
-        alert('Dieser Zeitraum ist nicht buchbar, hat nicht die erlaubte Mietdauer oder es ist nicht genügend Bestand frei.');
+        alert(t('periodNotBookable','This period cannot be booked, does not meet the permitted rental duration, or there is not enough stock available.'));
         return;
       }
       end=d;
@@ -205,7 +207,7 @@ jQuery(function($){
     const weekendStart=parseInt(w.startDay,10), weekendEnd=parseInt(w.endDay,10);
     const weekendSpan=((weekendEnd-weekendStart+7)%7)||7;
     if(w.enabled && days===weekendSpan && getDayN(start)===weekendStart && getDayN(end)===weekendEnd){
-      return {price:parseFloat(w.price||0),units:1,label:'Wochenendtarif'};
+      return {price:parseFloat(w.price||0),units:1,label:t('weekendRate','Weekend rate')};
     }
     const matches=(RMWCData.pricingRules||[]).filter(r=>{
       const min=Math.max(1,parseInt(r.min_days||1,10)), max=Math.max(0,parseInt(r.max_days||0,10));
@@ -221,7 +223,7 @@ jQuery(function($){
       const r=matches[0], included=Math.max(1,parseInt(r.included_days||r.min_days||1,10));
       let price=parseFloat(r.package_price||0);
       if(days>included && r.extra_day_price!=='' && r.extra_day_price!=null) price += (days-included)*parseFloat(r.extra_day_price||0);
-      return {price,units:1,label:'Preisstaffel'};
+      return {price,units:1,label:t('tieredRate','Tiered rate')};
     }
     const unit=box.data('unit');
     if(unit==='day'){
@@ -238,143 +240,144 @@ jQuery(function($){
           price+=standard;
         }
       }
-      return {price,units:days,label:usedOverride?'Wochentagstarif':'Standardtarif'};
+      return {price,units:days,label:usedOverride?t('weekdayRate','Weekday rate'):t('standardRate','Standard rate')};
     }
     let units=days;
     if(unit==='week') units=Math.ceil(days/7);
     if(unit==='month') units=Math.ceil(days/30);
-    return {price:parseFloat(box.data('unit-price')||0)*units,units,label:'Standardtarif'};
+    return {price:parseFloat(box.data('unit-price')||0)*units,units,label:t('standardRate','Standard rate')};
   }
 
   function currency(v){
-    try{return new Intl.NumberFormat(RMWCData.locale||'de-DE',{style:'currency',currency:RMWCData.currency||'EUR'}).format(v);}catch(e){return v.toFixed(2)+' '+(RMWCData.currencySymbol||'€');}
+    try{return new Intl.NumberFormat(RMWCData.locale||'en-US',{style:'currency',currency:RMWCData.currency||'EUR'}).format(v);}catch(e){return v.toFixed(2)+' '+(RMWCData.currencySymbol||'€');}
   }
 
   function updatePrice(){
-    const fulfilment=box.find('input[name="clr_fulfilment"]:checked').val()||'';
+    const fulfilment=box.find('input[name="rmwc_fulfilment"]:checked').val()||'';
     const deliverySelected=fulfilment==='delivery'||fulfilment==='delivery_return';
     const transportLegs=fulfilment==='delivery_return'?2:(fulfilment==='delivery'?1:0);
-    box.find('.clr-delivery-fields').prop('hidden',!deliverySelected);
+    box.find('.rmwc-delivery-fields').prop('hidden',!deliverySelected);
     let baseDeliveryFee=0;
     if(!deliverySelected) deliveryFee=0;
-    else if($('#clr_delivery_zone').is('select')) baseDeliveryFee=parseFloat($('#clr_delivery_zone option:selected').data('price')||0);
-    else if($('#clr_delivery_zone').is('input')) baseDeliveryFee=parseFloat($('#clr_delivery_zone').data('price')||0);
-    else if(!box.find('.clr-delivery-fields').find('#clr_delivery_zone').length) baseDeliveryFee=parseFloat(box.data('fallback-delivery')||0);
+    else if($('#rmwc_delivery_zone').is('select')) baseDeliveryFee=parseFloat($('#rmwc_delivery_zone option:selected').data('price')||0);
+    else if($('#rmwc_delivery_zone').is('input')) baseDeliveryFee=parseFloat($('#rmwc_delivery_zone').data('price')||0);
+    else if(!box.find('.rmwc-delivery-fields').find('#rmwc_delivery_zone').length) baseDeliveryFee=parseFloat(box.data('fallback-delivery')||0);
     deliveryFee=baseDeliveryFee*transportLegs;
 
-    if(!start||!end){ $('#clr_price_preview').text('–'); $('#clr_duration_preview').text(''); return; }
-    const days=durationDays(start,end); if(!days){$('#clr_price_preview').text('–');return;}
+    if(!start||!end){ $('#rmwc_price_preview').text('–'); $('#rmwc_duration_preview').text(''); return; }
+    const days=durationDays(start,end); if(!days){$('#rmwc_price_preview').text('–');return;}
     const base=rentalPrice(days); let perItem=base.price;
-    box.find('select[name^="clr_addon"]').each(function(){
+    box.find('select[name^="rmwc_addon"]').each(function(){
       const o=$(this).find(':selected'); if(!o.val()) return;
       let p=parseFloat(o.data('price')||0); if(o.data('mode')==='unit') p*=base.units; else if(o.data('mode')==='day') p*=days; perItem+=p;
     });
     const count=qty();
     let accessoryTotal=0;
-    $('form.cart .clr-accessory-choice:checked').each(function(){
+    $('form.cart .rmwc-accessory-choice:checked').each(function(){
       const $choice=$(this);
       if(!$choice.val() || $choice.val()==='0') return;
-      const $card=$choice.closest('.clr-accessory-card');
+      const $card=$choice.closest('.rmwc-accessory-card');
       const price=parseFloat($card.data('price')||0);
       const mode=String($card.data('mode')||'once');
-      const accessoryQty=Math.max(1,parseInt($card.find('.clr-accessory-qty-input').val()||$card.find('input[type="hidden"][name*="[qty]"]').val()||'1',10)||1);
+      const accessoryQty=Math.max(1,parseInt($card.find('.rmwc-accessory-qty-input').val()||$card.find('input[type="hidden"][name*="[qty]"]').val()||'1',10)||1);
       accessoryTotal += price*accessoryQty*(mode==='per_device'?count:1);
     });
     const total=(perItem*count)+accessoryTotal+deliveryFee;
-    $('#clr_price_preview').text(currency(total));
-    $('#clr_duration_preview').text(`${days} Miettag(e), ${base.label}; ${iso(start)} ${rules.pickupTime} – ${iso(end)} ${rules.returnTime}`);
+    $('#rmwc_price_preview').text(currency(total));
+    const dayLabel=days===1?t('rentalDay','rental day'):t('rentalDays','rental days');
+    $('#rmwc_duration_preview').text(`${days} ${dayLabel}, ${base.label}; ${iso(start)} ${rules.pickupTime} – ${iso(end)} ${rules.returnTime}`);
   }
 
-  box.on('change','select[name^="clr_addon"],input[name="clr_fulfilment"],#clr_delivery_zone',updatePrice);
-  box.on('change','input[name="clr_fulfilment"]',function(){
+  box.on('change','select[name^="rmwc_addon"],input[name="rmwc_fulfilment"],#rmwc_delivery_zone',updatePrice);
+  box.on('change','input[name="rmwc_fulfilment"]',function(){
     if($(this).val()!=='delivery'&&$(this).val()!=='delivery_return'){
-      $('#clr_delivery_result').text(''); $('#clr_delivery_distance').val('');
+      $('#rmwc_delivery_result').text(''); $('#rmwc_delivery_distance').val('');
     }
     updatePrice();
   });
 
-  box.on('input','#clr_delivery_address',function(){
-    $('#clr_delivery_zone').val('').data('price',0);
-    $('#clr_delivery_distance').val('');
-    $('#clr_delivery_result').text('').removeClass('is-error');
+  box.on('input','#rmwc_delivery_address',function(){
+    $('#rmwc_delivery_zone').val('').data('price',0);
+    $('#rmwc_delivery_distance').val('');
+    $('#rmwc_delivery_result').text('').removeClass('is-error');
     deliveryFee=0; updatePrice();
   });
 
-  box.on('click','.clr-quote-delivery',function(){
-    const btn=$(this), address=$('#clr_delivery_address').val().trim();
-    if(!address){ alert('Bitte zuerst die Lieferadresse eingeben.'); return; }
+  box.on('click','.rmwc-quote-delivery',function(){
+    const btn=$(this), address=$('#rmwc_delivery_address').val().trim();
+    if(!address){ alert(t('enterDeliveryAddress','Please enter the delivery address first.')); return; }
     btn.prop('disabled',true).text('Berechne …');
-    $('#clr_delivery_result').removeClass('is-error').text('');
+    $('#rmwc_delivery_result').removeClass('is-error').text('');
     $.post(RMWCData.ajaxUrl,{action:'rmwc_delivery_quote',nonce:RMWCData.nonce,product_id:RMWCData.productId,address})
       .done(r=>{
         if(r&&r.success){
           deliveryFee=parseFloat(r.data.zone.price||0);
-          $('#clr_delivery_zone').val(r.data.zone.index).data('price',deliveryFee);
-          $('#clr_delivery_distance').val(r.data.distance);
-          const mode=box.find('input[name="clr_fulfilment"]:checked').val()||'delivery';
+          $('#rmwc_delivery_zone').val(r.data.zone.index).data('price',deliveryFee);
+          $('#rmwc_delivery_distance').val(r.data.distance);
+          const mode=box.find('input[name="rmwc_fulfilment"]:checked').val()||'delivery';
           const legs=mode==='delivery_return'?2:1;
-          $('#clr_delivery_result').text(`${r.data.distance} km je Fahrt – ${r.data.zone.label}: ${currency(deliveryFee)} je Fahrt${legs===2?' / '+currency(deliveryFee*2)+' gesamt':''} · Google Maps`);
+          $('#rmwc_delivery_result').text(`${r.data.distance} km ${t('perTrip','per trip')} – ${r.data.zone.label}: ${currency(deliveryFee)} ${t('perTrip','per trip')}${legs===2?' / '+currency(deliveryFee*2)+' '+t('total','total'):''} · Google Maps`);
           updatePrice();
         } else {
-          $('#clr_delivery_result').addClass('is-error').text((r&&r.data&&r.data.message)||'Lieferkosten konnten nicht berechnet werden.');
+          $('#rmwc_delivery_result').addClass('is-error').text((r&&r.data&&r.data.message)||t('deliveryQuoteFailed','Delivery costs could not be calculated.'));
         }
       })
       .fail(xhr=>{
         const m=xhr.responseJSON&&xhr.responseJSON.data&&xhr.responseJSON.data.message;
-        $('#clr_delivery_result').addClass('is-error').text(m||'Lieferkosten konnten nicht berechnet werden.');
+        $('#rmwc_delivery_result').addClass('is-error').text(m||t('deliveryQuoteFailed','Delivery costs could not be calculated.'));
       })
-      .always(()=>btn.prop('disabled',false).text('Transportkosten berechnen'));
+      .always(()=>btn.prop('disabled',false).text(t('calculateTransport','Calculate transport costs')));
   });
 
   function syncAccessoryCards($group){
-    $group.find('.clr-accessory-card').each(function(){
-      const $card=$(this),$choice=$card.find('.clr-accessory-choice');
+    $group.find('.rmwc-accessory-card').each(function(){
+      const $card=$(this),$choice=$card.find('.rmwc-accessory-choice');
       const selected=$choice.is(':checked');
       $card.toggleClass('is-selected',selected);
-      let label='Auswählen';
+      let label=t('select','Select');
       if(selected){
-        label=$choice.val()==='0'?'Ohne Zusatz gewählt':'Ausgewählt';
+        label=$choice.val()==='0'?t('withoutAddonSelected','No add-on selected'):t('selected','Selected');
       }else if($choice.val()==='0'){
-        label='Ohne Zusatz';
+        label=t('withoutAddon','Without add-on');
       }
-      $card.find('.clr-accessory-select-label').text(label);
-      const $qty=$card.find('.clr-accessory-qty-input');
+      $card.find('.rmwc-accessory-select-label').text(label);
+      const $qty=$card.find('.rmwc-accessory-qty-input');
       if($qty.length) $qty.prop('disabled',!selected);
     });
 
     if($group.data('required')==='yes' && $group.data('selection')==='multiple'){
-      const $first=$group.find('.clr-accessory-choice').first();
+      const $first=$group.find('.rmwc-accessory-choice').first();
       if($first.length){
-        const anySelected=$group.find('.clr-accessory-choice:checked').length>0;
-        $first.get(0).setCustomValidity(anySelected?'':'Bitte wählen Sie mindestens eine Zubehör-Option aus.');
+        const anySelected=$group.find('.rmwc-accessory-choice:checked').length>0;
+        $first.get(0).setCustomValidity(anySelected?'':t('selectAccessory','Please select at least one accessory option.'));
       }
     }
   }
 
-  $('.clr-accessory-group').each(function(){syncAccessoryCards($(this));});
+  $('.rmwc-accessory-group').each(function(){syncAccessoryCards($(this));});
 
-  $(document).on('change','.clr-accessory-choice',function(){
-    const $group=$(this).closest('.clr-accessory-group');
+  $(document).on('change','.rmwc-accessory-choice',function(){
+    const $group=$(this).closest('.rmwc-accessory-group');
     syncAccessoryCards($group);
     updatePrice();
   });
 
-  $(document).on('click','.clr-accessory-qty-minus,.clr-accessory-qty-plus',function(){
-    const $card=$(this).closest('.clr-accessory-card');
-    const $choice=$card.find('.clr-accessory-choice');
+  $(document).on('click','.rmwc-accessory-qty-minus,.rmwc-accessory-qty-plus',function(){
+    const $card=$(this).closest('.rmwc-accessory-card');
+    const $choice=$card.find('.rmwc-accessory-choice');
     if(!$choice.is(':checked')){
       $choice.prop('checked',true).trigger('change');
     }
-    const $input=$card.find('.clr-accessory-qty-input');
+    const $input=$card.find('.rmwc-accessory-qty-input');
     if(!$input.length) return;
     const min=Math.max(1,parseInt($input.attr('min')||'1',10)||1);
     const max=Math.max(min,parseInt($input.attr('max')||'10000',10)||10000);
     let value=Math.max(min,parseInt($input.val()||String(min),10)||min);
-    value += $(this).hasClass('clr-accessory-qty-plus')?1:-1;
+    value += $(this).hasClass('rmwc-accessory-qty-plus')?1:-1;
     $input.val(Math.min(max,Math.max(min,value))).trigger('change');
   });
 
-  $(document).on('input change','.clr-accessory-qty-input',function(){
+  $(document).on('input change','.rmwc-accessory-qty-input',function(){
     const $input=$(this);
     const min=Math.max(1,parseInt($input.attr('min')||'1',10)||1);
     const max=Math.max(min,parseInt($input.attr('max')||'10000',10)||10000);
@@ -384,10 +387,10 @@ jQuery(function($){
     updatePrice();
   });
 
-  $(document).on('click','.clr-accessory-slider-prev,.clr-accessory-slider-next',function(){
-    const $track=$(this).closest('.clr-accessory-group').find('.clr-accessory-slider').first();
+  $(document).on('click','.rmwc-accessory-slider-prev,.rmwc-accessory-slider-next',function(){
+    const $track=$(this).closest('.rmwc-accessory-group').find('.rmwc-accessory-slider').first();
     if(!$track.length) return;
-    const direction=$(this).hasClass('clr-accessory-slider-next')?1:-1;
+    const direction=$(this).hasClass('rmwc-accessory-slider-next')?1:-1;
     const amount=Math.max(260,Math.round($track.get(0).clientWidth*.78))*direction;
     $track.get(0).scrollBy({left:amount,behavior:'smooth'});
   });

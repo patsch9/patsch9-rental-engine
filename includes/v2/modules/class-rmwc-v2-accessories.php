@@ -35,11 +35,11 @@ final class RMWC_V2_Accessories {
     }
 
     public function product_type_option( $options ) {
-        $options['clr_accessory_only'] = [
-            'id'            => '_clr_accessory_only',
+        $options['rmwc_accessory_only'] = [
+            'id'            => '_rmwc_accessory_only',
             'wrapper_class' => 'show_if_simple show_if_variable',
-            'label'         => __( 'Miet-Zubehör', 'patsch9-rental-engine' ),
-            'description'   => __( 'Dieses Produkt ausschließlich als Zubehör eines Mietartikels verwenden und nicht einzeln im Shop anbieten.', 'patsch9-rental-engine' ),
+            'label'         => __( 'Rental accessories', 'patsch9-rental-engine' ),
+            'description'   => __( 'Use this product exclusively as an accessory of a rental item and do not offer it individually in the shop.', 'patsch9-rental-engine' ),
             'default'       => 'no',
         ];
         return $options;
@@ -51,20 +51,20 @@ final class RMWC_V2_Accessories {
         }
         // WooCommerce product-type options are saved in the same product form;
         // use our existing product nonce when available, otherwise do nothing.
-        $nonce = isset( $_POST['clr_product_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_product_nonce'] ) ) : '';
-        if ( $nonce && wp_verify_nonce( $nonce, 'clr_save_product_' . $post_id ) ) {
+        $nonce = isset( $_POST['rmwc_product_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['rmwc_product_nonce'] ) ) : '';
+        if ( $nonce && wp_verify_nonce( $nonce, 'rmwc_save_product_' . $post_id ) ) {
             $product   = wc_get_product( $post_id );
-            $accessory = isset( $_POST['_clr_accessory_only'] ) ? 'yes' : 'no';
+            $accessory = isset( $_POST['_rmwc_accessory_only'] ) ? 'yes' : 'no';
             // Variable products are supported as hidden accessory containers. A concrete
             // variation must later be selected in the rental-product configuration; the
             // variable parent itself is never added to the cart.
             if ( ! $product || ! ( $product->is_type( 'simple' ) || $product->is_type( 'variable' ) ) ) {
                 $accessory = 'no';
             }
-            if ( 'yes' === get_post_meta( $post_id, '_clr_rental_enabled', true ) && 'yes' === $accessory ) {
+            if ( 'yes' === get_post_meta( $post_id, '_rmwc_rental_enabled', true ) && 'yes' === $accessory ) {
                 $accessory = 'no';
             }
-            update_post_meta( $post_id, '_clr_accessory_only', $accessory );
+            update_post_meta( $post_id, '_rmwc_accessory_only', $accessory );
         }
     }
 
@@ -79,7 +79,7 @@ final class RMWC_V2_Accessories {
         }
 
         $product_id = get_queried_object_id();
-        if ( ! $product_id || 'yes' !== get_post_meta( $product_id, '_clr_accessory_only', true ) ) {
+        if ( ! $product_id || 'yes' !== get_post_meta( $product_id, '_rmwc_accessory_only', true ) ) {
             return;
         }
         if ( current_user_can( 'edit_post', $product_id ) ) {
@@ -96,7 +96,7 @@ final class RMWC_V2_Accessories {
         $product_id = absint( $product_id );
         $product    = $product_id ? wc_get_product( $product_id ) : false;
         $config_id  = $product instanceof WC_Product_Variation ? $product->get_parent_id() : $product_id;
-        if ( $config_id && 'yes' === get_post_meta( $config_id, '_clr_accessory_only', true ) ) {
+        if ( $config_id && 'yes' === get_post_meta( $config_id, '_rmwc_accessory_only', true ) ) {
             return false;
         }
         return $visible;
@@ -107,11 +107,11 @@ final class RMWC_V2_Accessories {
         $meta_query[] = [
             'relation' => 'OR',
             [
-                'key'     => '_clr_accessory_only',
+                'key'     => '_rmwc_accessory_only',
                 'compare' => 'NOT EXISTS',
             ],
             [
-                'key'     => '_clr_accessory_only',
+                'key'     => '_rmwc_accessory_only',
                 'value'   => 'yes',
                 'compare' => '!=',
             ],
@@ -166,7 +166,7 @@ final class RMWC_V2_Accessories {
             return 0;
         }
         $product_id = $product->get_id();
-        if ( $product->is_type( 'variation' ) && 'yes' !== get_post_meta( $product_id, '_clr_accessory_only', true ) ) {
+        if ( $product->is_type( 'variation' ) && 'yes' !== get_post_meta( $product_id, '_rmwc_accessory_only', true ) ) {
             $product_id = $product->get_parent_id();
         }
         return absint( $product_id );
@@ -174,7 +174,7 @@ final class RMWC_V2_Accessories {
 
     private function is_rental_accessory_product( $product ) {
         $product_id = $this->accessory_config_id( $product );
-        return $product_id && 'yes' === get_post_meta( $product_id, '_clr_accessory_only', true );
+        return $product_id && 'yes' === get_post_meta( $product_id, '_rmwc_accessory_only', true );
     }
 
     private function is_valid_linked_accessory_in_current_cart( $product ) {
@@ -185,10 +185,10 @@ final class RMWC_V2_Accessories {
         $source_id = absint( $product->get_id() );
         $cart      = WC()->cart->get_cart();
         foreach ( $cart as $cart_key => $item ) {
-            if ( 'yes' !== ( $item['clr_rental_accessory'] ?? '' ) ) {
+            if ( 'yes' !== ( $item['rmwc_rental_accessory'] ?? '' ) ) {
                 continue;
             }
-            $item_source_id = absint( $item['clr_rental_accessory_source_id'] ?? 0 );
+            $item_source_id = absint( $item['rmwc_rental_accessory_source_id'] ?? 0 );
             $item_product   = $item['data'] ?? null;
             if ( ! $item_source_id && $item_product instanceof WC_Product ) {
                 $item_source_id = absint( $item_product->get_id() );
@@ -197,12 +197,12 @@ final class RMWC_V2_Accessories {
                 continue;
             }
 
-            $parent_key = (string) ( $item['clr_rental_accessory_parent'] ?? '' );
+            $parent_key = (string) ( $item['rmwc_rental_accessory_parent'] ?? '' );
             if ( '' === $parent_key || ! isset( $cart[ $parent_key ] ) ) {
                 continue;
             }
             $parent = $cart[ $parent_key ];
-            if ( empty( $parent['clr_rental'] ) || ! is_array( $parent['clr_rental'] ) ) {
+            if ( empty( $parent['rmwc_rental'] ) || ! is_array( $parent['rmwc_rental'] ) ) {
                 continue;
             }
             return true;
@@ -222,7 +222,7 @@ final class RMWC_V2_Accessories {
         }
         $product = $this->product_from_add_to_cart_ids( $product_id, $variation_id );
         if ( $product && $this->is_rental_accessory_product( $product ) ) {
-            wc_add_notice( __( 'Dieses Miet-Zubehör kann nur zusammen mit dem zugehörigen Mietartikel ausgewählt werden.', 'patsch9-rental-engine' ), 'error' );
+            wc_add_notice( __( 'This rental accessory can only be selected together with the corresponding rental item.', 'patsch9-rental-engine' ), 'error' );
             return false;
         }
         return $passed;
@@ -233,7 +233,7 @@ final class RMWC_V2_Accessories {
         if ( $this->internal_add || ! $product instanceof WC_Product || ! $this->is_rental_accessory_product( $product ) ) {
             return;
         }
-        throw new Exception( esc_html__( 'Dieses Miet-Zubehör kann nur zusammen mit dem zugehörigen Mietartikel ausgewählt werden.', 'patsch9-rental-engine' ) );
+        throw new Exception( esc_html__( 'This rental accessory can only be selected together with the corresponding rental item.', 'patsch9-rental-engine' ) );
     }
 
     public function keep_linked_cart_items_purchasable( $purchasable, $cart_item_key, $values, $product ) {
@@ -241,7 +241,7 @@ final class RMWC_V2_Accessories {
         if ( $purchasable ) {
             return true;
         }
-        if ( ! is_array( $values ) || 'yes' !== ( $values['clr_rental_accessory'] ?? '' ) ) {
+        if ( ! is_array( $values ) || 'yes' !== ( $values['rmwc_rental_accessory'] ?? '' ) ) {
             return $purchasable;
         }
         if ( ! $product instanceof WC_Product ) {
@@ -249,10 +249,10 @@ final class RMWC_V2_Accessories {
         }
 
         $product_id = $product->get_id();
-        if ( $product->is_type( 'variation' ) && 'yes' !== get_post_meta( $product_id, '_clr_accessory_only', true ) ) {
+        if ( $product->is_type( 'variation' ) && 'yes' !== get_post_meta( $product_id, '_rmwc_accessory_only', true ) ) {
             $product_id = $product->get_parent_id();
         }
-        if ( ! $product_id || 'yes' !== get_post_meta( $product_id, '_clr_accessory_only', true ) ) {
+        if ( ! $product_id || 'yes' !== get_post_meta( $product_id, '_rmwc_accessory_only', true ) ) {
             return $purchasable;
         }
         if ( 'publish' !== get_post_status( $product_id ) ) {
@@ -306,14 +306,14 @@ final class RMWC_V2_Accessories {
 
         if ( $product instanceof WC_Product_Variation ) {
             $parent_id = $product->get_parent_id();
-            if ( ! $parent_id || 'yes' !== get_post_meta( $parent_id, '_clr_accessory_only', true ) ) {
+            if ( ! $parent_id || 'yes' !== get_post_meta( $parent_id, '_rmwc_accessory_only', true ) ) {
                 return false;
             }
             $variation_id    = $product->get_id();
             $variation       = $product->get_variation_attributes();
             $cart_product_id = $parent_id;
         } elseif ( $product->is_type( 'simple' ) ) {
-            if ( 'yes' !== get_post_meta( $product->get_id(), '_clr_accessory_only', true ) ) {
+            if ( 'yes' !== get_post_meta( $product->get_id(), '_rmwc_accessory_only', true ) ) {
                 return false;
             }
         } else {
@@ -331,8 +331,8 @@ final class RMWC_V2_Accessories {
             return false;
         }
 
-        $cart_item_data['clr_rental_accessory']           = 'yes';
-        $cart_item_data['clr_rental_accessory_source_id'] = $product->get_id();
+        $cart_item_data['rmwc_rental_accessory']           = 'yes';
+        $cart_item_data['rmwc_rental_accessory_source_id'] = $product->get_id();
         $this->internal_add = true;
         try {
             return WC()->cart->add_to_cart( $cart_product_id, $quantity, $variation_id, $variation, $cart_item_data );

@@ -23,9 +23,16 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           coverage: none
+          tools: wp-cli:2.12.0
       - name: PHP syntax
         shell: bash
         run: find . -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Translation catalogue integrity against fresh source
+        if: matrix.php == '8.2'
+        run: |
+          wp i18n make-pot . /tmp/rmwc-source.pot --domain=patsch9-rental-engine --slug=patsch9-rental-engine --exclude=.github,tests
+          wp i18n make-mo languages/patsch9-rental-engine-de_DE.po /tmp/rmwc-de_DE.mo
+          python3 tests/check-translations.py --pot /tmp/rmwc-source.pot --mo /tmp/rmwc-de_DE.mo
       - name: JavaScript syntax
         if: matrix.php == '8.2'
         shell: bash
@@ -34,6 +41,34 @@ jobs:
             node --check "$file"
           done
 
+  release-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Plugin Check result gate regressions
+        run: python3 tests/test-plugin-check.py
+      - name: English source-language policy
+        run: python3 tests/check-source-language.py
+      - name: Reject short legacy identifiers outside migration layer
+        shell: bash
+        run: |
+          matches="$(grep -RInE --include='*.php' --exclude='class-rmwc-legacy-migration.php' '\bclr_' includes patsch9-rental-engine.php || true)"
+          if [ -n "$matches" ]; then
+            echo "Legacy clr_ identifiers remain outside the migration layer:"
+            echo "$matches"
+            exit 1
+          fi
+      - name: Reject retired Accounting Bridge hook
+        shell: bash
+        run: |
+          if grep -RIn --include='*.php' 'wlc_payment_terms_addition' includes patsch9-rental-engine.php; then
+            echo "Retired Accounting Bridge hook detected."
+            exit 1
+          fi
+
   wordpress-plugin-check:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -41,12 +76,38 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: WordPress Plugin Check
-        uses: WordPress/plugin-check-action@10857da14b6c2246d15402b3e69f777edcf8c12e # v1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          exclude-directories: |
-            .github
-          exclude-files: |
-            VERSIONING.md
-            DOCUMENTATION.md
-            MIGRATION.md
+          node-version: '24'
+      - name: Install pinned wp-env test harness
+        shell: bash
+        run: npm -g --no-fund install @wordpress/env@11.16.0
+      - name: Configure WordPress test environment
+        shell: bash
+        run: |
+          cat > .wp-env.json <<EOF
+          {
+            "core": null,
+            "testsEnvironment": false,
+            "port": 8880,
+            "mappings": {
+              "wp-content/plugins/patsch9-rental-engine": "$PWD"
+            }
+          }
+          EOF
+      - name: Start WordPress test environment
+        shell: bash
+        run: wp-env start --update
+      - name: Install Plugin Check and WooCommerce
+        shell: bash
+        run: |
+          wp-env run cli wp plugin install plugin-check --activate
+          wp-env run cli wp plugin install woocommerce --activate
+          wp-env run cli wp plugin activate patsch9-rental-engine
+      - name: Upgrade and checkout regressions (real WordPress/WooCommerce/database)
+        run: wp-env run cli env RMWC_RUN_UPGRADE_TESTS=1 wp eval-file wp-content/plugins/patsch9-rental-engine/tests/test-upgrade.php
+      - name: WordPress Plugin Check (strict)
+        uses: ./.github/actions/plugin-check
+        with:
+          build-dir: .
+          environment-ready: true

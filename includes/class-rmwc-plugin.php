@@ -5,6 +5,11 @@ defined( 'ABSPATH' ) || exit;
 final class RMWC_Plugin {
     private static $instance = null;
     private $admin_page_hook = '';
+    private $ready = false;
+
+    public function is_ready() {
+        return $this->ready;
+    }
 
     public static function instance() {
         if ( null === self::$instance ) {
@@ -14,6 +19,15 @@ final class RMWC_Plugin {
     }
 
     private function __construct() {
+        if ( ! $this->migrate_legacy_bookings() ) {
+            RMWC_Legacy_Migration::stop();
+            return;
+        }
+        $this->ready = true;
+        add_filter( 'woocommerce_get_cart_item_from_session', [ 'RMWC_Legacy_Migration', 'restore_cart_item' ], 5 );
+        add_action( 'woocommerce_cart_loaded_from_session', [ 'RMWC_Legacy_Migration', 'restore_session' ], 5 );
+        add_action( 'woocommerce_before_calculate_totals', [ 'RMWC_Legacy_Migration', 'restore_session' ], 5 );
+
         // Product configuration.
         add_filter( 'product_type_options', [ $this, 'admin_product_type_options' ] );
         add_filter( 'woocommerce_product_data_tabs', [ $this, 'admin_tab' ] );
@@ -28,10 +42,6 @@ final class RMWC_Plugin {
         add_action( 'wp_ajax_nopriv_rmwc_availability', [ $this, 'ajax_availability' ] );
         add_action( 'wp_ajax_rmwc_delivery_quote', [ $this, 'ajax_delivery_quote' ] );
         add_action( 'wp_ajax_nopriv_rmwc_delivery_quote', [ $this, 'ajax_delivery_quote' ] );
-        add_action( 'wp_ajax_clr_availability', [ $this, 'ajax_availability' ] ); // Legacy 1.0.x alias.
-        add_action( 'wp_ajax_nopriv_clr_availability', [ $this, 'ajax_availability' ] ); // Legacy 1.0.x alias.
-        add_action( 'wp_ajax_clr_delivery_quote', [ $this, 'ajax_delivery_quote' ] ); // Legacy 1.0.x alias.
-        add_action( 'wp_ajax_nopriv_clr_delivery_quote', [ $this, 'ajax_delivery_quote' ] ); // Legacy 1.0.x alias.
 
         // Cart and checkout.
         add_filter( 'woocommerce_add_to_cart_validation', [ $this, 'validate_add_to_cart' ], 20, 5 );
@@ -70,12 +80,6 @@ final class RMWC_Plugin {
         add_filter( 'wp_privacy_personal_data_exporters', [ $this, 'register_privacy_exporter' ] );
         add_filter( 'wp_privacy_personal_data_erasers', [ $this, 'register_privacy_eraser' ] );
         add_action( 'admin_init', [ $this, 'add_privacy_policy_content' ] );
-
-        $this->migrate_legacy_bookings();
-        // Migrate the historic short cron hook to the namespaced hook.
-        if ( wp_next_scheduled( 'clr_hourly_reminders' ) ) {
-            wp_clear_scheduled_hook( 'clr_hourly_reminders' );
-        }
         if ( ! wp_next_scheduled( 'rmwc_hourly_reminders' ) ) {
             wp_schedule_event( time() + 300, 'hourly', 'rmwc_hourly_reminders' );
         }
@@ -83,7 +87,7 @@ final class RMWC_Plugin {
 
     private function table() {
         global $wpdb;
-        return $wpdb->prefix . 'clr_bookings';
+        return $wpdb->prefix . 'rmwc_bookings';
     }
 
     /**
@@ -93,7 +97,7 @@ final class RMWC_Plugin {
     private function booking_lock_name( $product_id ) {
         global $wpdb;
         $scope = ( defined( 'DB_NAME' ) ? (string) DB_NAME : '' ) . '|' . $wpdb->prefix . '|' . get_current_blog_id();
-        return 'clr_' . substr( hash( 'sha256', $scope ), 0, 24 ) . '_' . absint( $product_id );
+        return 'rmwc_' . substr( hash( 'sha256', $scope ), 0, 24 ) . '_' . absint( $product_id );
     }
 
 
@@ -147,7 +151,7 @@ final class RMWC_Plugin {
         $bucket = sanitize_key( $bucket );
         $key    = 'rmwc_global_rate_' . $bucket;
         $scope  = ( defined( 'DB_NAME' ) ? (string) DB_NAME : '' ) . '|' . $wpdb->prefix . '|' . get_current_blog_id() . '|' . $bucket;
-        $lock   = 'clr_rate_' . substr( hash( 'sha256', $scope ), 0, 40 );
+        $lock   = 'rmwc_rate_' . substr( hash( 'sha256', $scope ), 0, 40 );
         $got    = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 1)', $lock ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serializes the global abuse counter across concurrent requests.
         if ( 1 !== $got ) {
             // Under unusual contention, deny rather than allow an expensive
@@ -178,7 +182,7 @@ final class RMWC_Plugin {
     }
 
     private function is_rental( $product_id ) {
-        return $product_id && 'yes' === get_post_meta( $product_id, '_clr_rental_enabled', true );
+        return $product_id && 'yes' === get_post_meta( $product_id, '_rmwc_rental_enabled', true );
     }
 
     private function config_product_id( $product_id, $variation_id = 0 ) {
@@ -198,27 +202,27 @@ final class RMWC_Plugin {
     }
 
     private function pickup_time( $product_id ) {
-        $value = get_post_meta( $product_id, '_clr_pickup_time', true );
+        $value = get_post_meta( $product_id, '_rmwc_pickup_time', true );
         return $this->sanitize_time_value( $value, '12:00' );
     }
 
     private function return_time( $product_id ) {
-        $value = get_post_meta( $product_id, '_clr_return_time', true );
+        $value = get_post_meta( $product_id, '_rmwc_return_time', true );
         return $this->sanitize_time_value( $value, '10:00' );
     }
 
     private function capacity( $product_id ) {
-        $capacity = max( 1, (int) get_post_meta( $product_id, '_clr_capacity', true ) );
+        $capacity = max( 1, (int) get_post_meta( $product_id, '_rmwc_capacity', true ) );
         return max( 1, (int) apply_filters( 'rmwc_capacity', $capacity, absint( $product_id ) ) );
     }
 
     private function buffer_hours( $product_id ) {
-        $hours = get_post_meta( $product_id, '_clr_buffer_hours', true );
+        $hours = get_post_meta( $product_id, '_rmwc_buffer_hours', true );
         if ( '' !== $hours ) {
             return max( 0, (int) $hours );
         }
         // Migration path from 0.1.x.
-        return max( 0, (int) get_post_meta( $product_id, '_clr_buffer_days', true ) * 24 );
+        return max( 0, (int) get_post_meta( $product_id, '_rmwc_buffer_days', true ) * 24 );
     }
 
     private function sanitize_weekday_list( $value ) {
@@ -238,15 +242,15 @@ final class RMWC_Plugin {
     }
 
     private function blocked_pickup_days( $product_id ) {
-        return $this->sanitize_weekday_list( get_post_meta( $product_id, '_clr_blocked_pickup_days', true ) );
+        return $this->sanitize_weekday_list( get_post_meta( $product_id, '_rmwc_blocked_pickup_days', true ) );
     }
 
     private function blocked_return_days( $product_id ) {
-        return $this->sanitize_weekday_list( get_post_meta( $product_id, '_clr_blocked_return_days', true ) );
+        return $this->sanitize_weekday_list( get_post_meta( $product_id, '_rmwc_blocked_return_days', true ) );
     }
 
     private function weekday_prices( $product_id ) {
-        $stored = get_post_meta( $product_id, '_clr_weekday_prices', true );
+        $stored = get_post_meta( $product_id, '_rmwc_weekday_prices', true );
         if ( ! is_array( $stored ) ) {
             return [];
         }
@@ -266,14 +270,14 @@ final class RMWC_Plugin {
 
     private function validate_handover_weekdays( $product_id, $start_date, $end_date ) {
         if ( ! $this->is_valid_date( (string) $start_date ) || ! $this->is_valid_date( (string) $end_date ) ) {
-            return new WP_Error( 'clr_dates', 'Bitte einen gültigen Mietzeitraum wählen.' );
+            return new WP_Error( 'rmwc_dates', __( 'Please select a valid rental period.', 'patsch9-rental-engine' ) );
         }
 
         $tz    = wp_timezone();
         $start = DateTimeImmutable::createFromFormat( '!Y-m-d', $start_date, $tz );
         $end   = DateTimeImmutable::createFromFormat( '!Y-m-d', $end_date, $tz );
         if ( ! $start || ! $end ) {
-            return new WP_Error( 'clr_dates', 'Bitte einen gültigen Mietzeitraum wählen.' );
+            return new WP_Error( 'rmwc_dates', __( 'Please select a valid rental period.', 'patsch9-rental-engine' ) );
         }
 
         $weekdays = $this->weekday_options();
@@ -282,14 +286,16 @@ final class RMWC_Plugin {
 
         if ( in_array( $start_day, $this->blocked_pickup_days( $product_id ), true ) ) {
             return new WP_Error(
-                'clr_pickup_weekday_blocked',
-                sprintf( 'Am %s ist keine Abholung bzw. kein Mietbeginn möglich. Bitte einen anderen Starttag wählen.', $weekdays[ $start_day ] ?? 'gewählten Wochentag' )
+                'rmwc_pickup_weekday_blocked',
+                /* translators: %s: Localized weekday name. */
+                sprintf( __( 'Pickup or rental start is not available on %s. Please choose a different start date.', 'patsch9-rental-engine' ), $weekdays[ $start_day ] ?? __( 'selected weekday', 'patsch9-rental-engine' ) )
             );
         }
         if ( in_array( $end_day, $this->blocked_return_days( $product_id ), true ) ) {
             return new WP_Error(
-                'clr_return_weekday_blocked',
-                sprintf( 'Am %s ist keine Rückgabe möglich. Bitte einen anderen Rückgabetag wählen.', $weekdays[ $end_day ] ?? 'gewählten Wochentag' )
+                'rmwc_return_weekday_blocked',
+                /* translators: %s: Localized weekday name. */
+                sprintf( __( 'Return is not available on %s. Please choose a different return date.', 'patsch9-rental-engine' ), $weekdays[ $end_day ] ?? __( 'selected weekday', 'patsch9-rental-engine' ) )
             );
         }
 
@@ -305,11 +311,11 @@ final class RMWC_Plugin {
      * @return array
      */
     public function admin_product_type_options( $options ) {
-        $options['clr_rental_enabled'] = [
-            'id'            => '_clr_rental_enabled',
+        $options['rmwc_rental_enabled'] = [
+            'id'            => '_rmwc_rental_enabled',
             'wrapper_class' => 'show_if_simple show_if_variable',
-            'label'         => __( 'Vermietung', 'patsch9-rental-engine' ),
-            'description'   => __( 'Dieses WooCommerce-Produkt als Mietartikel anbieten.', 'patsch9-rental-engine' ),
+            'label'         => __( 'Rental', 'patsch9-rental-engine' ),
+            'description'   => __( 'Offer this WooCommerce product as a rental item.', 'patsch9-rental-engine' ),
             'default'       => 'no',
         ];
 
@@ -317,9 +323,9 @@ final class RMWC_Plugin {
     }
 
     public function admin_tab( $tabs ) {
-        $tabs['clr_rental'] = [
-            'label'    => 'Vermietung',
-            'target'   => 'clr_rental_product_data',
+        $tabs['rmwc_rental'] = [
+            'label'    => __( 'Rental', 'patsch9-rental-engine' ),
+            'target'   => 'rmwc_rental_product_data',
             'class'    => [ 'show_if_simple', 'show_if_variable' ],
             'priority' => 35,
         ];
@@ -330,9 +336,9 @@ final class RMWC_Plugin {
         global $post;
         $id = $post ? $post->ID : 0;
 
-        $addons        = get_post_meta( $id, '_clr_addons', true );
-        $pricing_rules = get_post_meta( $id, '_clr_pricing_rules', true );
-        $delivery      = get_post_meta( $id, '_clr_delivery_zones', true );
+        $addons        = get_post_meta( $id, '_rmwc_addons', true );
+        $pricing_rules = get_post_meta( $id, '_rmwc_pricing_rules', true );
+        $delivery      = get_post_meta( $id, '_rmwc_delivery_zones', true );
         $addons        = is_array( $addons ) ? $addons : [];
         $pricing_rules = is_array( $pricing_rules ) ? $pricing_rules : [];
         $delivery      = is_array( $delivery ) ? $delivery : [];
@@ -340,153 +346,153 @@ final class RMWC_Plugin {
         $blocked_return_days = $this->blocked_return_days( $id );
         $weekday_prices      = $this->weekday_prices( $id );
         ?>
-        <div id="clr_rental_product_data" class="panel woocommerce_options_panel hidden">
-            <?php wp_nonce_field( 'clr_save_product_' . $id, 'clr_product_nonce' ); ?>
+        <div id="rmwc_rental_product_data" class="panel woocommerce_options_panel hidden">
+            <?php wp_nonce_field( 'rmwc_save_product_' . $id, 'rmwc_product_nonce' ); ?>
             <div class="options_group">
-                <h4 style="padding:0 12px;margin-bottom:0">Grunddaten & Zeiten</h4>
+                <h4 style="padding:0 12px;margin-bottom:0"><?php esc_html_e( 'Basic data & times', 'patsch9-rental-engine' ); ?></h4>
                 <?php
                 woocommerce_wp_select( [
-                    'id'          => '_clr_billing_unit',
-                    'wrapper_class'     => 'clr-rental-field-row',
-                    'label'       => 'Standard-Abrechnung',
-                    'options'     => [ 'day' => 'pro Tag', 'week' => 'pro Woche (7 Miettage)', 'month' => 'pro Monat (30 Miettage)' ],
-                    'description' => 'Wird verwendet, wenn keine Preisstaffel oder Wochenendregel greift. Bei Tagesabrechnung können einzelne Wochentage den Standardpreis überschreiben.',
+                    'id'          => '_rmwc_billing_unit',
+                    'wrapper_class'     => 'rmwc-rental-field-row',
+                    'label'       => __( 'Default billing', 'patsch9-rental-engine' ),
+                    'options'     => [ 'day' => __( 'per day', 'patsch9-rental-engine' ), 'week' => __( 'per week (7 rental days)', 'patsch9-rental-engine' ), 'month' => __( 'per month (30 rental days)', 'patsch9-rental-engine' ) ],
+                    'description' => __( 'Used if no price scale or weekend rule applies. For daily billing, individual weekdays may overwrite the standard price.', 'patsch9-rental-engine' ),
                     'desc_tip'    => true,
                 ] );
                 woocommerce_wp_text_input( [
-                    'id'                => '_clr_unit_price',
-                    'wrapper_class'     => 'clr-rental-field-row',
-                    'label'             => 'Standard-Mietpreis',
+                    'id'                => '_rmwc_unit_price',
+                    'wrapper_class'     => 'rmwc-rental-field-row',
+                    'label'             => __( 'Standard rental price', 'patsch9-rental-engine' ),
                     'type'              => 'number',
                     'custom_attributes' => [ 'step' => '0.01', 'min' => '0' ],
                 ] );
                 woocommerce_wp_text_input( [
-                    'id'                => '_clr_capacity',
-                    'wrapper_class'     => 'clr-rental-field-row',
-                    'label'             => 'Verfügbare Anzahl',
+                    'id'                => '_rmwc_capacity',
+                    'wrapper_class'     => 'rmwc-rental-field-row',
+                    'label'             => __( 'Available quantity', 'patsch9-rental-engine' ),
                     'type'              => 'number',
-                    'value'             => get_post_meta( $id, '_clr_capacity', true ) ?: 1,
+                    'value'             => get_post_meta( $id, '_rmwc_capacity', true ) ?: 1,
                     'custom_attributes' => [ 'step' => '1', 'min' => '1' ],
-                    'description'       => 'Wie viele identische Geräte dieses Produkts gleichzeitig vermietet werden können.',
+                    'description'       => __( 'How many identical rental units of this product can be rented at the same time.', 'patsch9-rental-engine' ),
                     'desc_tip'          => true,
                 ] );
                 woocommerce_wp_text_input( [
-                    'id'          => '_clr_pickup_time',
-                    'wrapper_class'     => 'clr-rental-field-row',
-                    'label'       => 'Abhol-/Mietbeginn',
+                    'id'          => '_rmwc_pickup_time',
+                    'wrapper_class'     => 'rmwc-rental-field-row',
+                    'label'       => __( 'Pickup / rental start', 'patsch9-rental-engine' ),
                     'type'        => 'time',
                     'value'       => $this->pickup_time( $id ),
-                    'description' => 'Beispiel: 12:00. Ab diesem Zeitpunkt beginnt die Buchung am gewählten Startdatum.',
+                    'description' => __( 'Example: 12:00. The booking starts at this time on the selected start date.', 'patsch9-rental-engine' ),
                     'desc_tip'    => true,
                 ] );
                 woocommerce_wp_text_input( [
-                    'id'          => '_clr_return_time',
-                    'wrapper_class'     => 'clr-rental-field-row',
-                    'label'       => 'Rückgabezeit',
+                    'id'          => '_rmwc_return_time',
+                    'wrapper_class'     => 'rmwc-rental-field-row',
+                    'label'       => __( 'Return time', 'patsch9-rental-engine' ),
                     'type'        => 'time',
                     'value'       => $this->return_time( $id ),
-                    'description' => 'Beispiel: 10:00. Bis zu diesem Zeitpunkt muss der Artikel am Rückgabedatum zurück sein.',
+                    'description' => __( 'Example: 10:00. By this time the item must be back on the return date.', 'patsch9-rental-engine' ),
                     'desc_tip'    => true,
                 ] );
                 woocommerce_wp_text_input( [
-                    'id'                => '_clr_min_days',
-                    'wrapper_class'     => 'clr-rental-field-row',
+                    'id'                => '_rmwc_min_days',
+                    'wrapper_class'     => 'rmwc-rental-field-row',
                     'label'             => 'Mindestmietdauer',
                     'type'              => 'number',
-                    'value'             => get_post_meta( $id, '_clr_min_days', true ) ?: 1,
+                    'value'             => get_post_meta( $id, '_rmwc_min_days', true ) ?: 1,
                     'custom_attributes' => [ 'step' => '1', 'min' => '1' ],
-                    'description'       => 'Miettage werden aus der tatsächlichen Zeitspanne berechnet und auf volle Tage aufgerundet.',
+                    'description'       => __( 'Rental days are calculated from the pickup and return dates. A same-day rental counts as one rental day.', 'patsch9-rental-engine' ),
                     'desc_tip'          => true,
                 ] );
                 woocommerce_wp_text_input( [
-                    'id'                => '_clr_max_days',
-                    'wrapper_class'     => 'clr-rental-field-row',
-                    'label'             => 'Maximale Mietdauer',
+                    'id'                => '_rmwc_max_days',
+                    'wrapper_class'     => 'rmwc-rental-field-row',
+                    'label'             => __( 'Maximum rental period', 'patsch9-rental-engine' ),
                     'type'              => 'number',
                     'custom_attributes' => [ 'step' => '1', 'min' => '0' ],
-                    'description'       => '0 oder leer = unbegrenzt.',
+                    'description'       => __( '0 or empty = unlimited.', 'patsch9-rental-engine' ),
                 ] );
                 woocommerce_wp_text_input( [
-                    'id'                => '_clr_buffer_hours',
-                    'wrapper_class'     => 'clr-rental-field-row',
-                    'label'             => 'Puffer nach Rückgabe (Std.)',
+                    'id'                => '_rmwc_buffer_hours',
+                    'wrapper_class'     => 'rmwc-rental-field-row',
+                    'label'             => __( 'Buffer after return (hours)', 'patsch9-rental-engine' ),
                     'type'              => 'number',
-                    'value'             => get_post_meta( $id, '_clr_buffer_hours', true ) !== '' ? get_post_meta( $id, '_clr_buffer_hours', true ) : $this->buffer_hours( $id ),
+                    'value'             => get_post_meta( $id, '_rmwc_buffer_hours', true ) !== '' ? get_post_meta( $id, '_rmwc_buffer_hours', true ) : $this->buffer_hours( $id ),
                     'custom_attributes' => [ 'step' => '1', 'min' => '0' ],
-                    'description'       => 'Zusätzliche Sperrzeit nach der Rückgabe, z. B. 2 Stunden für Reinigung und Kontrolle.',
+                    'description'       => __( 'Additional buffer time after return, e.g. 2 hours for cleaning and inspection.', 'patsch9-rental-engine' ),
                     'desc_tip'          => true,
                 ] );
                 woocommerce_wp_text_input( [
-                    'id'                => '_clr_advance_days',
-                    'wrapper_class'     => 'clr-rental-field-row',
-                    'label'             => 'Max. Vorausbuchung (Tage)',
+                    'id'                => '_rmwc_advance_days',
+                    'wrapper_class'     => 'rmwc-rental-field-row',
+                    'label'             => __( 'Max. advance booking (days)', 'patsch9-rental-engine' ),
                     'type'              => 'number',
                     'custom_attributes' => [ 'step' => '1', 'min' => '0' ],
-                    'description'       => '0 oder leer = unbegrenzt.',
+                    'description'       => __( '0 or empty = unlimited.', 'patsch9-rental-engine' ),
                 ] );
                 ?>
             </div>
 
-            <div class="options_group clr-weekday-section">
-                <div class="clr-product-section-head">
-                    <h4><?php esc_html_e( 'Wochentage & Sperrtage', 'patsch9-rental-engine' ); ?></h4>
-                    <p class="description"><?php esc_html_e( 'Lege fest, an welchen Wochentagen Abholung und Rückgabe möglich sind und ob an einzelnen Miettagen ein abweichender Tagespreis gilt. Laufende Vermietungen dürfen gesperrte Übergabetage überbrücken.', 'patsch9-rental-engine' ); ?></p>
+            <div class="options_group rmwc-weekday-section">
+                <div class="rmwc-product-section-head">
+                    <h4><?php esc_html_e( 'Weekdays & blocked days', 'patsch9-rental-engine' ); ?></h4>
+                    <p class="description"><?php esc_html_e( 'Set the weekdays on which pickup and return are available and define any weekday prices. A rental may continue across days on which pickup or return is unavailable.', 'patsch9-rental-engine' ); ?></p>
                 </div>
-                <div class="clr-weekday-cards">
+                <div class="rmwc-weekday-cards">
                     <?php foreach ( $this->weekday_options() as $day_number => $day_label ) : ?>
-                        <section class="clr-weekday-card">
+                        <section class="rmwc-weekday-card">
                             <h5><?php echo esc_html( $day_label ); ?></h5>
-                            <label class="clr-weekday-toggle">
-                                <input type="checkbox" name="clr_blocked_pickup_days[]" value="<?php echo esc_attr( $day_number ); ?>" <?php checked( in_array( $day_number, $blocked_pickup_days, true ) ); ?>>
+                            <label class="rmwc-weekday-toggle">
+                                <input type="checkbox" name="rmwc_blocked_pickup_days[]" value="<?php echo esc_attr( $day_number ); ?>" <?php checked( in_array( $day_number, $blocked_pickup_days, true ) ); ?>>
                                 <span>
-                                    <strong><?php esc_html_e( 'Keine Abholung', 'patsch9-rental-engine' ); ?></strong>
-                                    <small><?php esc_html_e( 'Kein Mietbeginn an diesem Tag', 'patsch9-rental-engine' ); ?></small>
+                                    <strong><?php esc_html_e( 'No pickup', 'patsch9-rental-engine' ); ?></strong>
+                                    <small><?php esc_html_e( 'No rental start on this day', 'patsch9-rental-engine' ); ?></small>
                                 </span>
                             </label>
-                            <label class="clr-weekday-toggle">
-                                <input type="checkbox" name="clr_blocked_return_days[]" value="<?php echo esc_attr( $day_number ); ?>" <?php checked( in_array( $day_number, $blocked_return_days, true ) ); ?>>
+                            <label class="rmwc-weekday-toggle">
+                                <input type="checkbox" name="rmwc_blocked_return_days[]" value="<?php echo esc_attr( $day_number ); ?>" <?php checked( in_array( $day_number, $blocked_return_days, true ) ); ?>>
                                 <span>
-                                    <strong><?php esc_html_e( 'Keine Rückgabe', 'patsch9-rental-engine' ); ?></strong>
-                                    <small><?php esc_html_e( 'Keine Rückgabe an diesem Tag', 'patsch9-rental-engine' ); ?></small>
+                                    <strong><?php esc_html_e( 'No return', 'patsch9-rental-engine' ); ?></strong>
+                                    <small><?php esc_html_e( 'No return on this day', 'patsch9-rental-engine' ); ?></small>
                                 </span>
                             </label>
-                            <div class="clr-weekday-price">
-                                <label for="clr_weekday_price_<?php echo esc_attr( $day_number ); ?>"><?php esc_html_e( 'Tagespreis', 'patsch9-rental-engine' ); ?></label>
-                                <span class="clr-money-input">
+                            <div class="rmwc-weekday-price">
+                                <label for="rmwc_weekday_price_<?php echo esc_attr( $day_number ); ?>"><?php esc_html_e( 'Daily price', 'patsch9-rental-engine' ); ?></label>
+                                <span class="rmwc-money-input">
                                     <input type="number"
-                                           id="clr_weekday_price_<?php echo esc_attr( $day_number ); ?>"
+                                           id="rmwc_weekday_price_<?php echo esc_attr( $day_number ); ?>"
                                            min="0"
                                            step="0.01"
-                                           name="clr_weekday_prices[<?php echo esc_attr( $day_number ); ?>]"
+                                           name="rmwc_weekday_prices[<?php echo esc_attr( $day_number ); ?>]"
                                            value="<?php echo esc_attr( array_key_exists( $day_number, $weekday_prices ) ? $weekday_prices[ $day_number ] : '' ); ?>"
-                                           placeholder="<?php esc_attr_e( 'Standardpreis', 'patsch9-rental-engine' ); ?>">
+                                           placeholder="<?php esc_attr_e( 'Standard price', 'patsch9-rental-engine' ); ?>">
                                     <span aria-hidden="true"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
                                 </span>
-                                <small><?php esc_html_e( 'Leer = Standard-Mietpreis', 'patsch9-rental-engine' ); ?></small>
+                                <small><?php esc_html_e( 'Empty = standard rental price', 'patsch9-rental-engine' ); ?></small>
                             </div>
                         </section>
                     <?php endforeach; ?>
                 </div>
             </div>
 
-            <div class="options_group clr-deposit-handover-section">
-                <h4 class="clr-rental-section-title">Kaution & Übergabe</h4>
+            <div class="options_group rmwc-deposit-handover-section">
+                <h4 class="rmwc-rental-section-title"><?php esc_html_e( 'Security deposit & handover', 'patsch9-rental-engine' ); ?></h4>
                 <?php
                 woocommerce_wp_text_input( [
-                    'id'                => '_clr_deposit',
-                    'wrapper_class'     => 'clr-rental-field-row',
-                    'label'             => 'Kaution',
+                    'id'                => '_rmwc_deposit',
+                    'wrapper_class'     => 'rmwc-rental-field-row',
+                    'label'             => __( 'Security deposit', 'patsch9-rental-engine' ),
                     'type'              => 'number',
                     'custom_attributes' => [ 'step' => '0.01', 'min' => '0' ],
-                    'description'       => 'Rückzahlbare Sicherheitsleistung je vermietetem Gerät.',
+                    'description'       => __( 'Refundable security deposit per rental unit.', 'patsch9-rental-engine' ),
                     'desc_tip'          => true,
                 ] );
                 woocommerce_wp_textarea_input( [
-                    'id'          => '_clr_deposit_notice',
-                    'wrapper_class'     => 'clr-rental-field-row',
-                    'label'       => 'Hinweis zur Kaution',
-                    'placeholder' => 'z. B. Wird nach Prüfung der Rückgabe zurückerstattet.',
-                    'description' => 'Optionaler Freitext, der beim Kautionsbetrag auf der Produktseite angezeigt wird.',
+                    'id'          => '_rmwc_deposit_notice',
+                    'wrapper_class'     => 'rmwc-rental-field-row',
+                    'label'       => __( 'Security deposit note', 'patsch9-rental-engine' ),
+                    'placeholder' => __( 'e.g. refunded after the returned item has been inspected.', 'patsch9-rental-engine' ),
+                    'description' => __( 'Optional free text displayed on the product page at the deposit amount.', 'patsch9-rental-engine' ),
                     'desc_tip'    => true,
                 ] );
                 /**
@@ -496,97 +502,97 @@ final class RMWC_Plugin {
                  */
                 do_action( 'rmwc_product_panel_after_handover', $id );
                 woocommerce_wp_checkbox( [
-                    'id'            => '_clr_allow_pickup',
-                    'wrapper_class' => 'clr-rental-field-row',
-                    'label'         => 'Abholung erlauben',
+                    'id'            => '_rmwc_allow_pickup',
+                    'wrapper_class' => 'rmwc-rental-field-row',
+                    'label'         => __( 'Allow pickup', 'patsch9-rental-engine' ),
                 ] );
                 woocommerce_wp_checkbox( [
-                    'id'            => '_clr_allow_delivery',
-                    'wrapper_class' => 'clr-rental-field-row',
-                    'label'         => 'Lieferung erlauben',
-                    'description'   => 'Ermöglicht: Lieferung durch Vermieter und Rückgabe durch Kunde.',
+                    'id'            => '_rmwc_allow_delivery',
+                    'wrapper_class' => 'rmwc-rental-field-row',
+                    'label'         => __( 'Allow delivery', 'patsch9-rental-engine' ),
+                    'description'   => __( 'Enabled: delivery by rental operator and return by customer.', 'patsch9-rental-engine' ),
                     'desc_tip'      => true,
                 ] );
                 woocommerce_wp_checkbox( [
-                    'id'            => '_clr_allow_delivery_return',
-                    'wrapper_class' => 'clr-rental-field-row',
-                    'label'         => 'Lieferung + Abholung erlauben',
-                    'value'         => get_post_meta( $id, '_clr_allow_delivery_return', true ),
-                    'description'   => 'Ermöglicht: Lieferung und spätere Abholung durch den Vermieter. Der Transportpreis wird je Fahrt berechnet (Hin- und Rückfahrt = 2 × Preis).',
+                    'id'            => '_rmwc_allow_delivery_return',
+                    'wrapper_class' => 'rmwc-rental-field-row',
+                    'label'         => __( 'Allow delivery and collection', 'patsch9-rental-engine' ),
+                    'value'         => get_post_meta( $id, '_rmwc_allow_delivery_return', true ),
+                    'description'   => __( 'Allows: delivery and later collection by the rental operator. The transport price is charged per journey (return journey = 2 × price).', 'patsch9-rental-engine' ),
                     'desc_tip'      => true,
                 ] );
                 woocommerce_wp_text_input( [
-                    'id'                => '_clr_delivery_fee',
-                    'wrapper_class'     => 'clr-rental-field-row',
-                    'label'             => 'Fallback-Transportpauschale je Fahrt',
+                    'id'                => '_rmwc_delivery_fee',
+                    'wrapper_class'     => 'rmwc-rental-field-row',
+                    'label'             => __( 'Default transport fee per journey', 'patsch9-rental-engine' ),
                     'type'              => 'number',
                     'custom_attributes' => [ 'step' => '0.01', 'min' => '0' ],
-                    'description'       => 'Wird nur verwendet, wenn keine Lieferzonen definiert sind. Der Betrag gilt je Fahrt; bei Lieferung und Abholung wird er zweimal berechnet.',
+                    'description'       => __( 'Only used if no delivery zones are defined. The amount is per journey; at delivery and collection it is charged twice.', 'patsch9-rental-engine' ),
                     'desc_tip'          => true,
                 ] );
                 ?>
             </div>
 
-            <div class="options_group clr-pricing-wrap">
-                <h4 style="padding:0 12px;margin-bottom:6px">Flexible Preisstaffeln</h4>
-                <p style="padding:0 12px" class="description">Preis-Priorität: Wochenendtarif → passende Preisstaffel → Wochentagspreise → Standardpreis. Beispiel: ab 7 Miettagen Paketpreis 129 € inkl. 7 Tage, danach 15 € je weiterem Miettag.</p>
-                <table class="widefat clr-pricing-table clr-admin-table">
-                    <thead><tr><th>Ab Tagen</th><th>Bis Tage</th><th>Paketpreis</th><th>Enthaltene Tage</th><th>Weiterer Tag</th><th></th></tr></thead>
+            <div class="options_group rmwc-pricing-wrap">
+                <h4 style="padding:0 12px;margin-bottom:6px"><?php esc_html_e( 'Flexible pricing tiers', 'patsch9-rental-engine' ); ?></h4>
+                <p style="padding:0 12px" class="description"><?php esc_html_e( 'Pricing priority: weekend rate → matching pricing tier → weekday rate → standard price. Example: from 7 rental days, a package price of €129 includes 7 days; each additional rental day costs €15.', 'patsch9-rental-engine' ); ?></p>
+                <table class="widefat rmwc-pricing-table rmwc-admin-table">
+                    <thead><tr><th><?php esc_html_e( 'Minimum days', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'Maximum days', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'Package price', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'Included days', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'Additional day', 'patsch9-rental-engine' ); ?></th><th></th></tr></thead>
                     <tbody><?php foreach ( $pricing_rules as $i => $rule ) $this->pricing_admin_row( $i, $rule ); ?></tbody>
                 </table>
-                <p style="padding:0 12px"><button type="button" class="button clr-add-pricing">+ Preisstaffel</button></p>
+                <p style="padding:0 12px"><button type="button" class="button rmwc-add-pricing"><?php esc_html_e( '+ Add pricing tier', 'patsch9-rental-engine' ); ?></button></p>
                 <?php
                 woocommerce_wp_checkbox( [
-                    'id'          => '_clr_weekend_enabled',
-                    'label'       => 'Wochenendtarif aktiv',
-                    'description' => 'Greift nur bei exakt passendem Start-/Rückgabe-Wochentag und genau der daraus folgenden Dauer (z. B. Freitag bis Montag = 3 Miettage).',
+                    'id'          => '_rmwc_weekend_enabled',
+                    'label'       => __( 'Enable weekend rate', 'patsch9-rental-engine' ),
+                    'description' => __( 'Applies only when the start and return weekdays match exactly and the resulting duration is exact (e.g. Friday to Monday = 3 rental days).', 'patsch9-rental-engine' ),
                     'desc_tip'    => true,
                 ] );
                 woocommerce_wp_text_input( [
-                    'id'                => '_clr_weekend_price',
-                    'label'             => 'Wochenendpreis',
+                    'id'                => '_rmwc_weekend_price',
+                    'label'             => __( 'Weekend price', 'patsch9-rental-engine' ),
                     'type'              => 'number',
                     'custom_attributes' => [ 'step' => '0.01', 'min' => '0' ],
                 ] );
                 woocommerce_wp_select( [
-                    'id'      => '_clr_weekend_start_day',
-                    'label'   => 'Wochenende beginnt',
-                    'value'   => get_post_meta( $id, '_clr_weekend_start_day', true ) ?: 5,
+                    'id'      => '_rmwc_weekend_start_day',
+                    'label'   => __( 'Weekend starts', 'patsch9-rental-engine' ),
+                    'value'   => get_post_meta( $id, '_rmwc_weekend_start_day', true ) ?: 5,
                     'options' => $this->weekday_options(),
                 ] );
                 woocommerce_wp_select( [
-                    'id'      => '_clr_weekend_end_day',
-                    'label'   => 'Wochenende endet',
-                    'value'   => get_post_meta( $id, '_clr_weekend_end_day', true ) ?: 1,
+                    'id'      => '_rmwc_weekend_end_day',
+                    'label'   => __( 'Weekend ends', 'patsch9-rental-engine' ),
+                    'value'   => get_post_meta( $id, '_rmwc_weekend_end_day', true ) ?: 1,
                     'options' => $this->weekday_options(),
                 ] );
                 ?>
             </div>
 
-            <div class="options_group clr-addons-wrap">
-                <h4 style="padding:0 12px;margin-bottom:6px">Zusatzoptionen &amp; Miet-Zubehör</h4>
-                <p style="padding:0 12px" class="description">Für Materialgrößen und bepreiste Zubehörartikel verwende Miet-Zubehör. Einfache Zusatzoptionen sind für Leistungen oder Aufschläge gedacht, die keinen eigenen Lagerartikel benötigen.</p>
+            <div class="options_group rmwc-addons-wrap">
+                <h4 style="padding:0 12px;margin-bottom:6px"><?php esc_html_e( 'Add-ons & rental accessories', 'patsch9-rental-engine' ); ?></h4>
+                <p style="padding:0 12px" class="description"><?php esc_html_e( 'Use rental accessories for material variants and priced accessory items. Simple add-ons are intended for services or surcharges that do not require their own inventory items.', 'patsch9-rental-engine' ); ?></p>
                 <?php do_action( 'rmwc_product_panel_accessories', $id ); ?>
-                <details class="clr-simple-addons" <?php if ( $addons ) : ?>open<?php endif; ?>>
-                    <summary><?php esc_html_e( 'Einfache Zusatzoptionen (ohne eigenen WooCommerce-Artikel)', 'patsch9-rental-engine' ); ?></summary>
-                    <div class="clr-simple-addons-inner">
-                        <table class="widefat clr-addons-table clr-admin-table">
-                            <thead><tr><th>Gruppe</th><th>Option</th><th>Preis</th><th>Abrechnung</th><th></th></tr></thead>
+                <details class="rmwc-simple-addons" <?php if ( $addons ) : ?>open<?php endif; ?>>
+                    <summary><?php esc_html_e( 'Simple add-ons (without a separate WooCommerce product)', 'patsch9-rental-engine' ); ?></summary>
+                    <div class="rmwc-simple-addons-inner">
+                        <table class="widefat rmwc-addons-table rmwc-admin-table">
+                            <thead><tr><th><?php esc_html_e( 'Group', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'Option', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'Price', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'Billing', 'patsch9-rental-engine' ); ?></th><th></th></tr></thead>
                             <tbody><?php foreach ( $addons as $i => $addon ) { $this->addon_admin_row( $i, $addon ); } ?></tbody>
                         </table>
-                        <p><button type="button" class="button clr-add-addon">+ Einfache Zusatzoption</button></p>
+                        <p><button type="button" class="button rmwc-add-addon"><?php esc_html_e( '+ Add simple option', 'patsch9-rental-engine' ); ?></button></p>
                     </div>
                 </details>
             </div>
 
-            <div class="options_group clr-delivery-wrap">
-                <h4 style="padding:0 12px;margin-bottom:6px">Lieferzonen</h4>
-                <p style="padding:0 12px" class="description">Zonen werden nach maximaler Fahrstrecke je einfacher Fahrt ausgewertet. Der Preis gilt je Fahrt. Bei „Lieferung und Abholung durch Vermieter“ wird derselbe Fahrpreis zweimal berechnet. Mit Google Routes API erfolgt die Kilometerermittlung automatisch; ohne API kann der Kunde die Zone manuell auswählen.</p>
-                <table class="widefat clr-delivery-table clr-admin-table">
-                    <thead><tr><th>Bezeichnung</th><th>Bis km</th><th>Preis je Fahrt</th><th></th></tr></thead>
+            <div class="options_group rmwc-delivery-wrap">
+                <h4 style="padding:0 12px;margin-bottom:6px"><?php esc_html_e( 'Delivery zones', 'patsch9-rental-engine' ); ?></h4>
+                <p style="padding:0 12px" class="description"><?php esc_html_e( 'Zones are evaluated according to the maximum travel distance per simple journey. The price is per journey. "Delivery and collection by rental operator" is the same fare twice. Google Routes API automatically determines the mileage; without API, the customer can manually select the zone.', 'patsch9-rental-engine' ); ?></p>
+                <table class="widefat rmwc-delivery-table rmwc-admin-table">
+                    <thead><tr><th><?php esc_html_e( 'Label', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'Up to km', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'Price per journey', 'patsch9-rental-engine' ); ?></th><th></th></tr></thead>
                     <tbody><?php foreach ( $delivery as $i => $zone ) $this->delivery_admin_row( $i, $zone ); ?></tbody>
                 </table>
-                <p style="padding:0 12px"><button type="button" class="button clr-add-delivery">+ Lieferzone</button></p>
+                <p style="padding:0 12px"><button type="button" class="button rmwc-add-delivery"><?php esc_html_e( '+ Add delivery zone', 'patsch9-rental-engine' ); ?></button></p>
             </div>
             <?php do_action( 'rmwc_product_panel_v2_end', $id ); ?>
         </div>
@@ -594,18 +600,18 @@ final class RMWC_Plugin {
     }
 
     private function weekday_options() {
-        return [ 1 => 'Montag', 2 => 'Dienstag', 3 => 'Mittwoch', 4 => 'Donnerstag', 5 => 'Freitag', 6 => 'Samstag', 7 => 'Sonntag' ];
+        return [ 1 => __( 'Monday', 'patsch9-rental-engine' ), 2 => __( 'Tuesday', 'patsch9-rental-engine' ), 3 => __( 'Wednesday', 'patsch9-rental-engine' ), 4 => __( 'Thursday', 'patsch9-rental-engine' ), 5 => __( 'Friday', 'patsch9-rental-engine' ), 6 => __( 'Saturday', 'patsch9-rental-engine' ), 7 => __( 'Sunday', 'patsch9-rental-engine' ) ];
     }
 
     private function pricing_admin_row( $i, $rule = [] ) {
         ?>
         <tr>
-            <td><input type="number" min="1" step="1" name="clr_pricing[<?php echo esc_attr( $i ); ?>][min_days]" value="<?php echo esc_attr( $rule['min_days'] ?? 1 ); ?>"></td>
-            <td><input type="number" min="0" step="1" name="clr_pricing[<?php echo esc_attr( $i ); ?>][max_days]" value="<?php echo esc_attr( $rule['max_days'] ?? '' ); ?>" placeholder="∞"></td>
-            <td><input type="number" min="0" step="0.01" name="clr_pricing[<?php echo esc_attr( $i ); ?>][package_price]" value="<?php echo esc_attr( $rule['package_price'] ?? 0 ); ?>"></td>
-            <td><input type="number" min="1" step="1" name="clr_pricing[<?php echo esc_attr( $i ); ?>][included_days]" value="<?php echo esc_attr( $rule['included_days'] ?? ( $rule['min_days'] ?? 1 ) ); ?>"></td>
-            <td><input type="number" min="0" step="0.01" name="clr_pricing[<?php echo esc_attr( $i ); ?>][extra_day_price]" value="<?php echo esc_attr( $rule['extra_day_price'] ?? '' ); ?>"></td>
-            <td><button type="button" class="button clr-remove-row">×</button></td>
+            <td><input type="number" min="1" step="1" name="rmwc_pricing[<?php echo esc_attr( $i ); ?>][min_days]" value="<?php echo esc_attr( $rule['min_days'] ?? 1 ); ?>"></td>
+            <td><input type="number" min="0" step="1" name="rmwc_pricing[<?php echo esc_attr( $i ); ?>][max_days]" value="<?php echo esc_attr( $rule['max_days'] ?? '' ); ?>" placeholder="∞"></td>
+            <td><input type="number" min="0" step="0.01" name="rmwc_pricing[<?php echo esc_attr( $i ); ?>][package_price]" value="<?php echo esc_attr( $rule['package_price'] ?? 0 ); ?>"></td>
+            <td><input type="number" min="1" step="1" name="rmwc_pricing[<?php echo esc_attr( $i ); ?>][included_days]" value="<?php echo esc_attr( $rule['included_days'] ?? ( $rule['min_days'] ?? 1 ) ); ?>"></td>
+            <td><input type="number" min="0" step="0.01" name="rmwc_pricing[<?php echo esc_attr( $i ); ?>][extra_day_price]" value="<?php echo esc_attr( $rule['extra_day_price'] ?? '' ); ?>"></td>
+            <td><button type="button" class="button rmwc-remove-row">×</button></td>
         </tr>
         <?php
     }
@@ -614,11 +620,11 @@ final class RMWC_Plugin {
         $mode = $addon['mode'] ?? 'once';
         ?>
         <tr>
-            <td><input type="text" name="clr_addons[<?php echo esc_attr( $i ); ?>][group]" value="<?php echo esc_attr( $addon['group'] ?? '' ); ?>" placeholder="Material"></td>
-            <td><input type="text" name="clr_addons[<?php echo esc_attr( $i ); ?>][label]" value="<?php echo esc_attr( $addon['label'] ?? '' ); ?>" placeholder="für 20 Personen"></td>
-            <td><input type="number" step="0.01" min="0" name="clr_addons[<?php echo esc_attr( $i ); ?>][price]" value="<?php echo esc_attr( $addon['price'] ?? 0 ); ?>"></td>
-            <td><select name="clr_addons[<?php echo esc_attr( $i ); ?>][mode]"><option value="once" <?php selected( $mode, 'once' ); ?>>einmalig</option><option value="unit" <?php selected( $mode, 'unit' ); ?>>pro Mieteinheit</option><option value="day" <?php selected( $mode, 'day' ); ?>>pro Miettag</option></select></td>
-            <td><button type="button" class="button clr-remove-row">×</button></td>
+            <td><input type="text" name="rmwc_addons[<?php echo esc_attr( $i ); ?>][group]" value="<?php echo esc_attr( $addon['group'] ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Material', 'patsch9-rental-engine' ); ?>"></td>
+            <td><input type="text" name="rmwc_addons[<?php echo esc_attr( $i ); ?>][label]" value="<?php echo esc_attr( $addon['label'] ?? '' ); ?>" placeholder="<?php esc_attr_e( 'for 20 persons', 'patsch9-rental-engine' ); ?>"></td>
+            <td><input type="number" step="0.01" min="0" name="rmwc_addons[<?php echo esc_attr( $i ); ?>][price]" value="<?php echo esc_attr( $addon['price'] ?? 0 ); ?>"></td>
+            <td><select name="rmwc_addons[<?php echo esc_attr( $i ); ?>][mode]"><option value="once" <?php selected( $mode, 'once' ); ?>><?php esc_html_e( 'once', 'patsch9-rental-engine' ); ?></option><option value="unit" <?php selected( $mode, 'unit' ); ?>><?php esc_html_e( 'per rental unit', 'patsch9-rental-engine' ); ?></option><option value="day" <?php selected( $mode, 'day' ); ?>><?php esc_html_e( 'per rental day', 'patsch9-rental-engine' ); ?></option></select></td>
+            <td><button type="button" class="button rmwc-remove-row">×</button></td>
         </tr>
         <?php
     }
@@ -626,10 +632,10 @@ final class RMWC_Plugin {
     private function delivery_admin_row( $i, $zone = [] ) {
         ?>
         <tr>
-            <td><input type="text" name="clr_delivery_zones[<?php echo esc_attr( $i ); ?>][label]" value="<?php echo esc_attr( $zone['label'] ?? '' ); ?>" placeholder="bis 10 km"></td>
-            <td><input type="number" step="0.1" min="0.1" name="clr_delivery_zones[<?php echo esc_attr( $i ); ?>][max_km]" value="<?php echo esc_attr( $zone['max_km'] ?? '' ); ?>"></td>
-            <td><input type="number" step="0.01" min="0" name="clr_delivery_zones[<?php echo esc_attr( $i ); ?>][price]" value="<?php echo esc_attr( $zone['price'] ?? 0 ); ?>"></td>
-            <td><button type="button" class="button clr-remove-row">×</button></td>
+            <td><input type="text" name="rmwc_delivery_zones[<?php echo esc_attr( $i ); ?>][label]" value="<?php echo esc_attr( $zone['label'] ?? '' ); ?>" placeholder="<?php esc_attr_e( 'up to 10 km', 'patsch9-rental-engine' ); ?>"></td>
+            <td><input type="number" step="0.1" min="0.1" name="rmwc_delivery_zones[<?php echo esc_attr( $i ); ?>][max_km]" value="<?php echo esc_attr( $zone['max_km'] ?? '' ); ?>"></td>
+            <td><input type="number" step="0.01" min="0" name="rmwc_delivery_zones[<?php echo esc_attr( $i ); ?>][price]" value="<?php echo esc_attr( $zone['price'] ?? 0 ); ?>"></td>
+            <td><button type="button" class="button rmwc-remove-row">×</button></td>
         </tr>
         <?php
     }
@@ -638,39 +644,39 @@ final class RMWC_Plugin {
         if ( ! $post_id || wp_is_post_revision( $post_id ) || ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) || ! current_user_can( 'edit_post', $post_id ) ) {
             return;
         }
-        $nonce = isset( $_POST['clr_product_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_product_nonce'] ) ) : '';
-        if ( ! $nonce || ! wp_verify_nonce( $nonce, 'clr_save_product_' . $post_id ) ) {
+        $nonce = isset( $_POST['rmwc_product_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['rmwc_product_nonce'] ) ) : '';
+        if ( ! $nonce || ! wp_verify_nonce( $nonce, 'rmwc_save_product_' . $post_id ) ) {
             return;
         }
 
-        $checkboxes = [ '_clr_rental_enabled', '_clr_allow_pickup', '_clr_allow_delivery', '_clr_allow_delivery_return', '_clr_weekend_enabled' ];
+        $checkboxes = [ '_rmwc_rental_enabled', '_rmwc_allow_pickup', '_rmwc_allow_delivery', '_rmwc_allow_delivery_return', '_rmwc_weekend_enabled' ];
         foreach ( $checkboxes as $key ) {
             update_post_meta( $post_id, $key, isset( $_POST[ $key ] ) ? 'yes' : 'no' );
         }
 
-        $billing_unit = isset( $_POST['_clr_billing_unit'] ) ? sanitize_key( wp_unslash( $_POST['_clr_billing_unit'] ) ) : 'day';
-        update_post_meta( $post_id, '_clr_billing_unit', in_array( $billing_unit, [ 'day', 'week', 'month' ], true ) ? $billing_unit : 'day' );
-        update_post_meta( $post_id, '_clr_pickup_time', $this->sanitize_time_value( isset( $_POST['_clr_pickup_time'] ) ? sanitize_text_field( wp_unslash( $_POST['_clr_pickup_time'] ) ) : '', '12:00' ) );
-        update_post_meta( $post_id, '_clr_return_time', $this->sanitize_time_value( isset( $_POST['_clr_return_time'] ) ? sanitize_text_field( wp_unslash( $_POST['_clr_return_time'] ) ) : '', '10:00' ) );
-        foreach ( [ '_clr_weekend_start_day', '_clr_weekend_end_day' ] as $key ) {
+        $billing_unit = isset( $_POST['_rmwc_billing_unit'] ) ? sanitize_key( wp_unslash( $_POST['_rmwc_billing_unit'] ) ) : 'day';
+        update_post_meta( $post_id, '_rmwc_billing_unit', in_array( $billing_unit, [ 'day', 'week', 'month' ], true ) ? $billing_unit : 'day' );
+        update_post_meta( $post_id, '_rmwc_pickup_time', $this->sanitize_time_value( isset( $_POST['_rmwc_pickup_time'] ) ? sanitize_text_field( wp_unslash( $_POST['_rmwc_pickup_time'] ) ) : '', '12:00' ) );
+        update_post_meta( $post_id, '_rmwc_return_time', $this->sanitize_time_value( isset( $_POST['_rmwc_return_time'] ) ? sanitize_text_field( wp_unslash( $_POST['_rmwc_return_time'] ) ) : '', '10:00' ) );
+        foreach ( [ '_rmwc_weekend_start_day', '_rmwc_weekend_end_day' ] as $key ) {
             $value = isset( $_POST[ $key ] ) ? absint( wp_unslash( $_POST[ $key ] ) ) : 1;
             update_post_meta( $post_id, $key, min( 7, max( 1, $value ) ) );
         }
 
-        $raw_blocked_pickup = isset( $_POST['clr_blocked_pickup_days'] )
-            ? map_deep( wp_unslash( $_POST['clr_blocked_pickup_days'] ), 'sanitize_text_field' )
+        $raw_blocked_pickup = isset( $_POST['rmwc_blocked_pickup_days'] )
+            ? map_deep( wp_unslash( $_POST['rmwc_blocked_pickup_days'] ), 'sanitize_text_field' )
             : [];
         $blocked_pickup = $this->sanitize_weekday_list( is_array( $raw_blocked_pickup ) ? $raw_blocked_pickup : [] );
-        $raw_blocked_return = isset( $_POST['clr_blocked_return_days'] )
-            ? map_deep( wp_unslash( $_POST['clr_blocked_return_days'] ), 'sanitize_text_field' )
+        $raw_blocked_return = isset( $_POST['rmwc_blocked_return_days'] )
+            ? map_deep( wp_unslash( $_POST['rmwc_blocked_return_days'] ), 'sanitize_text_field' )
             : [];
         $blocked_return = $this->sanitize_weekday_list( is_array( $raw_blocked_return ) ? $raw_blocked_return : [] );
-        update_post_meta( $post_id, '_clr_blocked_pickup_days', $blocked_pickup );
-        update_post_meta( $post_id, '_clr_blocked_return_days', $blocked_return );
+        update_post_meta( $post_id, '_rmwc_blocked_pickup_days', $blocked_pickup );
+        update_post_meta( $post_id, '_rmwc_blocked_return_days', $blocked_return );
 
         $weekday_prices = [];
-        $raw_weekday_prices = isset( $_POST['clr_weekday_prices'] )
-            ? map_deep( wp_unslash( $_POST['clr_weekday_prices'] ), 'sanitize_text_field' )
+        $raw_weekday_prices = isset( $_POST['rmwc_weekday_prices'] )
+            ? map_deep( wp_unslash( $_POST['rmwc_weekday_prices'] ), 'sanitize_text_field' )
             : [];
         $raw_weekday_prices = is_array( $raw_weekday_prices ) ? $raw_weekday_prices : [];
         for ( $day = 1; $day <= 7; $day++ ) {
@@ -683,24 +689,24 @@ final class RMWC_Plugin {
             }
             $weekday_prices[ $day ] = min( 100000000, max( 0, (float) wc_format_decimal( $raw ) ) );
         }
-        update_post_meta( $post_id, '_clr_weekday_prices', $weekday_prices );
+        update_post_meta( $post_id, '_rmwc_weekday_prices', $weekday_prices );
 
-        $decimal_fields = [ '_clr_unit_price', '_clr_deposit', '_clr_delivery_fee', '_clr_weekend_price' ];
+        $decimal_fields = [ '_rmwc_unit_price', '_rmwc_deposit', '_rmwc_delivery_fee', '_rmwc_weekend_price' ];
         foreach ( $decimal_fields as $key ) {
             $raw_value = isset( $_POST[ $key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $key ] ) ) : '0';
             $value = (float) wc_format_decimal( $raw_value );
             update_post_meta( $post_id, $key, min( 100000000, max( 0, $value ) ) );
         }
-        $deposit_notice = isset( $_POST['_clr_deposit_notice'] )
-            ? $this->limit_text( sanitize_textarea_field( wp_unslash( $_POST['_clr_deposit_notice'] ) ), 500 )
+        $deposit_notice = isset( $_POST['_rmwc_deposit_notice'] )
+            ? $this->limit_text( sanitize_textarea_field( wp_unslash( $_POST['_rmwc_deposit_notice'] ) ), 500 )
             : '';
-        update_post_meta( $post_id, '_clr_deposit_notice', $deposit_notice );
+        update_post_meta( $post_id, '_rmwc_deposit_notice', $deposit_notice );
         $integer_limits = [
-            '_clr_capacity'     => [ 1, 10000 ],
-            '_clr_min_days'     => [ 1, 3660 ],
-            '_clr_max_days'     => [ 0, 3660 ],
-            '_clr_buffer_hours' => [ 0, 8760 ],
-            '_clr_advance_days' => [ 0, 3650 ],
+            '_rmwc_capacity'     => [ 1, 10000 ],
+            '_rmwc_min_days'     => [ 1, 3660 ],
+            '_rmwc_max_days'     => [ 0, 3660 ],
+            '_rmwc_buffer_hours' => [ 0, 8760 ],
+            '_rmwc_advance_days' => [ 0, 3650 ],
         ];
         foreach ( $integer_limits as $key => $limits ) {
             $value = isset( $_POST[ $key ] ) ? absint( wp_unslash( $_POST[ $key ] ) ) : $limits[0];
@@ -709,7 +715,7 @@ final class RMWC_Plugin {
 
         $pricing = [];
         /* phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Product nonce/capability verified above; every nested value is validated below. */
-        $raw_pricing = isset( $_POST['clr_pricing'] ) && is_array( $_POST['clr_pricing'] ) ? array_slice( wp_unslash( $_POST['clr_pricing'] ), 0, 100 ) : [];
+        $raw_pricing = isset( $_POST['rmwc_pricing'] ) && is_array( $_POST['rmwc_pricing'] ) ? array_slice( wp_unslash( $_POST['rmwc_pricing'] ), 0, 100 ) : [];
         foreach ( $raw_pricing as $rule ) {
             if ( ! is_array( $rule ) || ! isset( $rule['package_price'] ) || '' === trim( (string) $rule['package_price'] ) ) {
                 continue;
@@ -728,11 +734,11 @@ final class RMWC_Plugin {
             ];
         }
         usort( $pricing, static function( $a, $b ) { return $a['min_days'] <=> $b['min_days']; } );
-        update_post_meta( $post_id, '_clr_pricing_rules', $pricing );
+        update_post_meta( $post_id, '_rmwc_pricing_rules', $pricing );
 
         $addons = [];
         /* phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Product nonce/capability verified above; every nested value is validated below. */
-        $raw_addons = isset( $_POST['clr_addons'] ) && is_array( $_POST['clr_addons'] ) ? array_slice( wp_unslash( $_POST['clr_addons'] ), 0, 100 ) : [];
+        $raw_addons = isset( $_POST['rmwc_addons'] ) && is_array( $_POST['rmwc_addons'] ) ? array_slice( wp_unslash( $_POST['rmwc_addons'] ), 0, 100 ) : [];
         foreach ( $raw_addons as $addon ) {
             if ( ! is_array( $addon ) ) {
                 continue;
@@ -750,11 +756,11 @@ final class RMWC_Plugin {
                 'mode'  => in_array( $mode, [ 'once', 'unit', 'day' ], true ) ? $mode : 'once',
             ];
         }
-        update_post_meta( $post_id, '_clr_addons', $addons );
+        update_post_meta( $post_id, '_rmwc_addons', $addons );
 
         $zones = [];
         /* phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Product nonce/capability verified above; every nested value is validated below. */
-        $raw_zones = isset( $_POST['clr_delivery_zones'] ) && is_array( $_POST['clr_delivery_zones'] ) ? array_slice( wp_unslash( $_POST['clr_delivery_zones'] ), 0, 100 ) : [];
+        $raw_zones = isset( $_POST['rmwc_delivery_zones'] ) && is_array( $_POST['rmwc_delivery_zones'] ) ? array_slice( wp_unslash( $_POST['rmwc_delivery_zones'] ), 0, 100 ) : [];
         foreach ( $raw_zones as $zone ) {
             if ( ! is_array( $zone ) ) {
                 continue;
@@ -771,7 +777,7 @@ final class RMWC_Plugin {
             ];
         }
         usort( $zones, static function( $a, $b ) { return $a['max_km'] <=> $b['max_km']; } );
-        update_post_meta( $post_id, '_clr_delivery_zones', $zones );
+        update_post_meta( $post_id, '_rmwc_delivery_zones', $zones );
     }
 
     public function admin_assets( $hook ) {
@@ -781,6 +787,35 @@ final class RMWC_Plugin {
             wp_enqueue_style( 'woocommerce_admin_styles' );
             wp_enqueue_editor();
             wp_enqueue_script( 'patsch9-rental-engine-admin-product', RMWC_URL . 'assets/admin.js', [ 'jquery', 'wc-enhanced-select' ], RMWC_VERSION, true );
+            wp_localize_script( 'patsch9-rental-engine-admin-product', 'RMWCAdminData', [
+                'strings' => [
+                    'addonMaterial'          => __( 'Material', 'patsch9-rental-engine' ),
+                    'addonFor20People'       => __( 'for 20 people', 'patsch9-rental-engine' ),
+                    'once'                   => __( 'once', 'patsch9-rental-engine' ),
+                    'perRentalUnit'          => __( 'per rental unit', 'patsch9-rental-engine' ),
+                    'perRentalDay'           => __( 'per rental day', 'patsch9-rental-engine' ),
+                    'upTo10Km'               => __( 'up to 10 km', 'patsch9-rental-engine' ),
+                    'rentalAccessoryProduct' => __( 'Rental accessory product', 'patsch9-rental-engine' ),
+                    'searchRentalAccessory'  => __( 'Search rental accessories…', 'patsch9-rental-engine' ),
+                    'productSourceNote'      => __( 'Price, tax, stock, and the "Sold individually" setting are taken directly from this WooCommerce product.', 'patsch9-rental-engine' ),
+                    'customerDisplay'        => __( 'Customer display', 'patsch9-rental-engine' ),
+                    'sweetPopcornExample'    => __( 'e.g. for approx. 1 kg sweet popcorn', 'patsch9-rental-engine' ),
+                    'optionalProductName'    => __( 'Optional. Empty = use product name.', 'patsch9-rental-engine' ),
+                    'calculation'            => __( 'Calculation', 'patsch9-rental-engine' ),
+                    'oncePerBooking'         => __( '1× per booking', 'patsch9-rental-engine' ),
+                    'removeAccessory'        => __( 'Remove rental accessory from group', 'patsch9-rental-engine' ),
+                    'groupName'              => __( 'Group name', 'patsch9-rental-engine' ),
+                    'selectionType'          => __( 'Selection type', 'patsch9-rental-engine' ),
+                    'singleSelection'        => __( 'Single selection – at most one option', 'patsch9-rental-engine' ),
+                    'multipleSelection'      => __( 'Multiple selection – multiple options allowed', 'patsch9-rental-engine' ),
+                    'requiredSelection'      => __( 'Required selection', 'patsch9-rental-engine' ),
+                    'atLeastOneOption'       => __( 'At least one option must be selected', 'patsch9-rental-engine' ),
+                    'addAccessory'           => __( '+ Add accessory', 'patsch9-rental-engine' ),
+                    'removeAccessoryGroup'   => __( 'Remove accessory group', 'patsch9-rental-engine' ),
+                    'emptyAccessoryGroup'    => __( 'No accessories in this group yet. Add at least one product.', 'patsch9-rental-engine' ),
+                    'removeChecklistItem'    => __( 'Remove checklist item', 'patsch9-rental-engine' ),
+                ],
+            ] );
             wp_enqueue_style( 'patsch9-rental-engine-admin', RMWC_URL . 'assets/admin.css', [], RMWC_VERSION );
         }
 
@@ -800,7 +835,7 @@ final class RMWC_Plugin {
             return;
         }
 
-        $pricing_rules = get_post_meta( $post->ID, '_clr_pricing_rules', true );
+        $pricing_rules = get_post_meta( $post->ID, '_rmwc_pricing_rules', true );
         $pricing_rules = is_array( $pricing_rules ) ? $pricing_rules : [];
 
         wp_enqueue_style( 'patsch9-rental-engine-frontend', RMWC_URL . 'assets/rental.css', [], RMWC_VERSION );
@@ -812,15 +847,47 @@ final class RMWC_Plugin {
             'currency'       => get_woocommerce_currency(),
             'currencySymbol' => get_woocommerce_currency_symbol(),
             'locale'         => str_replace( '_', '-', get_locale() ),
+            'strings'        => [
+                'weekdayMon'             => __( 'Mon', 'patsch9-rental-engine' ),
+                'weekdayTue'             => __( 'Tue', 'patsch9-rental-engine' ),
+                'weekdayWed'             => __( 'Wed', 'patsch9-rental-engine' ),
+                'weekdayThu'             => __( 'Thu', 'patsch9-rental-engine' ),
+                'weekdayFri'             => __( 'Fri', 'patsch9-rental-engine' ),
+                'weekdaySat'             => __( 'Sat', 'patsch9-rental-engine' ),
+                'weekdaySun'             => __( 'Sun', 'patsch9-rental-engine' ),
+                'noPickupThisWeekday'    => __( 'No pickup or rental start on this weekday', 'patsch9-rental-engine' ),
+                'noReturnThisWeekday'    => __( 'No return on this weekday', 'patsch9-rental-engine' ),
+                'previousMonth'          => __( 'Previous month', 'patsch9-rental-engine' ),
+                'nextMonth'              => __( 'Next month', 'patsch9-rental-engine' ),
+                'partiallyBooked'        => __( 'partially booked', 'patsch9-rental-engine' ),
+                'returnNotPossible'      => __( 'Returns are not possible on this weekday.', 'patsch9-rental-engine' ),
+                'periodNotBookable'      => __( 'This period cannot be booked, does not meet the permitted rental duration, or there is not enough stock available.', 'patsch9-rental-engine' ),
+                'weekendRate'            => __( 'Weekend rate', 'patsch9-rental-engine' ),
+                'tieredRate'             => __( 'Tiered rate', 'patsch9-rental-engine' ),
+                'weekdayRate'            => __( 'Weekday rate', 'patsch9-rental-engine' ),
+                'standardRate'           => __( 'Standard rate', 'patsch9-rental-engine' ),
+                'enterDeliveryAddress'   => __( 'Please enter the delivery address first.', 'patsch9-rental-engine' ),
+                'deliveryQuoteFailed'    => __( 'Delivery costs could not be calculated.', 'patsch9-rental-engine' ),
+                'calculateTransport'     => __( 'Calculate transport costs', 'patsch9-rental-engine' ),
+                'select'                 => __( 'Select', 'patsch9-rental-engine' ),
+                'withoutAddon'           => __( 'Without add-on', 'patsch9-rental-engine' ),
+                'selected'               => __( 'Selected', 'patsch9-rental-engine' ),
+                'rentalDay'              => __( 'rental day', 'patsch9-rental-engine' ),
+                'rentalDays'             => __( 'rental days', 'patsch9-rental-engine' ),
+                'withoutAddonSelected'   => __( 'No add-on selected', 'patsch9-rental-engine' ),
+                'selectAccessory'        => __( 'Please select at least one accessory option.', 'patsch9-rental-engine' ),
+                'perTrip'                => __( 'per trip', 'patsch9-rental-engine' ),
+                'total'                  => __( 'total', 'patsch9-rental-engine' ),
+            ],
             'pricingRules'   => $pricing_rules,
             'weekdayPrices'  => $this->weekday_prices( $post->ID ),
             'blockedPickupDays' => $this->blocked_pickup_days( $post->ID ),
             'blockedReturnDays' => $this->blocked_return_days( $post->ID ),
             'weekend'        => [
-                'enabled'  => 'yes' === get_post_meta( $post->ID, '_clr_weekend_enabled', true ),
-                'price'    => (float) get_post_meta( $post->ID, '_clr_weekend_price', true ),
-                'startDay' => (int) ( get_post_meta( $post->ID, '_clr_weekend_start_day', true ) ?: 5 ),
-                'endDay'   => (int) ( get_post_meta( $post->ID, '_clr_weekend_end_day', true ) ?: 1 ),
+                'enabled'  => 'yes' === get_post_meta( $post->ID, '_rmwc_weekend_enabled', true ),
+                'price'    => (float) get_post_meta( $post->ID, '_rmwc_weekend_price', true ),
+                'startDay' => (int) ( get_post_meta( $post->ID, '_rmwc_weekend_start_day', true ) ?: 5 ),
+                'endDay'   => (int) ( get_post_meta( $post->ID, '_rmwc_weekend_end_day', true ) ?: 1 ),
             ],
         ] );
     }
@@ -832,19 +899,19 @@ final class RMWC_Plugin {
         }
 
         $id           = $product->get_id();
-        $addons       = get_post_meta( $id, '_clr_addons', true );
-        $zones        = get_post_meta( $id, '_clr_delivery_zones', true );
+        $addons       = get_post_meta( $id, '_rmwc_addons', true );
+        $zones        = get_post_meta( $id, '_rmwc_delivery_zones', true );
         $addons       = is_array( $addons ) ? $addons : [];
         $zones        = is_array( $zones ) ? $zones : [];
         $groups       = [];
-        $pickup       = 'yes' === get_post_meta( $id, '_clr_allow_pickup', true );
-        $delivery     = 'yes' === get_post_meta( $id, '_clr_allow_delivery', true );
-        $delivery_return = 'yes' === get_post_meta( $id, '_clr_allow_delivery_return', true );
-        $deposit        = (float) get_post_meta( $id, '_clr_deposit', true );
-        $deposit_notice = $this->limit_text( (string) get_post_meta( $id, '_clr_deposit_notice', true ), 500 );
-        $unit           = get_post_meta( $id, '_clr_billing_unit', true ) ?: 'day';
-        $unit_price   = (float) get_post_meta( $id, '_clr_unit_price', true );
-        $delivery_fee = (float) get_post_meta( $id, '_clr_delivery_fee', true );
+        $pickup       = 'yes' === get_post_meta( $id, '_rmwc_allow_pickup', true );
+        $delivery     = 'yes' === get_post_meta( $id, '_rmwc_allow_delivery', true );
+        $delivery_return = 'yes' === get_post_meta( $id, '_rmwc_allow_delivery_return', true );
+        $deposit        = (float) get_post_meta( $id, '_rmwc_deposit', true );
+        $deposit_notice = $this->limit_text( (string) get_post_meta( $id, '_rmwc_deposit_notice', true ), 500 );
+        $unit           = get_post_meta( $id, '_rmwc_billing_unit', true ) ?: 'day';
+        $unit_price   = (float) get_post_meta( $id, '_rmwc_unit_price', true );
+        $delivery_fee = (float) get_post_meta( $id, '_rmwc_delivery_fee', true );
         $auto_distance= $this->distance_api_ready();
         $blocked_pickup_days = $this->blocked_pickup_days( $id );
         $blocked_return_days = $this->blocked_return_days( $id );
@@ -854,7 +921,7 @@ final class RMWC_Plugin {
             $groups[ $addon['group'] ][ $idx ] = $addon;
         }
         ?>
-        <div class="clr-rental-box"
+        <div class="rmwc-rental-box"
              data-product-id="<?php echo esc_attr( $id ); ?>"
              data-unit="<?php echo esc_attr( $unit ); ?>"
              data-unit-price="<?php echo esc_attr( $unit_price ); ?>"
@@ -862,41 +929,41 @@ final class RMWC_Plugin {
              data-return-time="<?php echo esc_attr( $this->return_time( $id ) ); ?>"
              data-capacity="<?php echo esc_attr( $this->capacity( $id ) ); ?>"
              data-fallback-delivery="<?php echo esc_attr( $delivery_fee ); ?>">
-            <h3>Mietzeitraum</h3>
-            <?php wp_nonce_field( 'clr_add_rental_' . $id, 'clr_rental_nonce' ); ?>
+            <h3><?php esc_html_e( 'Rental period', 'patsch9-rental-engine' ); ?></h3>
+            <?php wp_nonce_field( 'rmwc_add_rental_' . $id, 'rmwc_rental_nonce' ); ?>
 
-            <p class="clr-time-info">
-                <strong>Abholung/Mietbeginn:</strong> <?php echo esc_html( $this->pickup_time( $id ) ); ?> Uhr<br>
-                <strong>Rückgabe:</strong> <?php echo esc_html( $this->return_time( $id ) ); ?> Uhr am gewählten Rückgabetag
+            <p class="rmwc-time-info">
+                <strong><?php esc_html_e( 'Pickup / rental start:', 'patsch9-rental-engine' ); ?></strong> <?php echo esc_html( $this->pickup_time( $id ) ); ?><br>
+                <strong><?php esc_html_e( 'Return:', 'patsch9-rental-engine' ); ?></strong> <?php echo esc_html( $this->return_time( $id ) ); ?> <?php esc_html_e( 'on the selected return date', 'patsch9-rental-engine' ); ?>
             </p>
             <?php if ( $blocked_pickup_days || $blocked_return_days ) : ?>
-                <p class="clr-hint clr-weekday-restrictions">
+                <p class="rmwc-hint rmwc-weekday-restrictions">
                     <?php if ( $blocked_pickup_days ) : ?>
-                        <strong>Keine Abholung/Mietbeginn:</strong>
+                        <strong><?php esc_html_e( 'No pick-up/rental start:', 'patsch9-rental-engine' ); ?></strong>
                         <?php echo esc_html( implode( ', ', array_map( static function( $day ) use ( $weekday_labels ) { return $weekday_labels[ $day ] ?? ''; }, $blocked_pickup_days ) ) ); ?>
                     <?php endif; ?>
                     <?php if ( $blocked_pickup_days && $blocked_return_days ) : ?><br><?php endif; ?>
                     <?php if ( $blocked_return_days ) : ?>
-                        <strong>Keine Rückgabe:</strong>
+                        <strong><?php esc_html_e( 'No return:', 'patsch9-rental-engine' ); ?></strong>
                         <?php echo esc_html( implode( ', ', array_map( static function( $day ) use ( $weekday_labels ) { return $weekday_labels[ $day ] ?? ''; }, $blocked_return_days ) ) ); ?>
                     <?php endif; ?>
                 </p>
             <?php endif; ?>
 
-            <div id="clr-calendar" class="clr-calendar" aria-label="Buchungskalender"></div>
-            <div class="clr-date-summary">
-                <label>Mietbeginn <input type="date" name="clr_start_date" id="clr_start_date" required></label>
-                <label>Rückgabedatum <input type="date" name="clr_end_date" id="clr_end_date" required></label>
+            <div id="rmwc-calendar" class="rmwc-calendar" aria-label="<?php esc_attr_e( 'Booking calendar', 'patsch9-rental-engine' ); ?>"></div>
+            <div class="rmwc-date-summary">
+                <label><?php esc_html_e( 'Start of rental', 'patsch9-rental-engine' ); ?> <input type="date" name="rmwc_start_date" id="rmwc_start_date" required></label>
+                <label><?php esc_html_e( 'Return date', 'patsch9-rental-engine' ); ?> <input type="date" name="rmwc_end_date" id="rmwc_end_date" required></label>
             </div>
 
             <?php foreach ( $groups as $group => $items ) : ?>
-                <p class="form-row form-row-wide clr-addon-group">
+                <p class="form-row form-row-wide rmwc-addon-group">
                     <label><?php echo esc_html( $group ); ?></label>
-                    <select name="clr_addon[<?php echo esc_attr( sanitize_key( $group ) ); ?>]">
-                        <option value="">Keine Auswahl</option>
+                    <select name="rmwc_addon[<?php echo esc_attr( sanitize_key( $group ) ); ?>]">
+                        <option value=""><?php esc_html_e( 'No selection', 'patsch9-rental-engine' ); ?></option>
                         <?php foreach ( $items as $idx => $addon ) : ?>
                             <option value="<?php echo esc_attr( $idx ); ?>" data-price="<?php echo esc_attr( (float) $addon['price'] ); ?>" data-mode="<?php echo esc_attr( $addon['mode'] ); ?>">
-                                <?php echo esc_html( $addon['label'] ); ?> (+<?php echo wp_kses_post( wc_price( (float) $addon['price'] ) ); ?><?php echo esc_html( 'unit' === $addon['mode'] ? ' / Mieteinheit' : ( 'day' === $addon['mode'] ? ' / Miettag' : '' ) ); ?>)
+                                <?php echo esc_html( $addon['label'] ); ?> (+<?php echo wp_kses_post( wc_price( (float) $addon['price'] ) ); ?><?php echo esc_html( 'unit' === $addon['mode'] ? __( ' / rental unit', 'patsch9-rental-engine' ) : ( 'day' === $addon['mode'] ? __( ' / rental day', 'patsch9-rental-engine' ) : '' ) ); ?>)
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -904,38 +971,38 @@ final class RMWC_Plugin {
             <?php endforeach; ?>
 
             <?php if ( $pickup || $delivery || $delivery_return ) : ?>
-                <fieldset class="clr-fulfilment">
-                    <legend>Transport / Übergabe</legend>
+                <fieldset class="rmwc-fulfilment">
+                    <legend><?php esc_html_e( 'Transport / handover', 'patsch9-rental-engine' ); ?></legend>
                     <?php if ( $pickup ) : ?>
-                        <label><input type="radio" name="clr_fulfilment" value="pickup" <?php checked( true ); ?>> Abholung und Rückgabe durch Kunde</label>
+                        <label><input type="radio" name="rmwc_fulfilment" value="pickup" <?php checked( true ); ?>> <?php esc_html_e( 'Pickup and return by customer', 'patsch9-rental-engine' ); ?></label>
                     <?php endif; ?>
                     <?php if ( $delivery ) : ?>
-                        <label><input type="radio" name="clr_fulfilment" value="delivery" <?php checked( ! $pickup ); ?>> Lieferung durch Vermieter und Rückgabe durch Kunde</label>
+                        <label><input type="radio" name="rmwc_fulfilment" value="delivery" <?php checked( ! $pickup ); ?>> <?php esc_html_e( 'Delivery by rental operator and return by customer', 'patsch9-rental-engine' ); ?></label>
                     <?php endif; ?>
                     <?php if ( $delivery_return ) : ?>
-                        <label><input type="radio" name="clr_fulfilment" value="delivery_return" <?php checked( ! $pickup && ! $delivery ); ?>> Lieferung und Abholung durch Vermieter</label>
+                        <label><input type="radio" name="rmwc_fulfilment" value="delivery_return" <?php checked( ! $pickup && ! $delivery ); ?>> <?php esc_html_e( 'Delivery and collection by rental operator', 'patsch9-rental-engine' ); ?></label>
                     <?php endif; ?>
                 </fieldset>
             <?php endif; ?>
 
             <?php if ( $delivery || $delivery_return ) : ?>
-                <div class="clr-delivery-fields" <?php if ( $pickup ) : ?>hidden<?php endif; ?>>
-                    <label>Liefer-/Abholadresse (verbindlich für diesen Mietartikel)
-                        <input type="text" name="clr_delivery_address" id="clr_delivery_address" maxlength="250" autocomplete="street-address" placeholder="Straße, Hausnummer, PLZ Ort">
+                <div class="rmwc-delivery-fields" <?php if ( $pickup ) : ?>hidden<?php endif; ?>>
+                    <label><?php esc_html_e( 'Delivery/collection address (binding for this rental item)', 'patsch9-rental-engine' ); ?>
+                        <input type="text" name="rmwc_delivery_address" id="rmwc_delivery_address" maxlength="250" autocomplete="street-address" placeholder="<?php esc_attr_e( 'Street, house number, postal code and city', 'patsch9-rental-engine' ); ?>">
                     </label>
                     <?php if ( $zones ) : ?>
                         <?php if ( $auto_distance ) : ?>
-                            <p class="clr-hint">Datenschutzhinweis: Zur automatischen Berechnung der Fahrstrecke wird die eingegebene Lieferadresse an die Google Routes API übertragen.</p>
-                            <div class="clr-delivery-quote-actions">
-                                <button type="button" class="button clr-quote-delivery">Transportkosten berechnen</button>
+                            <p class="rmwc-hint"><?php esc_html_e( 'Data protection notice: For the automatic calculation of the route, the entered delivery address is transferred to the Google Routes API.', 'patsch9-rental-engine' ); ?></p>
+                            <div class="rmwc-delivery-quote-actions">
+                                <button type="button" class="button rmwc-quote-delivery"><?php esc_html_e( 'Calculate transport costs', 'patsch9-rental-engine' ); ?></button>
                             </div>
-                            <input type="hidden" name="clr_delivery_zone" id="clr_delivery_zone" value="">
-                            <input type="hidden" name="clr_delivery_distance" id="clr_delivery_distance" value="">
-                            <p id="clr_delivery_result" class="clr-delivery-result" aria-live="polite"></p>
+                            <input type="hidden" name="rmwc_delivery_zone" id="rmwc_delivery_zone" value="">
+                            <input type="hidden" name="rmwc_delivery_distance" id="rmwc_delivery_distance" value="">
+                            <p id="rmwc_delivery_result" class="rmwc-delivery-result" aria-live="polite"></p>
                         <?php else : ?>
-                            <label>Lieferzone
-                                <select name="clr_delivery_zone" id="clr_delivery_zone">
-                                    <option value="">Bitte wählen</option>
+                            <label><?php esc_html_e( 'Delivery zone', 'patsch9-rental-engine' ); ?>
+                                <select name="rmwc_delivery_zone" id="rmwc_delivery_zone">
+                                    <option value=""><?php esc_html_e( 'Please select', 'patsch9-rental-engine' ); ?></option>
                                     <?php foreach ( $zones as $i => $zone ) : ?>
                                         <option value="<?php echo esc_attr( $i ); ?>" data-price="<?php echo esc_attr( (float) $zone['price'] ); ?>">
                                             <?php echo esc_html( $zone['label'] ); ?> – <?php echo esc_html( $zone['max_km'] ); ?> km (<?php echo wp_kses_post( wc_price( (float) $zone['price'] ) ); ?>)
@@ -943,25 +1010,25 @@ final class RMWC_Plugin {
                                     <?php endforeach; ?>
                                 </select>
                             </label>
-                            <p class="clr-hint">Die Lieferzone wird manuell gewählt; die Lieferadresse wird trotzdem verbindlich in der Bestellung gespeichert.</p>
+                            <p class="rmwc-hint"><?php esc_html_e( 'The delivery zone is selected manually; the delivery address is nevertheless stored in the order.', 'patsch9-rental-engine' ); ?></p>
                         <?php endif; ?>
                     <?php elseif ( $delivery_fee > 0 ) : ?>
-                        <p>Transportpauschale je Fahrt: <?php echo wp_kses_post( wc_price( $delivery_fee ) ); ?></p>
+                        <p><?php esc_html_e( 'Transport flat fee per trip:', 'patsch9-rental-engine' ); ?> <?php echo wp_kses_post( wc_price( $delivery_fee ) ); ?></p>
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
 
-            <div class="clr-price-preview" aria-live="polite">
-                <div class="clr-rental-price-line">
-                    <span class="clr-price-label"><?php esc_html_e( 'Mietpreis', 'patsch9-rental-engine' ); ?></span>
-                    <strong id="clr_price_preview" class="clr-price-value">–</strong>
+            <div class="rmwc-price-preview" aria-live="polite">
+                <div class="rmwc-rental-price-line">
+                    <span class="rmwc-price-label"><?php esc_html_e( 'Rental price', 'patsch9-rental-engine' ); ?></span>
+                    <strong id="rmwc_price_preview" class="rmwc-price-value">–</strong>
                 </div>
-                <small id="clr_duration_preview" class="clr-duration-preview"></small>
+                <small id="rmwc_duration_preview" class="rmwc-duration-preview"></small>
                 <?php if ( $deposit > 0 ) : ?>
-                    <div class="clr-deposit-notice">
-                        <span class="clr-deposit-label"><?php esc_html_e( 'Kaution', 'patsch9-rental-engine' ); ?></span>
-                        <strong><?php echo wp_kses_post( wc_price( $deposit ) ); ?> <?php esc_html_e( 'je Gerät', 'patsch9-rental-engine' ); ?></strong>
-                        <?php if ( '' !== trim( $deposit_notice ) ) : ?><span class="clr-deposit-copy"><?php echo nl2br( esc_html( $deposit_notice ) ); ?></span><?php endif; ?>
+                    <div class="rmwc-deposit-notice">
+                        <span class="rmwc-deposit-label"><?php esc_html_e( 'Security deposit', 'patsch9-rental-engine' ); ?></span>
+                        <strong><?php echo wp_kses_post( wc_price( $deposit ) ); ?> <?php esc_html_e( 'per rental unit', 'patsch9-rental-engine' ); ?></strong>
+                        <?php if ( '' !== trim( $deposit_notice ) ) : ?><span class="rmwc-deposit-copy"><?php echo nl2br( esc_html( $deposit_notice ) ); ?></span><?php endif; ?>
                     </div>
                 <?php endif; ?>
                 <?php do_action( 'rmwc_frontend_after_deposit', $id, $deposit ); ?>
@@ -973,23 +1040,23 @@ final class RMWC_Plugin {
     public function ajax_availability() {
         check_ajax_referer( 'rmwc_frontend', 'nonce' );
         if ( ! $this->request_rate_allowed( 'availability', 120 ) || ! $this->global_rate_allowed( 'availability', 1200 ) ) {
-            wp_send_json_error( [ 'message' => 'Zu viele Verfügbarkeitsabfragen. Bitte kurz warten.' ], 429 );
+            wp_send_json_error( [ 'message' => __( 'Too many availability requests. Please wait a moment.', 'patsch9-rental-engine' ) ], 429 );
         }
 
         $product_id = isset( $_GET['product_id'] ) ? absint( wp_unslash( $_GET['product_id'] ) ) : 0;
         if ( ! $product_id || ! $this->public_rental_product( $product_id ) ) {
-            wp_send_json_error( [ 'message' => 'Ungültiges Mietprodukt.' ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Invalid rental product.', 'patsch9-rental-engine' ) ], 400 );
         }
 
         $from = isset( $_GET['from'] ) ? sanitize_text_field( wp_unslash( $_GET['from'] ) ) : wp_date( 'Y-m-01' );
         $to   = isset( $_GET['to'] ) ? sanitize_text_field( wp_unslash( $_GET['to'] ) ) : wp_date( 'Y-m-t', strtotime( '+2 months' ) );
         if ( ! $this->is_valid_date( $from ) || ! $this->is_valid_date( $to ) ) {
-            wp_send_json_error( [ 'message' => 'Ungültiger Kalenderzeitraum.' ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Invalid calendar period.', 'patsch9-rental-engine' ) ], 400 );
         }
         $from_date = DateTimeImmutable::createFromFormat( '!Y-m-d', $from, wp_timezone() );
         $to_date   = DateTimeImmutable::createFromFormat( '!Y-m-d', $to, wp_timezone() );
         if ( ! $from_date || ! $to_date || $to_date < $from_date || $to_date > $from_date->modify( '+400 days' ) ) {
-            wp_send_json_error( [ 'message' => 'Der angefragte Kalenderzeitraum ist zu groß.' ], 400 );
+            wp_send_json_error( [ 'message' => __( 'The requested calendar period is too large.', 'patsch9-rental-engine' ) ], 400 );
         }
 
         $from_at = $from . ' 00:00:00';
@@ -1019,9 +1086,9 @@ final class RMWC_Plugin {
             'capacity'    => $this->capacity( $product_id ),
             'pickupTime'  => $this->pickup_time( $product_id ),
             'returnTime'  => $this->return_time( $product_id ),
-            'minDays'     => max( 1, (int) get_post_meta( $product_id, '_clr_min_days', true ) ),
-            'maxDays'     => max( 0, (int) get_post_meta( $product_id, '_clr_max_days', true ) ),
-            'advanceDays' => max( 0, (int) get_post_meta( $product_id, '_clr_advance_days', true ) ),
+            'minDays'     => max( 1, (int) get_post_meta( $product_id, '_rmwc_min_days', true ) ),
+            'maxDays'     => max( 0, (int) get_post_meta( $product_id, '_rmwc_max_days', true ) ),
+            'advanceDays' => max( 0, (int) get_post_meta( $product_id, '_rmwc_advance_days', true ) ),
             'bufferHours' => $buffer,
             'blockedPickupDays' => $this->blocked_pickup_days( $product_id ),
             'blockedReturnDays' => $this->blocked_return_days( $product_id ),
@@ -1030,7 +1097,7 @@ final class RMWC_Plugin {
 
     private function build_interval( $product_id, $start_date, $end_date ) {
         if ( ! $this->is_valid_date( (string) $start_date ) || ! $this->is_valid_date( (string) $end_date ) ) {
-            return new WP_Error( 'clr_dates', 'Bitte einen gültigen Mietzeitraum wählen.' );
+            return new WP_Error( 'rmwc_dates', __( 'Please select a valid rental period.', 'patsch9-rental-engine' ) );
         }
 
         $tz    = wp_timezone();
@@ -1038,10 +1105,10 @@ final class RMWC_Plugin {
         $end   = DateTimeImmutable::createFromFormat( 'Y-m-d H:i', $end_date . ' ' . $this->return_time( $product_id ), $tz );
 
         if ( ! $start || ! $end || $start->format( 'Y-m-d H:i' ) !== $start_date . ' ' . $this->pickup_time( $product_id ) || $end->format( 'Y-m-d H:i' ) !== $end_date . ' ' . $this->return_time( $product_id ) ) {
-            return new WP_Error( 'clr_dates', 'Bitte einen gültigen Mietzeitraum wählen.' );
+            return new WP_Error( 'rmwc_dates', __( 'Please select a valid rental period.', 'patsch9-rental-engine' ) );
         }
         if ( $end <= $start ) {
-            return new WP_Error( 'clr_order', 'Die Rückgabe muss zeitlich nach der Abholung liegen.' );
+            return new WP_Error( 'rmwc_order', __( 'The return must be made after collection.', 'patsch9-rental-engine' ) );
         }
 
         // A rental day is a configured calendar cycle (pickup time -> return
@@ -1064,7 +1131,7 @@ final class RMWC_Plugin {
     }
 
     private function rental_units( $product_id, $days ) {
-        $unit = get_post_meta( $product_id, '_clr_billing_unit', true ) ?: 'day';
+        $unit = get_post_meta( $product_id, '_rmwc_billing_unit', true ) ?: 'day';
         if ( 'week' === $unit ) {
             return max( 1, (int) ceil( $days / 7 ) );
         }
@@ -1086,12 +1153,12 @@ final class RMWC_Plugin {
     private function calculate_rent_price( $product_id, $days, $start_date, $end_date ) {
         $days = max( 1, (int) $days );
 
-        if ( 'yes' === get_post_meta( $product_id, '_clr_weekend_enabled', true ) ) {
+        if ( 'yes' === get_post_meta( $product_id, '_rmwc_weekend_enabled', true ) ) {
             $start         = DateTimeImmutable::createFromFormat( '!Y-m-d', $start_date );
             $end           = DateTimeImmutable::createFromFormat( '!Y-m-d', $end_date );
-            $want_start    = (int) ( get_post_meta( $product_id, '_clr_weekend_start_day', true ) ?: 5 );
-            $want_end      = (int) ( get_post_meta( $product_id, '_clr_weekend_end_day', true ) ?: 1 );
-            $weekend_price = (float) get_post_meta( $product_id, '_clr_weekend_price', true );
+            $want_start    = (int) ( get_post_meta( $product_id, '_rmwc_weekend_start_day', true ) ?: 5 );
+            $want_end      = (int) ( get_post_meta( $product_id, '_rmwc_weekend_end_day', true ) ?: 1 );
+            $weekend_price = (float) get_post_meta( $product_id, '_rmwc_weekend_price', true );
             $weekend_days  = $this->weekend_span_days( $want_start, $want_end );
             if (
                 $start &&
@@ -1101,11 +1168,11 @@ final class RMWC_Plugin {
                 (int) $end->format( 'N' ) === $want_end &&
                 $weekend_price >= 0
             ) {
-                return [ 'price' => $weekend_price, 'label' => 'Wochenendtarif', 'units' => 1 ];
+                return [ 'price' => $weekend_price, 'label' => __( 'Weekend rate', 'patsch9-rental-engine' ), 'units' => 1 ];
             }
         }
 
-        $rules = get_post_meta( $product_id, '_clr_pricing_rules', true );
+        $rules = get_post_meta( $product_id, '_rmwc_pricing_rules', true );
         $rules = is_array( $rules ) ? $rules : [];
         $matches = [];
         foreach ( $rules as $rule ) {
@@ -1134,15 +1201,15 @@ final class RMWC_Plugin {
             if ( $days > $included && '' !== (string) ( $rule['extra_day_price'] ?? '' ) ) {
                 $price += ( $days - $included ) * max( 0, (float) $rule['extra_day_price'] );
             }
-            return [ 'price' => $price, 'label' => 'Preisstaffel', 'units' => 1 ];
+            return [ 'price' => $price, 'label' => __( 'Price scale', 'patsch9-rental-engine' ), 'units' => 1 ];
         }
 
-        $unit = get_post_meta( $product_id, '_clr_billing_unit', true ) ?: 'day';
+        $unit = get_post_meta( $product_id, '_rmwc_billing_unit', true ) ?: 'day';
         $weekday_prices = $this->weekday_prices( $product_id );
         if ( 'day' === $unit && $weekday_prices ) {
             $start = DateTimeImmutable::createFromFormat( '!Y-m-d', $start_date, wp_timezone() );
             if ( $start ) {
-                $standard = max( 0, (float) get_post_meta( $product_id, '_clr_unit_price', true ) );
+                $standard = max( 0, (float) get_post_meta( $product_id, '_rmwc_unit_price', true ) );
                 $price = 0.0;
                 $used_override = false;
                 for ( $offset = 0; $offset < $days; $offset++ ) {
@@ -1164,7 +1231,7 @@ final class RMWC_Plugin {
         }
 
         $units = $this->rental_units( $product_id, $days );
-        $price = max( 0, (float) get_post_meta( $product_id, '_clr_unit_price', true ) ) * $units;
+        $price = max( 0, (float) get_post_meta( $product_id, '_rmwc_unit_price', true ) ) * $units;
         return [ 'price' => $price, 'label' => 'Standardtarif', 'units' => $units ];
     }
 
@@ -1177,7 +1244,7 @@ final class RMWC_Plugin {
         $today = new DateTimeImmutable( 'today', wp_timezone() );
         $now   = new DateTimeImmutable( 'now', wp_timezone() );
         if ( $interval['start'] < $now ) {
-            return new WP_Error( 'clr_past', 'Der Mietbeginn darf nicht in der Vergangenheit liegen.' );
+            return new WP_Error( 'rmwc_past', __( 'The start of rental must not be in the past.', 'patsch9-rental-engine' ) );
         }
 
         $weekday_check = $this->validate_handover_weekdays( $product_id, $start_date, $end_date );
@@ -1185,18 +1252,20 @@ final class RMWC_Plugin {
             return $weekday_check;
         }
 
-        $min = max( 1, (int) get_post_meta( $product_id, '_clr_min_days', true ) );
-        $max = max( 0, (int) get_post_meta( $product_id, '_clr_max_days', true ) );
+        $min = max( 1, (int) get_post_meta( $product_id, '_rmwc_min_days', true ) );
+        $max = max( 0, (int) get_post_meta( $product_id, '_rmwc_max_days', true ) );
         if ( $interval['days'] < $min ) {
-            return new WP_Error( 'clr_min', sprintf( 'Die Mindestmietdauer beträgt %d Miettag(e).', $min ) );
+            /* translators: %d: Minimum number of rental days. */
+            return new WP_Error( 'rmwc_min', sprintf( __( 'The minimum rental period is %d rental day(s).', 'patsch9-rental-engine' ), $min ) );
         }
         if ( $max && $interval['days'] > $max ) {
-            return new WP_Error( 'clr_max', sprintf( 'Die maximale Mietdauer beträgt %d Miettag(e).', $max ) );
+            /* translators: %d: Maximum number of rental days. */
+            return new WP_Error( 'rmwc_max', sprintf( __( 'The maximum rental period is %d rental day(s).', 'patsch9-rental-engine' ), $max ) );
         }
 
-        $advance = max( 0, (int) get_post_meta( $product_id, '_clr_advance_days', true ) );
+        $advance = max( 0, (int) get_post_meta( $product_id, '_rmwc_advance_days', true ) );
         if ( $advance && $interval['start'] > $today->modify( '+' . $advance . ' days' )->setTime( 23, 59, 59 ) ) {
-            return new WP_Error( 'clr_advance', 'Dieser Zeitraum liegt außerhalb des erlaubten Buchungsfensters.' );
+            return new WP_Error( 'rmwc_advance', __( 'This period is outside the permitted booking window.', 'patsch9-rental-engine' ) );
         }
 
         return $interval;
@@ -1215,7 +1284,7 @@ final class RMWC_Plugin {
         ] ] );
 
         if ( ! $this->capacity_available( $product_id, $requested, $exclude_order, $exclude_booking ) ) {
-            return new WP_Error( 'clr_unavailable', 'Für den gewählten Zeitraum ist nicht mehr genügend Bestand verfügbar.' );
+            return new WP_Error( 'rmwc_unavailable', __( 'There is no longer enough stock available for the chosen period.', 'patsch9-rental-engine' ) );
         }
 
         return $interval;
@@ -1315,15 +1384,15 @@ final class RMWC_Plugin {
         $lock_name = $this->booking_lock_name( $product_id );
         $got_lock  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 8)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Booking advisory locks must reflect current database state and are intentionally not cached.
         if ( 1 !== $got_lock ) {
-            return new WP_Error( 'clr_booking_lock', 'Der Mietbestand konnte gerade nicht sicher gesperrt werden. Bitte erneut versuchen.' );
+            return new WP_Error( 'rmwc_booking_lock', __( 'The rental stock just could not be locked safely. Please try again.', 'patsch9-rental-engine' ) );
         }
         try {
             if ( ! $this->capacity_available( $product_id, [ $interval ] ) ) {
-                return new WP_Error( 'clr_booking_capacity', 'Für diesen Zeitraum ist nicht genügend Kapazität frei.' );
+                return new WP_Error( 'rmwc_booking_capacity', __( 'There is not enough capacity available for this period.', 'patsch9-rental-engine' ) );
             }
             $ok = $wpdb->insert( $this->table(), $data, [ '%d','%s','%s','%s','%s','%s','%d','%s','%s','%s','%s','%s' ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Writes to the plugin's transactional booking table must not be cached.
             if ( false === $ok ) {
-                return new WP_Error( 'clr_booking_database', 'Der Zeitraum konnte nicht gespeichert werden. Bitte erneut versuchen.' );
+                return new WP_Error( 'rmwc_booking_database', __( 'The period could not be saved. Please try again.', 'patsch9-rental-engine' ) );
             }
             return (int) $wpdb->insert_id;
         } finally {
@@ -1337,10 +1406,10 @@ final class RMWC_Plugin {
             return $intervals;
         }
         foreach ( WC()->cart->get_cart() as $item ) {
-            if ( empty( $item['clr_rental'] ) || (int) $item['clr_rental']['product_id'] !== (int) $product_id ) {
+            if ( empty( $item['rmwc_rental'] ) || (int) $item['rmwc_rental']['product_id'] !== (int) $product_id ) {
                 continue;
             }
-            $r = $item['clr_rental'];
+            $r = $item['rmwc_rental'];
             if ( empty( $r['start_at'] ) || empty( $r['end_at'] ) ) {
                 continue;
             }
@@ -1358,15 +1427,15 @@ final class RMWC_Plugin {
             return $this->limit_text( sanitize_text_field( trim( (string) RMWC_GOOGLE_ROUTES_API_KEY ) ), 255 );
         }
 
-        return $this->limit_text( sanitize_text_field( trim( (string) get_option( 'clr_google_routes_api_key', '' ) ) ), 255 );
+        return $this->limit_text( sanitize_text_field( trim( (string) get_option( 'rmwc_google_routes_api_key', '' ) ) ), 255 );
     }
 
     private function distance_api_ready() {
-        return 'yes' === get_option( 'clr_google_routes_enabled', 'no' ) && (bool) ( $this->google_routes_api_key() && trim( (string) get_option( 'clr_delivery_origin', '' ) ) );
+        return 'yes' === get_option( 'rmwc_google_routes_enabled', 'no' ) && (bool) ( $this->google_routes_api_key() && trim( (string) get_option( 'rmwc_delivery_origin', '' ) ) );
     }
 
     private function get_delivery_zones( $product_id ) {
-        $zones = get_post_meta( $product_id, '_clr_delivery_zones', true );
+        $zones = get_post_meta( $product_id, '_rmwc_delivery_zones', true );
         return is_array( $zones ) ? array_values( $zones ) : [];
     }
 
@@ -1381,18 +1450,18 @@ final class RMWC_Plugin {
                 ];
             }
         }
-        return new WP_Error( 'clr_delivery_range', 'Diese Adresse liegt außerhalb des konfigurierten Liefergebiets.' );
+        return new WP_Error( 'rmwc_delivery_range', __( 'This address is outside the configured delivery area.', 'patsch9-rental-engine' ) );
     }
 
     private function google_route_distance_km( $destination ) {
         if ( ! $this->distance_api_ready() ) {
-            return new WP_Error( 'clr_route_not_configured', 'Die automatische Entfernungsberechnung ist nicht aktiviert.' );
+            return new WP_Error( 'rmwc_route_not_configured', __( 'The automatic distance calculation is not activated.', 'patsch9-rental-engine' ) );
         }
         $api_key = $this->google_routes_api_key();
-        $origin  = $this->sanitize_address( get_option( 'clr_delivery_origin', '' ) );
+        $origin  = $this->sanitize_address( get_option( 'rmwc_delivery_origin', '' ) );
         $destination = $this->sanitize_address( $destination );
         if ( strlen( $destination ) < 5 ) {
-            return new WP_Error( 'clr_destination', 'Bitte eine vollständige Lieferadresse angeben.' );
+            return new WP_Error( 'rmwc_destination', __( 'Please provide a complete delivery address.', 'patsch9-rental-engine' ) );
         }
 
         // Build a non-reversible destination fingerprint only for the short-lived
@@ -1404,10 +1473,10 @@ final class RMWC_Plugin {
 
         global $wpdb;
         $route_scope = ( defined( 'DB_NAME' ) ? (string) DB_NAME : '' ) . '|' . $wpdb->prefix . '|' . get_current_blog_id() . '|' . $route_fingerprint;
-        $route_lock  = 'clr_route_' . substr( hash( 'sha256', $route_scope ), 0, 38 );
+        $route_lock  = 'rmwc_route_' . substr( hash( 'sha256', $route_scope ), 0, 38 );
         $route_got   = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 3)', $route_lock ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Prevents concurrent duplicate paid route requests for one destination.
         if ( 1 !== $route_got ) {
-            return new WP_Error( 'clr_route_busy', 'Die automatische Entfernungsberechnung ist gerade ausgelastet. Bitte kurz erneut versuchen.' );
+            return new WP_Error( 'rmwc_route_busy', __( 'The automatic distance calculation is currently busy. Please try again shortly.', 'patsch9-rental-engine' ) );
         }
 
         try {
@@ -1417,7 +1486,7 @@ final class RMWC_Plugin {
             $hourly_limit = (int) apply_filters( 'rmwc_routes_hourly_limit', 60 );
             $hourly_limit = max( 10, min( 1000, $hourly_limit ) );
             if ( ! $this->global_rate_allowed( 'routes_outbound', $hourly_limit, HOUR_IN_SECONDS ) ) {
-                return new WP_Error( 'clr_route_rate', 'Die automatische Entfernungsberechnung ist vorübergehend ausgelastet. Bitte später erneut versuchen.' );
+                return new WP_Error( 'rmwc_route_rate', __( 'The automatic distance calculation is temporarily unavailable. Please try again later.', 'patsch9-rental-engine' ) );
             }
 
             $response = wp_safe_remote_post( 'https://routes.googleapis.com/directions/v2:computeRoutes', [
@@ -1438,17 +1507,17 @@ final class RMWC_Plugin {
             ] );
 
             if ( is_wp_error( $response ) ) {
-                return new WP_Error( 'clr_route_http', 'Die Lieferentfernung konnte derzeit nicht ermittelt werden.' );
+                return new WP_Error( 'rmwc_route_http', __( 'The delivery distance could not be determined at the moment.', 'patsch9-rental-engine' ) );
             }
             $code = (int) wp_remote_retrieve_response_code( $response );
             $body = wp_remote_retrieve_body( $response );
             $data = is_string( $body ) && strlen( $body ) <= 1048576 ? json_decode( $body, true, 32 ) : null;
             if ( $code < 200 || $code >= 300 || ! is_array( $data ) || empty( $data['routes'][0]['distanceMeters'] ) || ! is_numeric( $data['routes'][0]['distanceMeters'] ) ) {
-                return new WP_Error( 'clr_route_api', 'Die Lieferadresse konnte nicht zuverlässig berechnet werden. Bitte Adresse prüfen oder Abholung wählen.' );
+                return new WP_Error( 'rmwc_route_api', __( 'The delivery address could not be calculated reliably. Please check address or choose collection.', 'patsch9-rental-engine' ) );
             }
             $distance = round( max( 0, (float) $data['routes'][0]['distanceMeters'] ) / 1000, 1 );
             if ( $distance > 10000 ) {
-                return new WP_Error( 'clr_route_api', 'Die ermittelte Lieferentfernung ist nicht plausibel.' );
+                return new WP_Error( 'rmwc_route_api', __( 'The determined delivery distance is not plausible.', 'patsch9-rental-engine' ) );
             }
             return $distance;
         } finally {
@@ -1459,18 +1528,18 @@ final class RMWC_Plugin {
     public function ajax_delivery_quote() {
         check_ajax_referer( 'rmwc_frontend', 'nonce' );
         if ( ! $this->request_rate_allowed( 'delivery_quote', 20 ) || ! $this->global_rate_allowed( 'delivery_quote', 180 ) ) {
-            wp_send_json_error( [ 'message' => 'Zu viele Entfernungsabfragen. Bitte später erneut versuchen.' ], 429 );
+            wp_send_json_error( [ 'message' => __( 'Too many distance queries. Please try again later.', 'patsch9-rental-engine' ) ], 429 );
         }
         $product_id = isset( $_POST['product_id'] ) ? absint( wp_unslash( $_POST['product_id'] ) ) : 0;
         $address    = $this->sanitize_address( isset( $_POST['address'] ) ? sanitize_text_field( wp_unslash( $_POST['address'] ) ) : '' );
-        if ( ! $product_id || ! $this->public_rental_product( $product_id ) || 'yes' !== get_post_meta( $product_id, '_clr_allow_delivery', true ) ) {
-            wp_send_json_error( [ 'message' => 'Ungültiges Mietprodukt oder Lieferung nicht aktiviert.' ], 400 );
+        if ( ! $product_id || ! $this->public_rental_product( $product_id ) || 'yes' !== get_post_meta( $product_id, '_rmwc_allow_delivery', true ) ) {
+            wp_send_json_error( [ 'message' => __( 'Invalid rental product or delivery not activated.', 'patsch9-rental-engine' ) ], 400 );
         }
         if ( ! $this->distance_api_ready() ) {
-            wp_send_json_error( [ 'message' => 'Automatische Entfernungsberechnung ist nicht aktiviert.' ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Automatic distance calculation is not enabled.', 'patsch9-rental-engine' ) ], 400 );
         }
         if ( strlen( $address ) < 5 || strlen( $address ) > 250 ) {
-            wp_send_json_error( [ 'message' => 'Bitte eine vollständige Lieferadresse angeben.' ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Please provide a complete delivery address.', 'patsch9-rental-engine' ) ], 400 );
         }
         $distance = $this->google_route_distance_km( $address );
         if ( is_wp_error( $distance ) ) {
@@ -1488,19 +1557,19 @@ final class RMWC_Plugin {
     }
 
     private function delivery_data_from_request( $product_id, $address_input = '', $zone_input = '' ) {
-        if ( 'yes' !== get_post_meta( $product_id, '_clr_allow_delivery', true ) ) {
-            return new WP_Error( 'clr_delivery_disabled', 'Für dieses Produkt ist keine Lieferung möglich.' );
+        if ( 'yes' !== get_post_meta( $product_id, '_rmwc_allow_delivery', true ) ) {
+            return new WP_Error( 'rmwc_delivery_disabled', __( 'No delivery is possible for this product.', 'patsch9-rental-engine' ) );
         }
 
         $zones   = $this->get_delivery_zones( $product_id );
         $address = $this->sanitize_address( sanitize_text_field( (string) $address_input ) );
         if ( strlen( $address ) < 5 || strlen( $address ) > 250 ) {
-            return new WP_Error( 'clr_destination', 'Bitte eine vollständige Lieferadresse angeben.' );
+            return new WP_Error( 'rmwc_destination', __( 'Please provide a complete delivery address.', 'patsch9-rental-engine' ) );
         }
         if ( ! $zones ) {
             return [
-                'fee'        => max( 0, (float) get_post_meta( $product_id, '_clr_delivery_fee', true ) ),
-                'zone'       => 'Lieferpauschale',
+                'fee'        => max( 0, (float) get_post_meta( $product_id, '_rmwc_delivery_fee', true ) ),
+                'zone'       => __( 'Delivery flat rate', 'patsch9-rental-engine' ),
                 'zone_index' => '',
                 'distance'   => '',
                 'address'    => $address,
@@ -1509,11 +1578,11 @@ final class RMWC_Plugin {
 
         if ( $this->distance_api_ready() ) {
             if ( strlen( $address ) < 5 ) {
-                return new WP_Error( 'clr_destination', 'Bitte eine vollständige Lieferadresse angeben.' );
+                return new WP_Error( 'rmwc_destination', __( 'Please provide a complete delivery address.', 'patsch9-rental-engine' ) );
             }
             // Add-to-cart is another server-side quote path; rate-limit it as well.
             if ( ! $this->request_rate_allowed( 'delivery_cart', 20 ) || ! $this->global_rate_allowed( 'delivery_cart', 180 ) ) {
-                return new WP_Error( 'clr_rate', 'Zu viele Entfernungsabfragen. Bitte später erneut versuchen.' );
+                return new WP_Error( 'rmwc_rate', __( 'Too many distance queries. Please try again later.', 'patsch9-rental-engine' ) );
             }
             $distance = $this->google_route_distance_km( $address );
             if ( is_wp_error( $distance ) ) {
@@ -1528,11 +1597,11 @@ final class RMWC_Plugin {
 
         $zone_raw = trim( sanitize_text_field( (string) $zone_input ) );
         if ( '' === $zone_raw || ! ctype_digit( $zone_raw ) ) {
-            return new WP_Error( 'clr_delivery_zone', 'Bitte eine gültige Lieferzone auswählen.' );
+            return new WP_Error( 'rmwc_delivery_zone', __( 'Please select a valid delivery zone.', 'patsch9-rental-engine' ) );
         }
         $zone_index = absint( $zone_raw );
         if ( ! isset( $zones[ $zone_index ] ) ) {
-            return new WP_Error( 'clr_delivery_zone', 'Bitte eine gültige Lieferzone wählen.' );
+            return new WP_Error( 'rmwc_delivery_zone', __( 'Please select a valid delivery zone.', 'patsch9-rental-engine' ) );
         }
         return [
             'fee'      => (float) $zones[ $zone_index ]['price'],
@@ -1545,8 +1614,8 @@ final class RMWC_Plugin {
 
     /** Verify the signed rental form request for a product. */
     public function frontend_rental_nonce_valid( $product_id ) {
-        $nonce = isset( $_POST['clr_rental_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_rental_nonce'] ) ) : '';
-        return $nonce && wp_verify_nonce( $nonce, 'clr_add_rental_' . absint( $product_id ) );
+        $nonce = isset( $_POST['rmwc_rental_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['rmwc_rental_nonce'] ) ) : '';
+        return $nonce && wp_verify_nonce( $nonce, 'rmwc_add_rental_' . absint( $product_id ) );
     }
 
     public function validate_add_to_cart( $passed, $product_id, $quantity, $variation_id = 0, $variations = [] ) {
@@ -1555,14 +1624,14 @@ final class RMWC_Plugin {
             return $passed;
         }
 
-        $rental_nonce = isset( $_POST['clr_rental_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_rental_nonce'] ) ) : '';
-        if ( ! $rental_nonce || ! wp_verify_nonce( $rental_nonce, 'clr_add_rental_' . absint( $product_id ) ) ) {
-            wc_add_notice( 'Die Mietdaten konnten nicht verifiziert werden. Bitte Seite neu laden.', 'error' );
+        $rental_nonce = isset( $_POST['rmwc_rental_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['rmwc_rental_nonce'] ) ) : '';
+        if ( ! $rental_nonce || ! wp_verify_nonce( $rental_nonce, 'rmwc_add_rental_' . absint( $product_id ) ) ) {
+            wc_add_notice( __( 'The rental data could not be verified. Please reload page.', 'patsch9-rental-engine' ), 'error' );
             return false;
         }
 
-        $start = sanitize_text_field( wp_unslash( $_POST['clr_start_date'] ?? '' ) );
-        $end   = sanitize_text_field( wp_unslash( $_POST['clr_end_date'] ?? '' ) );
+        $start = sanitize_text_field( wp_unslash( $_POST['rmwc_start_date'] ?? '' ) );
+        $end   = sanitize_text_field( wp_unslash( $_POST['rmwc_end_date'] ?? '' ) );
         $extra = $this->cart_intervals_for_product( $config_id );
         $valid = $this->validate_interval_for_product( $config_id, $start, $end, max( 1, (int) $quantity ), 0, $extra );
         if ( is_wp_error( $valid ) ) {
@@ -1570,29 +1639,29 @@ final class RMWC_Plugin {
             return false;
         }
 
-        $fulfilment = isset( $_POST['clr_fulfilment'] ) ? sanitize_key( wp_unslash( $_POST['clr_fulfilment'] ) ) : '';
-        $pickup_ok    = 'yes' === get_post_meta( $config_id, '_clr_allow_pickup', true );
-        $delivery_ok  = 'yes' === get_post_meta( $config_id, '_clr_allow_delivery', true );
-        $delivery_return_ok = 'yes' === get_post_meta( $config_id, '_clr_allow_delivery_return', true );
+        $fulfilment = isset( $_POST['rmwc_fulfilment'] ) ? sanitize_key( wp_unslash( $_POST['rmwc_fulfilment'] ) ) : '';
+        $pickup_ok    = 'yes' === get_post_meta( $config_id, '_rmwc_allow_pickup', true );
+        $delivery_ok  = 'yes' === get_post_meta( $config_id, '_rmwc_allow_delivery', true );
+        $delivery_return_ok = 'yes' === get_post_meta( $config_id, '_rmwc_allow_delivery_return', true );
         if ( ( $pickup_ok || $delivery_ok || $delivery_return_ok ) && ! in_array( $fulfilment, [ 'pickup', 'delivery', 'delivery_return' ], true ) ) {
-            wc_add_notice( 'Bitte eine gültige Transport-/Übergabeart wählen.', 'error' );
+            wc_add_notice( __( 'Please select a valid transport/handover method.', 'patsch9-rental-engine' ), 'error' );
             return false;
         }
         if ( 'pickup' === $fulfilment && ! $pickup_ok ) {
-            wc_add_notice( 'Abholung und Rückgabe durch den Kunden ist für dieses Produkt nicht verfügbar.', 'error' );
+            wc_add_notice( __( 'Collection and return by the customer is not available for this product.', 'patsch9-rental-engine' ), 'error' );
             return false;
         }
         if ( in_array( $fulfilment, [ 'delivery', 'delivery_return' ], true ) ) {
             if ( 'delivery' === $fulfilment && ! $delivery_ok ) {
-                wc_add_notice( 'Lieferung durch den Vermieter ist für dieses Produkt nicht verfügbar.', 'error' );
+                wc_add_notice( __( 'Delivery by the rental operator is not available for this product.', 'patsch9-rental-engine' ), 'error' );
                 return false;
             }
             if ( 'delivery_return' === $fulfilment && ! $delivery_return_ok ) {
-                wc_add_notice( 'Lieferung und Abholung durch den Vermieter ist für dieses Produkt nicht verfügbar.', 'error' );
+                wc_add_notice( __( 'Delivery and collection by the rental operator is not available for this product.', 'patsch9-rental-engine' ), 'error' );
                 return false;
             }
-            $delivery_address = isset( $_POST['clr_delivery_address'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_delivery_address'] ) ) : '';
-            $delivery_zone    = isset( $_POST['clr_delivery_zone'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_delivery_zone'] ) ) : '';
+            $delivery_address = isset( $_POST['rmwc_delivery_address'] ) ? sanitize_text_field( wp_unslash( $_POST['rmwc_delivery_address'] ) ) : '';
+            $delivery_zone    = isset( $_POST['rmwc_delivery_zone'] ) ? sanitize_text_field( wp_unslash( $_POST['rmwc_delivery_zone'] ) ) : '';
             $delivery = $this->delivery_data_from_request( $config_id, $delivery_address, $delivery_zone );
             if ( is_wp_error( $delivery ) ) {
                 wc_add_notice( $delivery->get_error_message(), 'error' );
@@ -1609,13 +1678,13 @@ final class RMWC_Plugin {
             return $data;
         }
         // The same signed form must still be valid when cart-item metadata is built.
-        $rental_nonce = isset( $_POST['clr_rental_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_rental_nonce'] ) ) : '';
-        if ( ! $rental_nonce || ! wp_verify_nonce( $rental_nonce, 'clr_add_rental_' . absint( $product_id ) ) ) {
+        $rental_nonce = isset( $_POST['rmwc_rental_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['rmwc_rental_nonce'] ) ) : '';
+        if ( ! $rental_nonce || ! wp_verify_nonce( $rental_nonce, 'rmwc_add_rental_' . absint( $product_id ) ) ) {
             return $data;
         }
 
-        $start    = sanitize_text_field( wp_unslash( $_POST['clr_start_date'] ?? '' ) );
-        $end      = sanitize_text_field( wp_unslash( $_POST['clr_end_date'] ?? '' ) );
+        $start    = sanitize_text_field( wp_unslash( $_POST['rmwc_start_date'] ?? '' ) );
+        $end      = sanitize_text_field( wp_unslash( $_POST['rmwc_end_date'] ?? '' ) );
         $interval = $this->build_interval( $config_id, $start, $end );
         if ( is_wp_error( $interval ) ) {
             return $data;
@@ -1641,14 +1710,14 @@ final class RMWC_Plugin {
             'delivery_zone_index' => '',
             'delivery_distance' => '',
             'delivery_address'  => '',
-            'deposit'       => (float) get_post_meta( $config_id, '_clr_deposit', true ),
+            'deposit'       => (float) get_post_meta( $config_id, '_rmwc_deposit', true ),
             'pickup_time'   => $this->pickup_time( $config_id ),
             'return_time'   => $this->return_time( $config_id ),
         ];
 
-        $addons   = get_post_meta( $config_id, '_clr_addons', true );
+        $addons   = get_post_meta( $config_id, '_rmwc_addons', true );
         $addons   = is_array( $addons ) ? $addons : [];
-        $selected_raw = isset( $_POST['clr_addon'] ) ? map_deep( wp_unslash( $_POST['clr_addon'] ), 'sanitize_text_field' ) : [];
+        $selected_raw = isset( $_POST['rmwc_addon'] ) ? map_deep( wp_unslash( $_POST['rmwc_addon'] ), 'sanitize_text_field' ) : [];
         $selected_raw = is_array( $selected_raw ) ? $selected_raw : [];
         $selected = [];
         foreach ( array_slice( $selected_raw, 0, 50 ) as $selected_value ) {
@@ -1673,14 +1742,14 @@ final class RMWC_Plugin {
             ];
         }
 
-        $fulfilment = sanitize_key( wp_unslash( $_POST['clr_fulfilment'] ?? '' ) );
-        $pickup      = 'yes' === get_post_meta( $config_id, '_clr_allow_pickup', true );
-        $delivery_ok = 'yes' === get_post_meta( $config_id, '_clr_allow_delivery', true );
-        $delivery_return_ok = 'yes' === get_post_meta( $config_id, '_clr_allow_delivery_return', true );
+        $fulfilment = sanitize_key( wp_unslash( $_POST['rmwc_fulfilment'] ?? '' ) );
+        $pickup      = 'yes' === get_post_meta( $config_id, '_rmwc_allow_pickup', true );
+        $delivery_ok = 'yes' === get_post_meta( $config_id, '_rmwc_allow_delivery', true );
+        $delivery_return_ok = 'yes' === get_post_meta( $config_id, '_rmwc_allow_delivery_return', true );
         if ( in_array( $fulfilment, [ 'delivery', 'delivery_return' ], true )
             && ( ( 'delivery' === $fulfilment && $delivery_ok ) || ( 'delivery_return' === $fulfilment && $delivery_return_ok ) ) ) {
-            $delivery_address = isset( $_POST['clr_delivery_address'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_delivery_address'] ) ) : '';
-            $delivery_zone    = isset( $_POST['clr_delivery_zone'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_delivery_zone'] ) ) : '';
+            $delivery_address = isset( $_POST['rmwc_delivery_address'] ) ? sanitize_text_field( wp_unslash( $_POST['rmwc_delivery_address'] ) ) : '';
+            $delivery_zone    = isset( $_POST['rmwc_delivery_zone'] ) ? sanitize_text_field( wp_unslash( $_POST['rmwc_delivery_zone'] ) ) : '';
             $delivery = $this->delivery_data_from_request( $config_id, $delivery_address, $delivery_zone );
             if ( ! is_wp_error( $delivery ) ) {
                 $legs = 'delivery_return' === $fulfilment ? 2 : 1;
@@ -1697,8 +1766,8 @@ final class RMWC_Plugin {
             $rental['transport_legs'] = 0;
         } elseif ( $delivery_ok || $delivery_return_ok ) {
             $fallback_mode = $delivery_ok ? 'delivery' : 'delivery_return';
-            $delivery_address = isset( $_POST['clr_delivery_address'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_delivery_address'] ) ) : '';
-            $delivery_zone    = isset( $_POST['clr_delivery_zone'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_delivery_zone'] ) ) : '';
+            $delivery_address = isset( $_POST['rmwc_delivery_address'] ) ? sanitize_text_field( wp_unslash( $_POST['rmwc_delivery_address'] ) ) : '';
+            $delivery_zone    = isset( $_POST['rmwc_delivery_zone'] ) ? sanitize_text_field( wp_unslash( $_POST['rmwc_delivery_zone'] ) ) : '';
             $delivery = $this->delivery_data_from_request( $config_id, $delivery_address, $delivery_zone );
             if ( ! is_wp_error( $delivery ) ) {
                 $legs = 'delivery_return' === $fallback_mode ? 2 : 1;
@@ -1712,7 +1781,7 @@ final class RMWC_Plugin {
             }
         }
 
-        $data['clr_rental'] = $rental;
+        $data['rmwc_rental'] = $rental;
         $data['unique_key'] = md5( wp_json_encode( $rental ) . microtime( true ) );
         return $data;
     }
@@ -1720,39 +1789,41 @@ final class RMWC_Plugin {
     private function fulfilment_label( $mode ) {
         $mode = sanitize_key( (string) $mode );
         $labels = [
-            'pickup'          => __( 'Abholung und Rückgabe durch Kunde', 'patsch9-rental-engine' ),
-            'delivery'        => __( 'Lieferung durch Vermieter und Rückgabe durch Kunde', 'patsch9-rental-engine' ),
-            'delivery_return' => __( 'Lieferung und Abholung durch Vermieter', 'patsch9-rental-engine' ),
+            'pickup'          => __( 'Pickup and return by customer', 'patsch9-rental-engine' ),
+            'delivery'        => __( 'Delivery by rental operator and return by customer', 'patsch9-rental-engine' ),
+            'delivery_return' => __( 'Delivery and collection by rental operator', 'patsch9-rental-engine' ),
         ];
         return $labels[ $mode ] ?? '';
     }
 
     public function display_cart_item_data( $item_data, $cart_item ) {
-        if ( empty( $cart_item['clr_rental'] ) ) {
+        if ( empty( $cart_item['rmwc_rental'] ) ) {
             return $item_data;
         }
-        $r = $cart_item['clr_rental'];
-        $item_data[] = [ 'key' => 'Mietbeginn', 'value' => $this->format_datetime_display( $r['start_at'] ) ];
-        $item_data[] = [ 'key' => 'Rückgabe', 'value' => $this->format_datetime_display( $r['end_at'] ) ];
-        $item_data[] = [ 'key' => 'Mietdauer', 'value' => sprintf( '%d Miettag(e) – %s', (int) $r['days'], $r['pricing_label'] ) ];
+        $r = $cart_item['rmwc_rental'];
+        $item_data[] = [ 'key' => __( 'Start of rental', 'patsch9-rental-engine' ), 'value' => $this->format_datetime_display( $r['start_at'] ) ];
+        $item_data[] = [ 'key' => __( 'Return', 'patsch9-rental-engine' ), 'value' => $this->format_datetime_display( $r['end_at'] ) ];
+        /* translators: 1: Number of rental days. 2: Pricing label. */
+        $item_data[] = [ 'key' => __( 'Rental duration', 'patsch9-rental-engine' ), 'value' => sprintf( __( '%1$d Rental day(s) – %2$s', 'patsch9-rental-engine' ), (int) $r['days'], $r['pricing_label'] ) ];
         foreach ( $r['addons'] as $addon ) {
             $item_data[] = [ 'key' => $addon['group'], 'value' => $addon['label'] ];
         }
         if ( ! empty( $r['fulfilment'] ) ) {
-            $item_data[] = [ 'key' => 'Transport / Übergabe', 'value' => $this->fulfilment_label( $r['fulfilment'] ) ];
+            $item_data[] = [ 'key' => __( 'Transport / handover', 'patsch9-rental-engine' ), 'value' => $this->fulfilment_label( $r['fulfilment'] ) ];
         }
         if ( in_array( sanitize_key( $r['fulfilment'] ?? '' ), [ 'delivery', 'delivery_return' ], true ) && ! empty( $r['delivery_zone'] ) ) {
             $value = $r['delivery_zone'];
             if ( '' !== (string) $r['delivery_distance'] ) {
-                $value .= ' (' . wc_format_localized_decimal( $r['delivery_distance'] ) . ' km je Fahrt)';
+                /* translators: %s: Localized delivery distance. */
+                $value .= ' (' . sprintf( __( '%s km per trip', 'patsch9-rental-engine' ), wc_format_localized_decimal( $r['delivery_distance'] ) ) . ')';
             }
             if ( 'delivery_return' === sanitize_key( $r['fulfilment'] ?? '' ) ) {
-                $value .= ' – Hin- und Rückfahrt';
+                $value .= __( '– Round trip', 'patsch9-rental-engine' );
             }
-            $item_data[] = [ 'key' => 'Lieferzone', 'value' => $value ];
+            $item_data[] = [ 'key' => __( 'Delivery zone', 'patsch9-rental-engine' ), 'value' => $value ];
         }
         if ( ! empty( $r['delivery_address'] ) ) {
-            $item_data[] = [ 'key' => 'Liefer-/Abholadresse', 'value' => $r['delivery_address'] ];
+            $item_data[] = [ 'key' => __( 'Delivery/collection address', 'patsch9-rental-engine' ), 'value' => $r['delivery_address'] ];
         }
         if ( (float) ( $r['deposit'] ?? 0 ) > 0 ) {
             $qty            = max( 1, absint( $cart_item['quantity'] ?? 1 ) );
@@ -1767,25 +1838,25 @@ final class RMWC_Plugin {
             if ( 'online' === $deposit_mode ) {
                 $deposit_text = sprintf(
                     /* translators: %s: formatted refundable deposit amount. */
-                    __( '%s – online mit der Bestellung hinterlegen', 'patsch9-rental-engine' ),
+                    __( '%s – deposit online with the order', 'patsch9-rental-engine' ),
                     $deposit_amount
                 );
             } elseif ( 'cash' === $deposit_mode ) {
                 $deposit_text = sprintf(
                     /* translators: %s: formatted refundable deposit amount. */
-                    __( '%s – separat: Überweisung oder bar bei Abholung', 'patsch9-rental-engine' ),
+                    __( '%s – separately: bank transfer or cash upon collection', 'patsch9-rental-engine' ),
                     $deposit_amount
                 );
             } else {
                 $deposit_text = sprintf(
                     /* translators: %s: formatted refundable deposit amount. */
-                    __( '%s – Auswahl im Checkout: online oder separat (Überweisung / bar bei Abholung)', 'patsch9-rental-engine' ),
+                    __( '%s – Selection in checkout: online or separately (transfer / cash at collection)', 'patsch9-rental-engine' ),
                     $deposit_amount
                 );
             }
 
             $item_data[] = [
-                'key'   => 'Kaution',
+                'key'   => __( 'Security deposit', 'patsch9-rental-engine' ),
                 'value' => $deposit_text,
             ];
         }
@@ -1795,7 +1866,7 @@ final class RMWC_Plugin {
     private function format_datetime_display( $mysql_datetime ) {
         try {
             $dt = new DateTimeImmutable( $mysql_datetime, wp_timezone() );
-            return wp_date( 'd.m.Y H:i', $dt->getTimestamp(), wp_timezone() ) . ' Uhr';
+            return wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $dt->getTimestamp(), wp_timezone() );
         } catch ( Exception $e ) {
             return $mysql_datetime;
         }
@@ -1803,43 +1874,43 @@ final class RMWC_Plugin {
 
     private function rehydrate_cart_fulfilment( $product_id, array $rental ) {
         $mode = sanitize_key( $rental['fulfilment'] ?? '' );
-        $pickup_allowed   = 'yes' === get_post_meta( $product_id, '_clr_allow_pickup', true );
-        $delivery_allowed = 'yes' === get_post_meta( $product_id, '_clr_allow_delivery', true );
-        $delivery_return_allowed = 'yes' === get_post_meta( $product_id, '_clr_allow_delivery_return', true );
+        $pickup_allowed   = 'yes' === get_post_meta( $product_id, '_rmwc_allow_pickup', true );
+        $delivery_allowed = 'yes' === get_post_meta( $product_id, '_rmwc_allow_delivery', true );
+        $delivery_return_allowed = 'yes' === get_post_meta( $product_id, '_rmwc_allow_delivery_return', true );
 
         if ( 'pickup' === $mode ) {
             if ( ! $pickup_allowed ) {
-                return new WP_Error( 'clr_cart_pickup', 'Abholung und Rückgabe durch den Kunden ist für diesen Mietartikel nicht mehr verfügbar.' );
+                return new WP_Error( 'rmwc_cart_pickup', __( 'Collection and return by the customer is no longer available for this rental item.', 'patsch9-rental-engine' ) );
             }
             return [ 'fulfilment' => 'pickup', 'transport_legs' => 0, 'delivery_fee' => 0.0, 'delivery_zone' => '', 'delivery_zone_index' => '', 'delivery_distance' => '', 'delivery_address' => '' ];
         }
 
         if ( ! in_array( $mode, [ 'delivery', 'delivery_return' ], true ) ) {
             if ( $pickup_allowed || $delivery_allowed || $delivery_return_allowed ) {
-                return new WP_Error( 'clr_cart_fulfilment', 'Bitte die Transport-/Übergabeart für den Mietartikel erneut auswählen.' );
+                return new WP_Error( 'rmwc_cart_fulfilment', __( 'Please select the transport/handover method for this rental item again.', 'patsch9-rental-engine' ) );
             }
             return [ 'fulfilment' => '' ];
         }
 
         if ( 'delivery' === $mode && ! $delivery_allowed ) {
-            return new WP_Error( 'clr_cart_delivery', 'Lieferung durch den Vermieter ist für diesen Mietartikel nicht mehr verfügbar.' );
+            return new WP_Error( 'rmwc_cart_delivery', __( 'Delivery by the rental operator is no longer available for this rental item.', 'patsch9-rental-engine' ) );
         }
         if ( 'delivery_return' === $mode && ! $delivery_return_allowed ) {
-            return new WP_Error( 'clr_cart_delivery_return', 'Lieferung und Abholung durch den Vermieter ist für diesen Mietartikel nicht mehr verfügbar.' );
+            return new WP_Error( 'rmwc_cart_delivery_return', __( 'Delivery and collection by the rental operator is no longer available for this rental item.', 'patsch9-rental-engine' ) );
         }
 
         $legs = 'delivery_return' === $mode ? 2 : 1;
         $address = $this->sanitize_address( $rental['delivery_address'] ?? '' );
         if ( strlen( $address ) < 5 || strlen( $address ) > 250 ) {
-            return new WP_Error( 'clr_cart_delivery_address', 'Die Liefer-/Abholadresse des Mietartikels ist ungültig. Bitte Artikel neu konfigurieren.' );
+            return new WP_Error( 'rmwc_cart_delivery_address', __( 'The delivery/collection address for this rental item is invalid. Please configure the item again.', 'patsch9-rental-engine' ) );
         }
         $zones = $this->get_delivery_zones( $product_id );
         if ( ! $zones ) {
             return [
                 'fulfilment' => $mode,
                 'transport_legs' => $legs,
-                'delivery_fee' => max( 0, (float) get_post_meta( $product_id, '_clr_delivery_fee', true ) ) * $legs,
-                'delivery_zone' => 'Transportpauschale',
+                'delivery_fee' => max( 0, (float) get_post_meta( $product_id, '_rmwc_delivery_fee', true ) ) * $legs,
+                'delivery_zone' => __( 'Transport flat rate', 'patsch9-rental-engine' ),
                 'delivery_zone_index' => '',
                 'delivery_distance' => '',
                 'delivery_address' => $address,
@@ -1863,7 +1934,7 @@ final class RMWC_Plugin {
         }
         $zone_index_raw = $rental['delivery_zone_index'] ?? '';
         if ( '' === (string) $zone_index_raw || ! ctype_digit( (string) $zone_index_raw ) || ! isset( $zones[ (int) $zone_index_raw ] ) ) {
-            return new WP_Error( 'clr_cart_delivery_zone', 'Die Lieferzone des Mietartikels ist nicht mehr gültig. Bitte Artikel neu konfigurieren.' );
+            return new WP_Error( 'rmwc_cart_delivery_zone', __( 'The delivery zone of the rental item is no longer valid. Please reconfigure the item.', 'patsch9-rental-engine' ) );
         }
         $zone_index = (int) $zone_index_raw;
         return [
@@ -1882,22 +1953,24 @@ final class RMWC_Plugin {
             return;
         }
         foreach ( $cart->get_cart() as $cart_item_key => $item ) {
-            if ( empty( $item['clr_rental'] ) || empty( $item['data'] ) ) {
+            if ( empty( $item['rmwc_rental'] ) || empty( $item['data'] ) ) {
                 continue;
             }
-            $r          = $item['clr_rental'];
+            $r          = $item['rmwc_rental'];
             $product_id = absint( $r['product_id'] ?? 0 );
-            if ( ! $product_id || ! $this->is_rental( $product_id ) ) {
+            if ( ! $product_id || ! $this->is_rental( $product_id ) || $product_id !== $this->config_product_id( (int) $item['product_id'], (int) ( $item['variation_id'] ?? 0 ) ) ) {
+                $cart->cart_contents[ $cart_item_key ]['rmwc_rental']['validation_error'] = __( 'The rental configuration for this cart item is no longer available. Please remove the item and add it again.', 'patsch9-rental-engine' );
                 continue;
             }
             $interval = $this->build_interval( $product_id, (string) ( $r['start'] ?? '' ), (string) ( $r['end'] ?? '' ) );
             if ( is_wp_error( $interval ) ) {
+                $cart->cart_contents[ $cart_item_key ]['rmwc_rental']['validation_error'] = $interval->get_error_message();
                 continue;
             }
             $pricing = $this->calculate_rent_price( $product_id, $interval['days'], $interval['start_date'], $interval['end_date'] );
             $price   = max( 0, (float) $pricing['price'] );
 
-            $configured_addons = get_post_meta( $product_id, '_clr_addons', true );
+            $configured_addons = get_post_meta( $product_id, '_rmwc_addons', true );
             $configured_addons = is_array( $configured_addons ) ? $configured_addons : [];
             $indexes = isset( $r['addon_indexes'] ) && is_array( $r['addon_indexes'] ) ? array_slice( array_unique( array_map( 'absint', $r['addon_indexes'] ) ), 0, 50 ) : [];
             // Backward-compatible recovery for carts created with 1.0.0.
@@ -1931,24 +2004,24 @@ final class RMWC_Plugin {
 
             $item['data']->set_price( max( 0, $price ) );
             // Rehydrate security-sensitive values from authoritative product configuration.
-            if ( isset( $cart->cart_contents[ $cart_item_key ]['clr_rental'] ) ) {
-                $cart->cart_contents[ $cart_item_key ]['clr_rental']['start_at']      = $interval['start_at'];
-                $cart->cart_contents[ $cart_item_key ]['clr_rental']['end_at']        = $interval['end_at'];
-                $cart->cart_contents[ $cart_item_key ]['clr_rental']['days']          = $interval['days'];
-                $cart->cart_contents[ $cart_item_key ]['clr_rental']['units']         = $pricing['units'];
-                $cart->cart_contents[ $cart_item_key ]['clr_rental']['rent_price']    = $pricing['price'];
-                $cart->cart_contents[ $cart_item_key ]['clr_rental']['pricing_label'] = $pricing['label'];
-                $cart->cart_contents[ $cart_item_key ]['clr_rental']['addons']        = $canonical_addons;
-                $cart->cart_contents[ $cart_item_key ]['clr_rental']['addon_indexes'] = array_values( array_unique( $indexes ) );
-                $cart->cart_contents[ $cart_item_key ]['clr_rental']['deposit']       = max( 0, (float) get_post_meta( $product_id, '_clr_deposit', true ) );
-                $fulfilment = $this->rehydrate_cart_fulfilment( $product_id, $cart->cart_contents[ $cart_item_key ]['clr_rental'] );
+            if ( isset( $cart->cart_contents[ $cart_item_key ]['rmwc_rental'] ) ) {
+                $cart->cart_contents[ $cart_item_key ]['rmwc_rental']['start_at']      = $interval['start_at'];
+                $cart->cart_contents[ $cart_item_key ]['rmwc_rental']['end_at']        = $interval['end_at'];
+                $cart->cart_contents[ $cart_item_key ]['rmwc_rental']['days']          = $interval['days'];
+                $cart->cart_contents[ $cart_item_key ]['rmwc_rental']['units']         = $pricing['units'];
+                $cart->cart_contents[ $cart_item_key ]['rmwc_rental']['rent_price']    = $pricing['price'];
+                $cart->cart_contents[ $cart_item_key ]['rmwc_rental']['pricing_label'] = $pricing['label'];
+                $cart->cart_contents[ $cart_item_key ]['rmwc_rental']['addons']        = $canonical_addons;
+                $cart->cart_contents[ $cart_item_key ]['rmwc_rental']['addon_indexes'] = array_values( array_unique( $indexes ) );
+                $cart->cart_contents[ $cart_item_key ]['rmwc_rental']['deposit']       = max( 0, (float) get_post_meta( $product_id, '_rmwc_deposit', true ) );
+                $fulfilment = $this->rehydrate_cart_fulfilment( $product_id, $cart->cart_contents[ $cart_item_key ]['rmwc_rental'] );
                 if ( ! is_wp_error( $fulfilment ) ) {
-                    unset( $cart->cart_contents[ $cart_item_key ]['clr_rental']['validation_error'] );
+                    unset( $cart->cart_contents[ $cart_item_key ]['rmwc_rental']['validation_error'] );
                     foreach ( $fulfilment as $field => $value ) {
-                        $cart->cart_contents[ $cart_item_key ]['clr_rental'][ $field ] = $value;
+                        $cart->cart_contents[ $cart_item_key ]['rmwc_rental'][ $field ] = $value;
                     }
                 } else {
-                    $cart->cart_contents[ $cart_item_key ]['clr_rental']['validation_error'] = $fulfilment->get_error_message();
+                    $cart->cart_contents[ $cart_item_key ]['rmwc_rental']['validation_error'] = $fulfilment->get_error_message();
                 }
             }
         }
@@ -1961,11 +2034,11 @@ final class RMWC_Plugin {
         $delivery_totals = [];
         $deposit_totals  = [];
         foreach ( $cart->get_cart() as $item ) {
-            if ( empty( $item['clr_rental'] ) ) {
+            if ( empty( $item['rmwc_rental'] ) ) {
                 continue;
             }
-            $r          = $item['clr_rental'];
-            $name       = ! empty( $item['data'] ) ? $item['data']->get_name() : 'Mietartikel';
+            $r          = $item['rmwc_rental'];
+            $name       = ! empty( $item['data'] ) ? $item['data']->get_name() : __( 'Rental item', 'patsch9-rental-engine' );
             $qty        = max( 1, (int) ( $item['quantity'] ?? 1 ) );
             $product_id = (int) ( $r['product_id'] ?? 0 );
             if ( in_array( sanitize_key( $r['fulfilment'] ?? '' ), [ 'delivery', 'delivery_return' ], true ) && (float) $r['delivery_fee'] > 0 ) {
@@ -1979,7 +2052,7 @@ final class RMWC_Plugin {
                 // Lieferung wird pro Mietposition/Transport berechnet, nicht pro identischem Gerät.
                 $delivery_totals[ $product_id ]['amount'] += (float) $r['delivery_fee'];
             }
-            $current_deposit = max( 0, (float) get_post_meta( $product_id, '_clr_deposit', true ) );
+            $current_deposit = max( 0, (float) get_post_meta( $product_id, '_rmwc_deposit', true ) );
             $deposit_method  = sanitize_key( $r['deposit_method'] ?? 'online' );
             if ( $current_deposit > 0 && 'online' === $deposit_method ) {
                 if ( ! isset( $deposit_totals[ $product_id ] ) ) {
@@ -1989,10 +2062,12 @@ final class RMWC_Plugin {
             }
         }
         foreach ( $delivery_totals as $row ) {
-            $cart->add_fee( 'Transport – ' . $row['name'], $row['amount'], true, $row['tax_class'] );
+            /* translators: %s: Rental product name. */
+            $cart->add_fee( sprintf( __( 'Transport – %s', 'patsch9-rental-engine' ), $row['name'] ), $row['amount'], true, $row['tax_class'] );
         }
         foreach ( $deposit_totals as $row ) {
-            $cart->add_fee( 'Kaution – ' . $row['name'], $row['amount'], false );
+            /* translators: %s: Rental product name. */
+            $cart->add_fee( sprintf( __( 'Security deposit – %s', 'patsch9-rental-engine' ), $row['name'] ), $row['amount'], false );
         }
     }
 
@@ -2002,10 +2077,13 @@ final class RMWC_Plugin {
         }
         $by_product = [];
         foreach ( WC()->cart->get_cart() as $item ) {
-            if ( empty( $item['clr_rental'] ) ) {
+            if ( empty( $item['rmwc_rental'] ) || ! is_array( $item['rmwc_rental'] ) ) {
+                if ( $this->config_product_id( (int) $item['product_id'], (int) ( $item['variation_id'] ?? 0 ) ) ) {
+                    wc_add_notice( __( 'The rental configuration for this cart item is no longer available. Please remove the item and add it again.', 'patsch9-rental-engine' ), 'error' );
+                }
                 continue;
             }
-            $r = $item['clr_rental'];
+            $r = $item['rmwc_rental'];
             if ( ! empty( $r['validation_error'] ) ) {
                 wc_add_notice( sanitize_text_field( $r['validation_error'] ), 'error' );
                 continue;
@@ -2029,7 +2107,8 @@ final class RMWC_Plugin {
         foreach ( $by_product as $product_id => $intervals ) {
             if ( ! $this->capacity_available( $product_id, $intervals ) ) {
                 $product = wc_get_product( $product_id );
-                wc_add_notice( sprintf( '%s: Für mindestens einen gewählten Zeitraum ist nicht mehr genügend Bestand verfügbar.', $product ? $product->get_name() : 'Mietartikel' ), 'error' );
+                /* translators: %s: Rental product name. */
+                wc_add_notice( sprintf( __( '%s: There is not enough stock available for at least one selected period.', 'patsch9-rental-engine' ), $product ? $product->get_name() : __( 'Rental item', 'patsch9-rental-engine' ) ), 'error' );
             }
         }
     }
@@ -2054,9 +2133,9 @@ final class RMWC_Plugin {
         if ( $product->is_type( [ 'external', 'grouped' ] ) ) {
             return false;
         }
-        $configured_price = get_post_meta( $config_id, '_clr_unit_price', true );
-        $rules = get_post_meta( $config_id, '_clr_pricing_rules', true );
-        $weekend = 'yes' === get_post_meta( $config_id, '_clr_weekend_enabled', true );
+        $configured_price = get_post_meta( $config_id, '_rmwc_unit_price', true );
+        $rules = get_post_meta( $config_id, '_rmwc_pricing_rules', true );
+        $weekend = 'yes' === get_post_meta( $config_id, '_rmwc_weekend_enabled', true );
         $weekday_prices = $this->weekday_prices( $config_id );
         if ( '' === (string) $configured_price && empty( $rules ) && ! $weekend && empty( $weekday_prices ) ) {
             return false;
@@ -2072,13 +2151,13 @@ final class RMWC_Plugin {
         if ( ! $config_id ) {
             return $html;
         }
-        $price  = (float) get_post_meta( $config_id, '_clr_unit_price', true );
-        $unit   = get_post_meta( $config_id, '_clr_billing_unit', true ) ?: 'day';
+        $price  = (float) get_post_meta( $config_id, '_rmwc_unit_price', true );
+        $unit   = get_post_meta( $config_id, '_rmwc_billing_unit', true ) ?: 'day';
         if ( 'day' === $unit ) {
             $weekday_prices = $this->weekday_prices( $config_id );
             if ( $weekday_prices ) {
                 $candidates = array_values( $weekday_prices );
-                if ( '' !== (string) get_post_meta( $config_id, '_clr_unit_price', true ) ) {
+                if ( '' !== (string) get_post_meta( $config_id, '_rmwc_unit_price', true ) ) {
                     $candidates[] = max( 0, $price );
                 }
                 if ( $candidates ) {
@@ -2086,40 +2165,42 @@ final class RMWC_Plugin {
                 }
             }
         }
-        $labels = [ 'day' => 'Miettag', 'week' => 'Woche', 'month' => '30 Tage' ];
-        return '<span class="price clr-catalog-price">ab ' . wc_price( $price ) . ' / ' . esc_html( $labels[ $unit ] ?? 'Miettag' ) . '</span>';
+        $labels = [ 'day' => __( 'Rental day', 'patsch9-rental-engine' ), 'week' => __( 'Week', 'patsch9-rental-engine' ), 'month' => __( '30 days', 'patsch9-rental-engine' ) ];
+        return '<span class="price rmwc-catalog-price">' . esc_html__( 'from', 'patsch9-rental-engine' ) . ' ' . wc_price( $price ) . ' / ' . esc_html( $labels[ $unit ] ?? __( 'Rental day', 'patsch9-rental-engine' ) ) . '</span>';
     }
 
     public function order_line_item_meta( $item, $cart_item_key, $values, $order ) {
-        if ( empty( $values['clr_rental'] ) ) {
+        if ( empty( $values['rmwc_rental'] ) ) {
             return;
         }
-        $r = $values['clr_rental'];
-        $item->add_meta_data( '_clr_rental_data', $r, true );
-        $item->add_meta_data( 'Mietbeginn', $this->format_datetime_display( $r['start_at'] ), true );
-        $item->add_meta_data( 'Rückgabe', $this->format_datetime_display( $r['end_at'] ), true );
-        $item->add_meta_data( 'Mietdauer', sprintf( '%d Miettag(e) – %s', (int) $r['days'], $r['pricing_label'] ), true );
+        $r = $values['rmwc_rental'];
+        $item->add_meta_data( '_rmwc_rental_data', $r, true );
+        $item->add_meta_data( __( 'Rental start', 'patsch9-rental-engine' ), $this->format_datetime_display( $r['start_at'] ), true );
+        $item->add_meta_data( __( 'Return', 'patsch9-rental-engine' ), $this->format_datetime_display( $r['end_at'] ), true );
+        /* translators: 1: Number of rental days. 2: Pricing label. */
+        $item->add_meta_data( __( 'Rental duration', 'patsch9-rental-engine' ), sprintf( __( '%1$d Rental day(s) – %2$s', 'patsch9-rental-engine' ), (int) $r['days'], $r['pricing_label'] ), true );
         foreach ( $r['addons'] as $addon ) {
             $item->add_meta_data( $addon['group'], $addon['label'], false );
         }
         if ( ! empty( $r['fulfilment'] ) ) {
-            $item->add_meta_data( 'Transport / Übergabe', $this->fulfilment_label( $r['fulfilment'] ), true );
+            $item->add_meta_data( __( 'Transport / handover', 'patsch9-rental-engine' ), $this->fulfilment_label( $r['fulfilment'] ), true );
         }
         if ( in_array( sanitize_key( $r['fulfilment'] ?? '' ), [ 'delivery', 'delivery_return' ], true ) ) {
             if ( ! empty( $r['delivery_zone'] ) ) {
-                $item->add_meta_data( 'Lieferzone', $r['delivery_zone'], true );
+                $item->add_meta_data( __( 'Delivery zone', 'patsch9-rental-engine' ), $r['delivery_zone'], true );
             }
             if ( '' !== (string) ( $r['delivery_distance'] ?? '' ) ) {
-                $item->add_meta_data( 'Lieferentfernung', wc_format_localized_decimal( $r['delivery_distance'] ) . ' km je Fahrt', true );
+                /* translators: %s: Localized delivery distance. */
+                $item->add_meta_data( __( 'Delivery distance', 'patsch9-rental-engine' ), sprintf( __( '%s km per trip', 'patsch9-rental-engine' ), wc_format_localized_decimal( $r['delivery_distance'] ) ), true );
             }
             if ( ! empty( $r['delivery_address'] ) ) {
-                $item->add_meta_data( 'Liefer-/Abholadresse', $r['delivery_address'], true );
+                $item->add_meta_data( __( 'Delivery/pickup address', 'patsch9-rental-engine' ), $r['delivery_address'], true );
             }
         }
         if ( (float) ( $r['deposit'] ?? 0 ) > 0 ) {
             $item->add_meta_data(
-                'Kautionshinterlegung',
-                'cash' === sanitize_key( $r['deposit_method'] ?? 'online' ) ? 'Separat überweisen oder bei Abholung bar hinterlegen' : 'Online mit Bestellung hinterlegt',
+                __( 'Security deposit method', 'patsch9-rental-engine' ),
+                'cash' === sanitize_key( $r['deposit_method'] ?? 'online' ) ? __( 'Transfer separately or deposit cash at collection', 'patsch9-rental-engine' ) : __( 'Provided online with the order', 'patsch9-rental-engine' ),
                 true
             );
         }
@@ -2130,7 +2211,7 @@ final class RMWC_Plugin {
         if ( ! $item instanceof WC_Order_Item_Fee ) {
             return;
         }
-        if ( 0 === strpos( $item->get_name(), 'Kaution – ' ) ) {
+        if ( 0 === strpos( $item->get_name(), __( 'Security deposit – ', 'patsch9-rental-engine' ) ) || 0 === strpos( $item->get_name(), 'Kaution – ' ) ) {
             /*
              * A refundable rental deposit is not consideration for a taxable
              * supply. WC_Checkout creates non-taxable cart fees with an empty
@@ -2149,10 +2230,10 @@ final class RMWC_Plugin {
             $item->set_total( wc_format_decimal( $amount, wc_get_price_decimals() ) );
             $item->set_total_tax( 0 );
             $item->set_taxes( [ 'total' => [] ] );
-            $item->add_meta_data( '_clr_deposit', 'yes', true );
-            $item->add_meta_data( '_clr_fee_type', 'deposit', true );
-        } elseif ( 0 === strpos( $item->get_name(), 'Lieferung – ' ) || 0 === strpos( $item->get_name(), 'Transport – ' ) ) {
-            $item->add_meta_data( '_clr_fee_type', 'delivery', true );
+            $item->add_meta_data( '_rmwc_deposit', 'yes', true );
+            $item->add_meta_data( '_rmwc_fee_type', 'deposit', true );
+        } elseif ( 0 === strpos( $item->get_name(), __( 'Delivery – ', 'patsch9-rental-engine' ) ) || 0 === strpos( $item->get_name(), __( 'Transport – ', 'patsch9-rental-engine' ) ) || 0 === strpos( $item->get_name(), 'Lieferung – ' ) || 0 === strpos( $item->get_name(), 'Transport – ' ) ) {
+            $item->add_meta_data( '_rmwc_fee_type', 'delivery', true );
         }
     }
 
@@ -2163,8 +2244,9 @@ final class RMWC_Plugin {
         }
         $result = $this->create_bookings_for_order( $order );
         if ( is_wp_error( $result ) ) {
-            $order->update_meta_data( '_clr_booking_conflict', $result->get_error_code() );
-            $order->add_order_note( 'Vermietung: Bestellung vor Zahlung gestoppt – ' . $result->get_error_message() );
+            $order->update_meta_data( '_rmwc_booking_conflict', $result->get_error_code() );
+            /* translators: %s: Booking validation error message. */
+            $order->add_order_note( sprintf( __( 'Rental booking stopped before payment – %s', 'patsch9-rental-engine' ), $result->get_error_message() ) );
             $order->save();
             throw new Exception( esc_html( $result->get_error_message() ) );
         }
@@ -2176,8 +2258,9 @@ final class RMWC_Plugin {
         }
         $result = $this->create_bookings_for_order( $order );
         if ( is_wp_error( $result ) ) {
-            $order->update_meta_data( '_clr_booking_conflict', $result->get_error_code() );
-            $order->add_order_note( 'Vermietung: Bestellung vor Zahlung gestoppt – ' . $result->get_error_message() );
+            $order->update_meta_data( '_rmwc_booking_conflict', $result->get_error_code() );
+            /* translators: %s: Booking validation error message. */
+            $order->add_order_note( sprintf( __( 'Rental booking stopped before payment – %s', 'patsch9-rental-engine' ), $result->get_error_message() ) );
             $order->save();
             throw new Exception( esc_html( $result->get_error_message() ) );
         }
@@ -2190,8 +2273,9 @@ final class RMWC_Plugin {
         }
         $result = $this->create_bookings_for_order( $order );
         if ( is_wp_error( $result ) ) {
-            $order->update_meta_data( '_clr_booking_conflict', $result->get_error_code() );
-            $order->add_order_note( 'ACHTUNG Vermietung: ' . $result->get_error_message() . ' Bestellung bitte manuell prüfen.' );
+            $order->update_meta_data( '_rmwc_booking_conflict', $result->get_error_code() );
+            /* translators: 1: Booking validation error message. 2: WooCommerce order number. */
+            $order->add_order_note( sprintf( __( 'WARNING rental booking: %1$s Please review order %2$s manually.', 'patsch9-rental-engine' ), $result->get_error_message(), $order->get_order_number() ) );
             $order->save();
         }
     }
@@ -2206,16 +2290,16 @@ final class RMWC_Plugin {
             // while keeping the WooCommerce order for documentation/accounting.
             // Persist that decision on the order item so later status changes do
             // not silently recreate the cancelled reservation.
-            if ( 'yes' === $item->get_meta( '_clr_booking_admin_cancelled', true ) ) {
+            if ( 'yes' === $item->get_meta( '_rmwc_booking_admin_cancelled', true ) ) {
                 continue;
             }
-            $r = $item->get_meta( '_clr_rental_data', true );
+            $r = $item->get_meta( '_rmwc_rental_data', true );
             if ( ! is_array( $r ) || empty( $r['product_id'] ) || empty( $r['start'] ) || empty( $r['end'] ) ) {
                 continue;
             }
             $product_id = absint( $r['product_id'] );
             if ( ! $product_id || ! $this->is_rental( $product_id ) ) {
-                return new WP_Error( 'clr_booking_product', 'Ein Mietartikel ist nicht mehr gültig konfiguriert.' );
+                return new WP_Error( 'rmwc_booking_product', __( 'A rental item is no longer validly configured.', 'patsch9-rental-engine' ) );
             }
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM %i WHERE order_id = %d AND order_item_id = %d AND status IN ('reserved','blocked') LIMIT 1", $table, $order->get_id(), $item_id ) );
@@ -2224,11 +2308,11 @@ final class RMWC_Plugin {
             }
             $interval = $this->build_interval( $product_id, sanitize_text_field( $r['start'] ), sanitize_text_field( $r['end'] ) );
             if ( is_wp_error( $interval ) ) {
-                return new WP_Error( 'clr_booking_dates', 'Ein Mietzeitraum der Bestellung ist ungültig.' );
+                return new WP_Error( 'rmwc_booking_dates', __( 'A rental period of the order is invalid.', 'patsch9-rental-engine' ) );
             }
             $qty = max( 1, (int) $item->get_quantity() );
             if ( $qty > $this->capacity( $product_id ) ) {
-                return new WP_Error( 'clr_booking_capacity', 'Die angeforderte Menge überschreitet den verfügbaren Mietbestand.' );
+                return new WP_Error( 'rmwc_booking_capacity', __( 'The quantity requested exceeds the available rental stock.', 'patsch9-rental-engine' ) );
             }
             $groups[ $product_id ][] = [
                 'item_id'  => (int) $item_id,
@@ -2248,7 +2332,7 @@ final class RMWC_Plugin {
                 $lock_name = $this->booking_lock_name( $product_id );
                 $got_lock  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 8)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Booking advisory locks must reflect current database state and are intentionally not cached.
                 if ( 1 !== $got_lock ) {
-                    return new WP_Error( 'clr_booking_lock', 'Der Mietbestand konnte gerade nicht sicher reserviert werden. Bitte Bestellung erneut versuchen.' );
+                    return new WP_Error( 'rmwc_booking_lock', __( 'The rental stock just could not be safely reserved. Please try ordering again.', 'patsch9-rental-engine' ) );
                 }
                 $locks[] = $lock_name;
             }
@@ -2269,7 +2353,7 @@ final class RMWC_Plugin {
                     ];
                 }
                 if ( $intervals && ! $this->capacity_available( $product_id, $intervals, 0 ) ) {
-                    return new WP_Error( 'clr_booking_conflict', 'Der gewünschte Mietzeitraum wurde gerade anderweitig gebucht. Bitte Zeitraum neu wählen.' );
+                    return new WP_Error( 'rmwc_booking_conflict', __( 'The desired rental period has just been booked elsewhere. Please select a new period.', 'patsch9-rental-engine' ) );
                 }
             }
 
@@ -2303,7 +2387,7 @@ final class RMWC_Plugin {
                             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                             $wpdb->delete( $table, [ 'id' => $booking_id ], [ '%d' ] );
                         }
-                        return new WP_Error( 'clr_booking_database', 'Die Mietreservierung konnte nicht sicher gespeichert werden. Es wurde nichts belastet; bitte erneut versuchen.' );
+                        return new WP_Error( 'rmwc_booking_database', __( 'The rental reservation could not be stored safely. Nothing was charged; please try again.', 'patsch9-rental-engine' ) );
                     }
                     $inserted_ids[] = (int) $wpdb->insert_id;
                 }
@@ -2318,14 +2402,14 @@ final class RMWC_Plugin {
                 }
                 return is_wp_error( $finalized )
                     ? $finalized
-                    : new WP_Error( 'clr_booking_finalize', __( 'Die Mietreservierung konnte nicht vollständig vorbereitet werden. Bitte erneut versuchen.', 'patsch9-rental-engine' ) );
+                    : new WP_Error( 'rmwc_booking_finalize', __( 'The rental reservation could not be fully prepared. Please try again.', 'patsch9-rental-engine' ) );
             }
             do_action( 'rmwc_bookings_created', $order, $inserted_ids );
 
-            if ( $this->order_deposit_total( $order ) > 0 && ! $order->get_meta( '_clr_deposit_status', true ) ) {
-                $order->update_meta_data( '_clr_deposit_status', 'offen' );
+            if ( $this->order_deposit_total( $order ) > 0 && ! $order->get_meta( '_rmwc_deposit_status', true ) ) {
+                $order->update_meta_data( '_rmwc_deposit_status', 'offen' );
             }
-            $order->delete_meta_data( '_clr_booking_conflict' );
+            $order->delete_meta_data( '_rmwc_booking_conflict' );
             $order->save();
             $this->schedule_unpaid_expiry( $order );
             return true;
@@ -2337,7 +2421,7 @@ final class RMWC_Plugin {
     }
 
     private function unpaid_hold_minutes() {
-        $minutes = (int) get_option( 'clr_unpaid_hold_minutes', 60 );
+        $minutes = (int) get_option( 'rmwc_unpaid_hold_minutes', 60 );
         return max( 5, min( 1440, $minutes ) );
     }
 
@@ -2348,7 +2432,7 @@ final class RMWC_Plugin {
      * gateways only need to be configured once.
      */
     private function offline_gateway_ids() {
-        $stored = get_option( 'clr_v2_offline_gateway_ids', 'bacs,cheque,cod' );
+        $stored = get_option( 'rmwc_v2_offline_gateway_ids', 'bacs,cheque,cod' );
         $ids    = array_values( array_filter( array_map( 'sanitize_key', preg_split( '/[\s,;]+/', (string) $stored ) ?: [] ) ) );
         return apply_filters( 'rmwc_offline_gateway_ids', $ids );
     }
@@ -2420,7 +2504,7 @@ final class RMWC_Plugin {
 
         global $wpdb;
         $scope     = ( defined( 'DB_NAME' ) ? (string) DB_NAME : '' ) . '|' . $wpdb->prefix . '|' . get_current_blog_id() . '|' . $order_id;
-        $lock_name = 'clr_exp_' . substr( hash( 'sha256', $scope ), 0, 40 );
+        $lock_name = 'rmwc_exp_' . substr( hash( 'sha256', $scope ), 0, 40 );
         $locked    = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, %d)', $lock_name, 2 ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serializes duplicate expiry workers for one order.
         if ( 1 !== $locked ) {
             return;
@@ -2441,7 +2525,8 @@ final class RMWC_Plugin {
             if ( ! $order || ! $this->unpaid_expiry_applies( $order ) ) {
                 return;
             }
-            $order->update_status( 'cancelled', 'Vermietung: unbezahlte Online-Reservierung nach ' . $this->unpaid_hold_minutes() . ' Minuten automatisch freigegeben.' );
+            /* translators: %d: Reservation hold time in minutes. */
+            $order->update_status( 'cancelled', sprintf( __( 'Rental: unpaid online reservation automatically released after %d minutes.', 'patsch9-rental-engine' ), $this->unpaid_hold_minutes() ) );
         } finally {
             $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Releases the matching application-level lock.
         }
@@ -2486,7 +2571,7 @@ final class RMWC_Plugin {
     private function order_deposit_total( WC_Order $order ) {
         $total = 0.0;
         foreach ( $order->get_items( 'fee' ) as $fee ) {
-            if ( 'yes' === $fee->get_meta( '_clr_deposit', true ) || 0 === strpos( $fee->get_name(), 'Kaution – ' ) ) {
+            if ( 'yes' === $fee->get_meta( '_rmwc_deposit', true ) || 0 === strpos( $fee->get_name(), 'Kaution – ' ) ) {
                 $total += (float) $fee->get_total();
             }
         }
@@ -2499,7 +2584,7 @@ final class RMWC_Plugin {
             $screens[] = wc_get_page_screen_id( 'shop-order' );
         }
         foreach ( array_unique( $screens ) as $screen ) {
-            add_meta_box( 'clr_deposit_box', 'Mietkaution', [ $this, 'render_deposit_meta_box' ], $screen, 'side', 'default' );
+            add_meta_box( 'rmwc_deposit_box', __( 'Rental security deposit', 'patsch9-rental-engine' ), [ $this, 'render_deposit_meta_box' ], $screen, 'side', 'default' );
         }
     }
 
@@ -2510,35 +2595,35 @@ final class RMWC_Plugin {
         }
         $total = $this->order_deposit_total( $order );
         if ( $total <= 0 ) {
-            echo '<p>Diese Bestellung enthält keine Mietkaution.</p>';
+            echo '<p>' . esc_html__( 'This order does not contain a rental security deposit.', 'patsch9-rental-engine' ) . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Translation escaped above.
             return;
         }
-        wp_nonce_field( 'clr_save_deposit_' . $order->get_id(), 'clr_deposit_nonce' );
-        $status   = $order->get_meta( '_clr_deposit_status', true ) ?: 'offen';
-        $refunded = $order->get_meta( '_clr_deposit_refunded', true );
-        $retained = $order->get_meta( '_clr_deposit_retained', true );
-        $returned_at = $order->get_meta( '_clr_deposit_returned_at', true );
-        $reason   = $order->get_meta( '_clr_deposit_retention_reason', true ) ?: 'none';
-        $note     = $order->get_meta( '_clr_deposit_note', true );
-        echo '<p><strong>Kaution gesamt:</strong> ' . wp_kses_post( wc_price( $total, [ 'currency' => $order->get_currency() ] ) ) . '</p>';
-        echo '<p><label>Status<br><select name="clr_deposit_status" style="width:100%">';
-        foreach ( [ 'offen' => 'Offen', 'erhalten' => 'Erhalten', 'zurueckgezahlt' => 'Vollständig zurückgezahlt', 'teilweise' => 'Teilweise einbehalten', 'einbehalten' => 'Vollständig einbehalten', 'erlassen' => 'Erlassen' ] as $key => $label ) {
+        wp_nonce_field( 'rmwc_save_deposit_' . $order->get_id(), 'rmwc_deposit_nonce' );
+        $status   = $order->get_meta( '_rmwc_deposit_status', true ) ?: 'offen';
+        $refunded = $order->get_meta( '_rmwc_deposit_refunded', true );
+        $retained = $order->get_meta( '_rmwc_deposit_retained', true );
+        $returned_at = $order->get_meta( '_rmwc_deposit_returned_at', true );
+        $reason   = $order->get_meta( '_rmwc_deposit_retention_reason', true ) ?: 'none';
+        $note     = $order->get_meta( '_rmwc_deposit_note', true );
+        echo '<p><strong>' . esc_html__( 'Total security deposit:', 'patsch9-rental-engine' ) . '</strong> ' . wp_kses_post( wc_price( $total, [ 'currency' => $order->get_currency() ] ) ) . '</p>';
+        echo '<p><label>Status<br><select name="rmwc_deposit_status" style="width:100%">';
+        foreach ( [ 'offen' => __( 'Open', 'patsch9-rental-engine' ), 'erhalten' => __( 'Received', 'patsch9-rental-engine' ), 'zurueckgezahlt' => __( 'Refunded in full', 'patsch9-rental-engine' ), 'teilweise' => __( 'Partially withheld', 'patsch9-rental-engine' ), 'einbehalten' => __( 'Fully retained', 'patsch9-rental-engine' ), 'erlassen' => __( 'Waived', 'patsch9-rental-engine' ) ] as $key => $label ) {
             echo '<option value="' . esc_attr( $key ) . '" ' . selected( $status, $key, false ) . '>' . esc_html( $label ) . '</option>';
         }
         echo '</select></label></p>';
-        echo '<p><label>Zurückgezahlt<br><input type="number" min="0" step="0.01" name="clr_deposit_refunded" value="' . esc_attr( $refunded ) . '" style="width:100%"></label></p>';
-        echo '<p><label>Einbehalten<br><input type="number" min="0" step="0.01" name="clr_deposit_retained" value="' . esc_attr( $retained ) . '" style="width:100%"></label></p>';
-        echo '<p><label>Grund für Einbehalt<br><select name="clr_deposit_retention_reason" style="width:100%">';
-        foreach ( [ 'none' => 'Kein Einbehalt', 'damage' => 'Beschädigung', 'cleaning' => 'Nicht korrekt gereinigt / Reinigungsaufwand', 'loss' => 'Verlust / Nichtrückgabe', 'other' => 'Sonstiger Grund' ] as $key => $label ) {
+        echo '<p><label>' . esc_html__( 'Refunded', 'patsch9-rental-engine' ) . '<br><input type="number" min="0" step="0.01" name="rmwc_deposit_refunded" value="' . esc_attr( $refunded ) . '" style="width:100%"></label></p>';
+        echo '<p><label>' . esc_html__( 'Retained', 'patsch9-rental-engine' ) . '<br><input type="number" min="0" step="0.01" name="rmwc_deposit_retained" value="' . esc_attr( $retained ) . '" style="width:100%"></label></p>';
+        echo '<p><label>' . esc_html__( 'Reason for retention', 'patsch9-rental-engine' ) . '<br><select name="rmwc_deposit_retention_reason" style="width:100%">';
+        foreach ( [ 'none' => __( 'No retention', 'patsch9-rental-engine' ), 'damage' => __( 'Damage', 'patsch9-rental-engine' ), 'cleaning' => __( 'Insufficient cleaning / cleaning costs', 'patsch9-rental-engine' ), 'loss' => __( 'Loss / non-return', 'patsch9-rental-engine' ), 'other' => __( 'Other reason', 'patsch9-rental-engine' ) ] as $key => $label ) {
             echo '<option value="' . esc_attr( $key ) . '" ' . selected( $reason, $key, false ) . '>' . esc_html( $label ) . '</option>';
         }
         echo '</select></label></p>';
-        echo '<p><label>Rückzahlung/Abschluss am<br><input type="date" name="clr_deposit_returned_at" value="' . esc_attr( $returned_at ) . '" style="width:100%"></label></p>';
-        echo '<p><label>Notiz / Schaden<br><textarea name="clr_deposit_note" rows="3" style="width:100%">' . esc_textarea( $note ) . '</textarea></label></p>';
+        echo '<p><label>' . esc_html__( 'Refund/completion date', 'patsch9-rental-engine' ) . '<br><input type="date" name="rmwc_deposit_returned_at" value="' . esc_attr( $returned_at ) . '" style="width:100%"></label></p>';
+        echo '<p><label>' . esc_html__( 'Note / damage', 'patsch9-rental-engine' ) . '<br><textarea name="rmwc_deposit_note" rows="3" style="width:100%">' . esc_textarea( $note ) . '</textarea></label></p>';
     }
 
     public function save_deposit_meta_box( $order_id, $order = null ) {
-        if ( empty( $_POST['clr_deposit_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['clr_deposit_nonce'] ) ), 'clr_save_deposit_' . $order_id ) ) {
+        if ( empty( $_POST['rmwc_deposit_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['rmwc_deposit_nonce'] ) ), 'rmwc_save_deposit_' . $order_id ) ) {
             return;
         }
         if ( ! current_user_can( 'edit_shop_orders' ) && ! current_user_can( 'manage_woocommerce' ) ) {
@@ -2548,39 +2633,39 @@ final class RMWC_Plugin {
         if ( ! $order ) {
             return;
         }
-        $old_status = sanitize_key( (string) $order->get_meta( '_clr_deposit_status', true ) );
+        $old_status = sanitize_key( (string) $order->get_meta( '_rmwc_deposit_status', true ) );
         $allowed = [ 'offen', 'erhalten', 'zurueckgezahlt', 'teilweise', 'einbehalten', 'erlassen' ];
-        $status  = sanitize_key( wp_unslash( $_POST['clr_deposit_status'] ?? 'offen' ) );
+        $status  = sanitize_key( wp_unslash( $_POST['rmwc_deposit_status'] ?? 'offen' ) );
         $status  = in_array( $status, $allowed, true ) ? $status : 'offen';
-        $order->update_meta_data( '_clr_deposit_status', $status );
+        $order->update_meta_data( '_rmwc_deposit_status', $status );
         $total = max( 0, $this->order_deposit_total( $order ) );
-        $refunded_raw = isset( $_POST['clr_deposit_refunded'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_deposit_refunded'] ) ) : '0';
-        $retained_raw = isset( $_POST['clr_deposit_retained'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_deposit_retained'] ) ) : '0';
+        $refunded_raw = isset( $_POST['rmwc_deposit_refunded'] ) ? sanitize_text_field( wp_unslash( $_POST['rmwc_deposit_refunded'] ) ) : '0';
+        $retained_raw = isset( $_POST['rmwc_deposit_retained'] ) ? sanitize_text_field( wp_unslash( $_POST['rmwc_deposit_retained'] ) ) : '0';
         $refunded = min( $total, max( 0, (float) wc_format_decimal( $refunded_raw ) ) );
         $retained = min( $total, max( 0, (float) wc_format_decimal( $retained_raw ) ) );
         if ( $refunded + $retained > $total ) {
             $retained = max( 0, $total - $refunded );
         }
-        $order->update_meta_data( '_clr_deposit_refunded', $refunded );
-        $order->update_meta_data( '_clr_deposit_retained', $retained );
+        $order->update_meta_data( '_rmwc_deposit_refunded', $refunded );
+        $order->update_meta_data( '_rmwc_deposit_retained', $retained );
         $allowed_reasons = [ 'none', 'damage', 'cleaning', 'loss', 'other' ];
-        $reason = sanitize_key( wp_unslash( $_POST['clr_deposit_retention_reason'] ?? 'none' ) );
+        $reason = sanitize_key( wp_unslash( $_POST['rmwc_deposit_retention_reason'] ?? 'none' ) );
         if ( 0.0 === $retained ) {
             $reason = 'none';
         }
-        $order->update_meta_data( '_clr_deposit_retention_reason', in_array( $reason, $allowed_reasons, true ) ? $reason : 'none' );
-        $returned_at = sanitize_text_field( wp_unslash( $_POST['clr_deposit_returned_at'] ?? '' ) );
+        $order->update_meta_data( '_rmwc_deposit_retention_reason', in_array( $reason, $allowed_reasons, true ) ? $reason : 'none' );
+        $returned_at = sanitize_text_field( wp_unslash( $_POST['rmwc_deposit_returned_at'] ?? '' ) );
         if ( $returned_at && ! $this->is_valid_date( $returned_at ) ) {
             $returned_at = '';
         }
-        $order->update_meta_data( '_clr_deposit_returned_at', $returned_at );
-        $order->update_meta_data( '_clr_deposit_note', $this->limit_text( sanitize_textarea_field( wp_unslash( $_POST['clr_deposit_note'] ?? '' ) ), 2000 ) );
+        $order->update_meta_data( '_rmwc_deposit_returned_at', $returned_at );
+        $order->update_meta_data( '_rmwc_deposit_note', $this->limit_text( sanitize_textarea_field( wp_unslash( $_POST['rmwc_deposit_note'] ?? '' ) ), 2000 ) );
         $order->save();
         do_action( 'rmwc_deposit_saved', $order, $old_status, $status, $refunded, $retained );
     }
 
     public function admin_menu() {
-        $hook = add_submenu_page( 'woocommerce', 'Vermietungen', 'Vermietungen', 'manage_woocommerce', 'clr-rentals', [ $this, 'admin_bookings_page' ] );
+        $hook = add_submenu_page( 'woocommerce', __( 'Rentals', 'patsch9-rental-engine' ), __( 'Rentals', 'patsch9-rental-engine' ), 'manage_woocommerce', 'rmwc-rentals', [ $this, 'admin_bookings_page' ] );
         $this->admin_page_hook = is_string( $hook ) ? $hook : '';
     }
 
@@ -2600,38 +2685,38 @@ final class RMWC_Plugin {
             return '';
         }
         if ( ! current_user_can( 'manage_woocommerce' ) ) {
-            return '<div class="notice notice-error"><p>Keine Berechtigung.</p></div>';
+            return '<div class="notice notice-error"><p>' . esc_html__( 'Permission denied.', 'patsch9-rental-engine' ) . '</p></div>';
         }
 
-        $action = sanitize_key( wp_unslash( $_POST['clr_action'] ?? '' ) );
+        $action = sanitize_key( wp_unslash( $_POST['rmwc_action'] ?? '' ) );
         if ( ! $action ) {
             return '';
         }
-        check_admin_referer( 'clr_admin_action', 'clr_admin_nonce' );
+        check_admin_referer( 'rmwc_admin_action', 'rmwc_admin_nonce' );
 
         if ( 'save_settings' === $action ) {
-            $origin = $this->sanitize_address( isset( $_POST['clr_delivery_origin'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_delivery_origin'] ) ) : '' );
-            update_option( 'clr_delivery_origin', $origin, false );
-            update_option( 'clr_google_routes_enabled', isset( $_POST['clr_google_routes_enabled'] ) ? 'yes' : 'no', false );
-            $hold_minutes = isset( $_POST['clr_unpaid_hold_minutes'] ) ? absint( wp_unslash( $_POST['clr_unpaid_hold_minutes'] ) ) : 60;
-            update_option( 'clr_unpaid_hold_minutes', max( 5, min( 1440, $hold_minutes ) ), false );
+            $origin = $this->sanitize_address( isset( $_POST['rmwc_delivery_origin'] ) ? sanitize_text_field( wp_unslash( $_POST['rmwc_delivery_origin'] ) ) : '' );
+            update_option( 'rmwc_delivery_origin', $origin, false );
+            update_option( 'rmwc_google_routes_enabled', isset( $_POST['rmwc_google_routes_enabled'] ) ? 'yes' : 'no', false );
+            $hold_minutes = isset( $_POST['rmwc_unpaid_hold_minutes'] ) ? absint( wp_unslash( $_POST['rmwc_unpaid_hold_minutes'] ) ) : 60;
+            update_option( 'rmwc_unpaid_hold_minutes', max( 5, min( 1440, $hold_minutes ) ), false );
             if ( ! defined( 'RMWC_GOOGLE_ROUTES_API_KEY' ) ) {
-                if ( isset( $_POST['clr_google_routes_clear_key'] ) ) {
-                    delete_option( 'clr_google_routes_api_key' );
-                } elseif ( isset( $_POST['clr_google_routes_api_key'] ) ) {
-                    $new_key = trim( sanitize_text_field( wp_unslash( $_POST['clr_google_routes_api_key'] ) ) );
+                if ( isset( $_POST['rmwc_google_routes_clear_key'] ) ) {
+                    delete_option( 'rmwc_google_routes_api_key' );
+                } elseif ( isset( $_POST['rmwc_google_routes_api_key'] ) ) {
+                    $new_key = trim( sanitize_text_field( wp_unslash( $_POST['rmwc_google_routes_api_key'] ) ) );
                     if ( '' !== $new_key ) {
-                        update_option( 'clr_google_routes_api_key', $this->limit_text( $new_key, 255 ), false );
+                        update_option( 'rmwc_google_routes_api_key', $this->limit_text( $new_key, 255 ), false );
                     }
                 }
             }
-            update_option( 'clr_reminder_enabled', isset( $_POST['clr_reminder_enabled'] ) ? 'yes' : 'no', false );
-            update_option( 'clr_reminder_hours', min( 8760, max( 1, absint( wp_unslash( $_POST['clr_reminder_hours'] ?? 24 ) ) ) ), false );
-            update_option( 'clr_reminder_subject', $this->limit_text( sanitize_text_field( wp_unslash( $_POST['clr_reminder_subject'] ?? 'Erinnerung an Ihre Miete: %product%' ) ), 200 ), false );
-            update_option( 'clr_reminder_body', $this->limit_text( sanitize_textarea_field( wp_unslash( $_POST['clr_reminder_body'] ?? '' ) ), 5000 ), false );
-            update_option( 'clr_delete_data_on_uninstall', isset( $_POST['clr_delete_data_on_uninstall'] ) ? 'yes' : 'no', false );
+            update_option( 'rmwc_reminder_enabled', isset( $_POST['rmwc_reminder_enabled'] ) ? 'yes' : 'no', false );
+            update_option( 'rmwc_reminder_hours', min( 8760, max( 1, absint( wp_unslash( $_POST['rmwc_reminder_hours'] ?? 24 ) ) ) ), false );
+            update_option( 'rmwc_reminder_subject', $this->limit_text( sanitize_text_field( wp_unslash( $_POST['rmwc_reminder_subject'] ?? __( 'Rental reminder: %product%', 'patsch9-rental-engine' ) ) ), 200 ), false );
+            update_option( 'rmwc_reminder_body', $this->limit_text( sanitize_textarea_field( wp_unslash( $_POST['rmwc_reminder_body'] ?? '' ) ), 5000 ), false );
+            update_option( 'rmwc_delete_data_on_uninstall', isset( $_POST['rmwc_delete_data_on_uninstall'] ) ? 'yes' : 'no', false );
             do_action( 'rmwc_save_v2_settings' );
-            return '<div class="notice notice-success"><p>Einstellungen gespeichert.</p></div>';
+            return '<div class="notice notice-success"><p>' . esc_html__( 'Settings saved.', 'patsch9-rental-engine' ) . '</p></div>';
         }
 
         if ( 'update_booking' === $action ) {
@@ -2639,10 +2724,10 @@ final class RMWC_Plugin {
             $booking_id = isset( $_POST['booking_id'] ) ? absint( wp_unslash( $_POST['booking_id'] ) ) : 0;
             $row = $this->admin_booking_row( $booking_id );
             if ( ! $row ) {
-                return '<div class="notice notice-error"><p>' . esc_html__( 'Buchung nicht gefunden.', 'patsch9-rental-engine' ) . '</p></div>';
+                return '<div class="notice notice-error"><p>' . esc_html__( 'Booking not found.', 'patsch9-rental-engine' ) . '</p></div>';
             }
             if ( ! in_array( $row['status'], [ 'reserved', 'blocked' ], true ) || 'reserved' !== sanitize_key( $row['workflow_status'] ?? 'reserved' ) ) {
-                return '<div class="notice notice-error"><p>' . esc_html__( 'Nur noch nicht übergebene aktive Buchungen können bearbeitet werden.', 'patsch9-rental-engine' ) . '</p></div>';
+                return '<div class="notice notice-error"><p>' . esc_html__( 'Only active bookings that have not yet been handed over can be edited.', 'patsch9-rental-engine' ) . '</p></div>';
             }
 
             $product_id = absint( $row['product_id'] );
@@ -2653,7 +2738,7 @@ final class RMWC_Plugin {
             $lock_name = $this->booking_lock_name( $product_id );
             $got_lock  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 8)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Booking advisory locks must reflect current database state and are intentionally not cached.
             if ( 1 !== $got_lock ) {
-                return '<div class="notice notice-error"><p>' . esc_html__( 'Die Buchung konnte gerade nicht sicher gesperrt werden. Bitte erneut versuchen.', 'patsch9-rental-engine' ) . '</p></div>';
+                return '<div class="notice notice-error"><p>' . esc_html__( 'The booking could not be locked safely. Please try again.', 'patsch9-rental-engine' ) . '</p></div>';
             }
 
             try {
@@ -2661,7 +2746,7 @@ final class RMWC_Plugin {
                     $start = $this->parse_admin_datetime( sanitize_text_field( wp_unslash( $_POST['block_start'] ?? '' ) ) );
                     $end   = $this->parse_admin_datetime( sanitize_text_field( wp_unslash( $_POST['block_end'] ?? '' ) ) );
                     if ( ! $start || ! $end || $end <= $start ) {
-                        return '<div class="notice notice-error"><p>' . esc_html__( 'Bitte einen gültigen Sperrzeitraum angeben.', 'patsch9-rental-engine' ) . '</p></div>';
+                        return '<div class="notice notice-error"><p>' . esc_html__( 'Please specify a valid blocking period.', 'patsch9-rental-engine' ) . '</p></div>';
                     }
                     $interval = [
                         'start_at'   => $start->format( 'Y-m-d H:i:s' ),
@@ -2675,7 +2760,7 @@ final class RMWC_Plugin {
                         0,
                         $booking_id
                     ) ) {
-                        return '<div class="notice notice-error"><p>' . esc_html__( 'Für den geänderten Zeitraum ist nicht genügend Bestand verfügbar.', 'patsch9-rental-engine' ) . '</p></div>';
+                        return '<div class="notice notice-error"><p>' . esc_html__( 'There is not enough stock available for the changed period.', 'patsch9-rental-engine' ) . '</p></div>';
                     }
                 } else {
                     $start_date = sanitize_text_field( wp_unslash( $_POST['start_date'] ?? '' ) );
@@ -2698,7 +2783,7 @@ final class RMWC_Plugin {
                     $updated['customer_name']  = substr( sanitize_text_field( wp_unslash( $_POST['customer_name'] ?? $row['customer_name'] ) ), 0, 190 );
                     $email = sanitize_email( wp_unslash( $_POST['customer_email'] ?? $row['customer_email'] ) );
                     if ( $email && ! is_email( $email ) ) {
-                        return '<div class="notice notice-error"><p>' . esc_html__( 'Bitte eine gültige E-Mail-Adresse angeben.', 'patsch9-rental-engine' ) . '</p></div>';
+                        return '<div class="notice notice-error"><p>' . esc_html__( 'Please provide a valid e-mail address.', 'patsch9-rental-engine' ) . '</p></div>';
                     }
                     $updated['customer_email'] = substr( $email, 0, 190 );
                 }
@@ -2706,7 +2791,7 @@ final class RMWC_Plugin {
                 $new_row = array_merge( $row, $updated );
                 $workflow_result = apply_filters( 'rmwc_validate_booking_update', true, $row, $new_row );
                 if ( is_wp_error( $workflow_result ) || false === $workflow_result ) {
-                    $message = is_wp_error( $workflow_result ) ? $workflow_result->get_error_message() : __( 'Die Gerätezuordnung konnte für den neuen Zeitraum nicht angepasst werden.', 'patsch9-rental-engine' );
+                    $message = is_wp_error( $workflow_result ) ? $workflow_result->get_error_message() : __( 'The equipment allocation could not be adjusted for the new period.', 'patsch9-rental-engine' );
                     return '<div class="notice notice-error"><p>' . esc_html( $message ) . '</p></div>';
                 }
 
@@ -2721,7 +2806,7 @@ final class RMWC_Plugin {
                     // assignments to the proposed interval. Restore the previous
                     // assignment state before returning the database error.
                     apply_filters( 'rmwc_validate_booking_update', true, $new_row, $row );
-                    return '<div class="notice notice-error"><p>' . esc_html__( 'Die Buchungsänderung konnte nicht gespeichert werden. Der vorherige Zustand wurde wiederhergestellt.', 'patsch9-rental-engine' ) . '</p></div>';
+                    return '<div class="notice notice-error"><p>' . esc_html__( 'The booking change could not be saved. The previous state was restored.', 'patsch9-rental-engine' ) . '</p></div>';
                 }
                 if ( 'order' === $row['source'] && $row['order_id'] && $row['order_item_id'] ) {
                     $order = wc_get_order( (int) $row['order_id'] );
@@ -2736,10 +2821,10 @@ final class RMWC_Plugin {
                         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                         $wpdb->update( $this->table(), $restore, [ 'id' => $booking_id ], $restore_formats, [ '%d' ] );
                         apply_filters( 'rmwc_validate_booking_update', true, $new_row, $row );
-                        return '<div class="notice notice-error"><p>' . esc_html__( 'Die WooCommerce-Bestellposition zur Buchung wurde nicht gefunden. Die Änderung wurde zurückgesetzt.', 'patsch9-rental-engine' ) . '</p></div>';
+                        return '<div class="notice notice-error"><p>' . esc_html__( 'The WooCommerce order item for the booking was not found. The change was reverted.', 'patsch9-rental-engine' ) . '</p></div>';
                     }
 
-                    $old_rental = $item->get_meta( '_clr_rental_data', true );
+                    $old_rental = $item->get_meta( '_rmwc_rental_data', true );
                     $old_pickup = $item->get_meta( 'Abholung', true );
                     $old_return = $item->get_meta( 'Rückgabe', true );
                     if ( ! is_array( $old_rental ) ) {
@@ -2752,7 +2837,7 @@ final class RMWC_Plugin {
                         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                         $wpdb->update( $this->table(), $restore, [ 'id' => $booking_id ], $restore_formats, [ '%d' ] );
                         apply_filters( 'rmwc_validate_booking_update', true, $new_row, $row );
-                        return '<div class="notice notice-error"><p>' . esc_html__( 'Die Mietdaten der WooCommerce-Bestellposition sind unvollständig. Die Änderung wurde zurückgesetzt.', 'patsch9-rental-engine' ) . '</p></div>';
+                        return '<div class="notice notice-error"><p>' . esc_html__( 'The rental data on the WooCommerce order item is incomplete. The change was reverted.', 'patsch9-rental-engine' ) . '</p></div>';
                     }
 
                     try {
@@ -2764,11 +2849,12 @@ final class RMWC_Plugin {
                         if ( isset( $interval['days'] ) ) {
                             $rental['days'] = max( 1, absint( $interval['days'] ) );
                         }
-                        $item->update_meta_data( '_clr_rental_data', $rental );
-                        $item->update_meta_data( 'Abholung', $this->format_datetime_display( $interval['start_at'] ) );
-                        $item->update_meta_data( 'Rückgabe', $this->format_datetime_display( $interval['end_at'] ) );
+                        $item->update_meta_data( '_rmwc_rental_data', $rental );
+                        $item->update_meta_data( __( 'Pickup / rental start', 'patsch9-rental-engine' ), $this->format_datetime_display( $interval['start_at'] ) );
+                        $item->update_meta_data( __( 'Return', 'patsch9-rental-engine' ), $this->format_datetime_display( $interval['end_at'] ) );
                         $item->save();
-                        $order->add_order_note( sprintf( 'Vermietung: Zeitraum der Buchung #%d administrativ geändert. Finanzielle Positionen wurden dadurch nicht automatisch neu berechnet.', $booking_id ) );
+                        /* translators: %d: Rental booking ID. */
+                        $order->add_order_note( sprintf( __( 'Rental: The period for booking #%d was changed by an administrator. Financial line items were not recalculated automatically.', 'patsch9-rental-engine' ), $booking_id ) );
                         $order->save();
                     } catch ( Throwable $throwable ) {
                         $restore = [];
@@ -2783,20 +2869,20 @@ final class RMWC_Plugin {
 
                         // Best-effort restoration of order-item metadata if a persistence error happened mid-update.
                         try {
-                            $item->update_meta_data( '_clr_rental_data', $old_rental );
-                            $item->update_meta_data( 'Abholung', $old_pickup );
-                            $item->update_meta_data( 'Rückgabe', $old_return );
+                            $item->update_meta_data( '_rmwc_rental_data', $old_rental );
+                            $item->update_meta_data( __( 'Pickup / rental start', 'patsch9-rental-engine' ), $old_pickup );
+                            $item->update_meta_data( __( 'Return', 'patsch9-rental-engine' ), $old_return );
                             $item->save();
                         } catch ( Throwable $restore_error ) {
                             // Do not expose internal exception details to the administrator or logs by default.
                         }
-                        return '<div class="notice notice-error"><p>' . esc_html__( 'Die Bestellposition konnte nicht sicher aktualisiert werden. Buchung und Gerätezuordnung wurden auf den vorherigen Stand zurückgesetzt.', 'patsch9-rental-engine' ) . '</p></div>';
+                        return '<div class="notice notice-error"><p>' . esc_html__( 'The order item could not be updated safely. The booking and equipment assignment were restored to their previous state.', 'patsch9-rental-engine' ) . '</p></div>';
                     }
                     do_action( 'rmwc_order_booking_changed', $order, $booking_id, $row, $new_row );
                 }
 
                 do_action( 'rmwc_booking_updated', $booking_id, $row, $new_row );
-                return '<div class="notice notice-success"><p>' . esc_html__( 'Buchung wurde aktualisiert.', 'patsch9-rental-engine' ) . '</p></div>';
+                return '<div class="notice notice-success"><p>' . esc_html__( 'Booking updated.', 'patsch9-rental-engine' ) . '</p></div>';
             } finally {
                 $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Releases the matching booking advisory lock immediately; caching is invalid here.
             }
@@ -2807,10 +2893,10 @@ final class RMWC_Plugin {
             $booking_id = isset( $_POST['booking_id'] ) ? absint( wp_unslash( $_POST['booking_id'] ) ) : 0;
             $row = $this->admin_booking_row( $booking_id );
             if ( ! $row ) {
-                return '<div class="notice notice-error"><p>' . esc_html__( 'Buchung nicht gefunden.', 'patsch9-rental-engine' ) . '</p></div>';
+                return '<div class="notice notice-error"><p>' . esc_html__( 'Booking not found.', 'patsch9-rental-engine' ) . '</p></div>';
             }
             if ( ! in_array( sanitize_key( $row['status'] ?? '' ), [ 'reserved', 'blocked' ], true ) || 'reserved' !== sanitize_key( $row['workflow_status'] ?? 'reserved' ) ) {
-                return '<div class="notice notice-error"><p>' . esc_html__( 'Eine bereits übergebene, zurückgegebene oder anderweitig abgeschlossene Buchung kann aus Nachweisgründen nicht gelöscht oder storniert werden.', 'patsch9-rental-engine' ) . '</p></div>';
+                return '<div class="notice notice-error"><p>' . esc_html__( 'A booking that has already been handed over, returned, or otherwise completed cannot be deleted or cancelled because its audit trail must be retained.', 'patsch9-rental-engine' ) . '</p></div>';
             }
             if ( 'order' === $row['source'] ) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
@@ -2820,19 +2906,20 @@ final class RMWC_Plugin {
                 if ( $order ) {
                     $item = $row['order_item_id'] ? $order->get_item( (int) $row['order_item_id'] ) : false;
                     if ( $item instanceof WC_Order_Item_Product ) {
-                        $item->update_meta_data( '_clr_booking_admin_cancelled', 'yes' );
+                        $item->update_meta_data( '_rmwc_booking_admin_cancelled', 'yes' );
                         $item->save();
                     }
-                    $order->add_order_note( sprintf( 'Vermietung: Buchung #%d wurde in der Mietverwaltung storniert. Die Bestellung selbst wurde nicht automatisch storniert; die Mietreservierung wird bei späteren Statuswechseln nicht neu erzeugt.', $booking_id ) );
+                    /* translators: %d: Rental booking ID. */
+                    $order->add_order_note( sprintf( __( 'Rental: Booking #%d has been cancelled in the rental management. The order itself has not been automatically cancelled; the rental reservation will not be created again at later status changes.', 'patsch9-rental-engine' ), $booking_id ) );
                     $order->save();
                 }
-                return '<div class="notice notice-success"><p>' . esc_html__( 'Die Bestellbuchung wurde storniert und bleibt aus Nachweisgründen in der Historie erhalten.', 'patsch9-rental-engine' ) . '</p></div>';
+                return '<div class="notice notice-success"><p>' . esc_html__( 'The order booking was cancelled and remains in the history to preserve its audit trail.', 'patsch9-rental-engine' ) . '</p></div>';
             }
 
             do_action( 'rmwc_booking_cancelled', $booking_id, 0 );
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $wpdb->delete( $this->table(), [ 'id' => $booking_id ], [ '%d' ] );
-            return '<div class="notice notice-success"><p>' . esc_html__( 'Manuelle Buchung/Sperre wurde gelöscht.', 'patsch9-rental-engine' ) . '</p></div>';
+            return '<div class="notice notice-success"><p>' . esc_html__( 'Manual booking/block was deleted.', 'patsch9-rental-engine' ) . '</p></div>';
         }
 
         if ( 'cancel_booking' === $action ) {
@@ -2841,18 +2928,18 @@ final class RMWC_Plugin {
             if ( $booking_id ) {
                 $row = $this->admin_booking_row( $booking_id );
                 if ( ! $row ) {
-                    return '<div class="notice notice-error"><p>' . esc_html__( 'Buchung nicht gefunden.', 'patsch9-rental-engine' ) . '</p></div>';
+                    return '<div class="notice notice-error"><p>' . esc_html__( 'Booking not found.', 'patsch9-rental-engine' ) . '</p></div>';
                 }
                 if ( ! in_array( sanitize_key( $row['status'] ?? '' ), [ 'reserved', 'blocked' ], true ) || 'reserved' !== sanitize_key( $row['workflow_status'] ?? 'reserved' ) ) {
-                    return '<div class="notice notice-error"><p>' . esc_html__( 'Eine bereits übergebene oder abgeschlossene Buchung kann nicht mehr freigegeben werden.', 'patsch9-rental-engine' ) . '</p></div>';
+                    return '<div class="notice notice-error"><p>' . esc_html__( 'A booking that has been handed over or completed can no longer be released.', 'patsch9-rental-engine' ) . '</p></div>';
                 }
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                 $updated = $wpdb->update( $this->table(), [ 'status' => 'cancelled' ], [ 'id' => $booking_id ], [ '%s' ], [ '%d' ] );
                 if ( false === $updated ) {
-                    return '<div class="notice notice-error"><p>' . esc_html__( 'Die Buchung konnte nicht freigegeben werden.', 'patsch9-rental-engine' ) . '</p></div>';
+                    return '<div class="notice notice-error"><p>' . esc_html__( 'The booking could not be released.', 'patsch9-rental-engine' ) . '</p></div>';
                 }
                 do_action( 'rmwc_booking_cancelled', $booking_id, absint( $row['order_id'] ) );
-                return '<div class="notice notice-success"><p>' . esc_html__( 'Buchung/Sperre freigegeben.', 'patsch9-rental-engine' ) . '</p></div>';
+                return '<div class="notice notice-success"><p>' . esc_html__( 'Booking/block released.', 'patsch9-rental-engine' ) . '</p></div>';
             }
         }
 
@@ -2866,7 +2953,7 @@ final class RMWC_Plugin {
             $end_date   = sanitize_text_field( wp_unslash( $_POST['end_date'] ?? '' ) );
             $qty        = min( $this->capacity( $product_id ), max( 1, absint( wp_unslash( $_POST['quantity'] ?? 1 ) ) ) );
             if ( ! $this->is_rental( $product_id ) ) {
-                return '<div class="notice notice-error"><p>Bitte ein gültiges Mietprodukt auswählen.</p></div>';
+                return '<div class="notice notice-error"><p>' . esc_html__( 'Please select a valid rental product.', 'patsch9-rental-engine' ) . '</p></div>';
             }
             $interval = $this->build_interval( $product_id, $start_date, $end_date );
             if ( is_wp_error( $interval ) ) {
@@ -2874,7 +2961,7 @@ final class RMWC_Plugin {
             }
             $email = $this->limit_text( sanitize_email( wp_unslash( $_POST['customer_email'] ?? '' ) ), 190 );
             if ( $email && ! is_email( $email ) ) {
-                return '<div class="notice notice-error"><p>Bitte eine gültige E-Mail-Adresse angeben.</p></div>';
+                return '<div class="notice notice-error"><p>' . esc_html__( 'Please enter a valid email address.', 'patsch9-rental-engine' ) . '</p></div>';
             }
             $result = $this->insert_booking_with_lock( $product_id, [
                 'product_id' => $product_id,
@@ -2898,11 +2985,11 @@ final class RMWC_Plugin {
                 global $wpdb;
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                 $wpdb->delete( $this->table(), [ 'id' => absint( $result ) ], [ '%d' ] );
-                $message = is_wp_error( $assignment ) ? $assignment->get_error_message() : __( 'Die Gerätezuordnung konnte nicht abgeschlossen werden.', 'patsch9-rental-engine' );
+                $message = is_wp_error( $assignment ) ? $assignment->get_error_message() : __( 'The equipment assignment could not be completed.', 'patsch9-rental-engine' );
                 return '<div class="notice notice-error"><p>' . esc_html( $message ) . '</p></div>';
             }
             do_action( 'rmwc_manual_booking_created', absint( $result ) );
-            return '<div class="notice notice-success"><p>Manuelle Buchung angelegt.</p></div>';
+            return '<div class="notice notice-success"><p>' . esc_html__( 'Manual booking created.', 'patsch9-rental-engine' ) . '</p></div>';
         }
 
         if ( 'add_block' === $action ) {
@@ -2912,12 +2999,12 @@ final class RMWC_Plugin {
                 $product_id = $manual_product->get_parent_id();
             }
             if ( ! $this->is_rental( $product_id ) ) {
-                return '<div class="notice notice-error"><p>Bitte ein gültiges Mietprodukt auswählen.</p></div>';
+                return '<div class="notice notice-error"><p>' . esc_html__( 'Please select a valid rental product.', 'patsch9-rental-engine' ) . '</p></div>';
             }
             $start = $this->parse_admin_datetime( sanitize_text_field( wp_unslash( $_POST['block_start'] ?? '' ) ) );
             $end   = $this->parse_admin_datetime( sanitize_text_field( wp_unslash( $_POST['block_end'] ?? '' ) ) );
             if ( ! $start || ! $end || $end <= $start ) {
-                return '<div class="notice notice-error"><p>Bitte einen gültigen Sperrzeitraum angeben.</p></div>';
+                return '<div class="notice notice-error"><p>' . esc_html__( 'Please enter a valid blocked period.', 'patsch9-rental-engine' ) . '</p></div>';
             }
             $qty = absint( wp_unslash( $_POST['quantity'] ?? 0 ) );
             if ( $qty <= 0 ) {
@@ -2969,15 +3056,15 @@ final class RMWC_Plugin {
             $tab = 'calendar';
         }
         ?>
-        <div class="wrap clr-admin-wrap">
-            <h1>Vermietungen</h1>
+        <div class="wrap rmwc-admin-wrap">
+            <h1><?php esc_html_e( 'Rentals', 'patsch9-rental-engine' ); ?></h1>
             <?php echo wp_kses_post( $notice ); ?>
             <nav class="nav-tab-wrapper">
-                <a class="<?php echo esc_attr( 'nav-tab' . ( 'calendar' === $tab ? ' nav-tab-active' : '' ) ); ?>" href="<?php echo esc_url( admin_url( 'admin.php?page=clr-rentals&tab=calendar' ) ); ?>">Kalender & Buchungen</a>
-                <a class="<?php echo esc_attr( 'nav-tab' . ( 'inventory' === $tab ? ' nav-tab-active' : '' ) ); ?>" href="<?php echo esc_url( admin_url( 'admin.php?page=clr-rentals&tab=inventory' ) ); ?>">Geräte</a>
-                <a class="<?php echo esc_attr( 'nav-tab' . ( 'workflow' === $tab ? ' nav-tab-active' : '' ) ); ?>" href="<?php echo esc_url( admin_url( 'admin.php?page=clr-rentals&tab=workflow' ) ); ?>">Übergabe &amp; Rückgabe</a>
-                <a class="<?php echo esc_attr( 'nav-tab' . ( 'terms' === $tab ? ' nav-tab-active' : '' ) ); ?>" href="<?php echo esc_url( admin_url( 'admin.php?page=clr-rentals&tab=terms' ) ); ?>">Mietbedingungen</a>
-                <a class="<?php echo esc_attr( 'nav-tab' . ( 'settings' === $tab ? ' nav-tab-active' : '' ) ); ?>" href="<?php echo esc_url( admin_url( 'admin.php?page=clr-rentals&tab=settings' ) ); ?>">Einstellungen</a>
+                <a class="<?php echo esc_attr( 'nav-tab' . ( 'calendar' === $tab ? ' nav-tab-active' : '' ) ); ?>" href="<?php echo esc_url( admin_url( 'admin.php?page=rmwc-rentals&tab=calendar' ) ); ?>"><?php esc_html_e( 'Calendar & Bookings', 'patsch9-rental-engine' ); ?></a>
+                <a class="<?php echo esc_attr( 'nav-tab' . ( 'inventory' === $tab ? ' nav-tab-active' : '' ) ); ?>" href="<?php echo esc_url( admin_url( 'admin.php?page=rmwc-rentals&tab=inventory' ) ); ?>"><?php esc_html_e( 'Equipment', 'patsch9-rental-engine' ); ?></a>
+                <a class="<?php echo esc_attr( 'nav-tab' . ( 'workflow' === $tab ? ' nav-tab-active' : '' ) ); ?>" href="<?php echo esc_url( admin_url( 'admin.php?page=rmwc-rentals&tab=workflow' ) ); ?>"><?php esc_html_e( 'Handover & return', 'patsch9-rental-engine' ); ?></a>
+                <a class="<?php echo esc_attr( 'nav-tab' . ( 'terms' === $tab ? ' nav-tab-active' : '' ) ); ?>" href="<?php echo esc_url( admin_url( 'admin.php?page=rmwc-rentals&tab=terms' ) ); ?>"><?php esc_html_e( 'Rental terms', 'patsch9-rental-engine' ); ?></a>
+                <a class="<?php echo esc_attr( 'nav-tab' . ( 'settings' === $tab ? ' nav-tab-active' : '' ) ); ?>" href="<?php echo esc_url( admin_url( 'admin.php?page=rmwc-rentals&tab=settings' ) ); ?>"><?php esc_html_e( 'Settings', 'patsch9-rental-engine' ); ?></a>
             </nav>
             <?php
             if ( 'settings' === $tab ) {
@@ -2993,46 +3080,49 @@ final class RMWC_Plugin {
     }
 
     private function render_admin_settings() {
-        $origin  = get_option( 'clr_delivery_origin', '' );
+        $origin  = get_option( 'rmwc_delivery_origin', '' );
         $api_key_from_constant = defined( 'RMWC_GOOGLE_ROUTES_API_KEY' );
         $has_api_key = '' !== $this->google_routes_api_key();
-        $routes_enabled = 'yes' === get_option( 'clr_google_routes_enabled', 'no' );
-        $enabled = 'yes' === get_option( 'clr_reminder_enabled', 'no' );
-        $hours   = max( 1, (int) get_option( 'clr_reminder_hours', 24 ) );
-        $subject = get_option( 'clr_reminder_subject', 'Erinnerung an Ihre Miete: %product%' );
-        $body    = get_option( 'clr_reminder_body', "Hallo %name%,\n\nwir erinnern an Ihre bevorstehende Miete von %product%.\nAbholung/Mietbeginn: %pickup%\nRückgabe: %return%\n\nViele Grüße" );
+        $routes_enabled = 'yes' === get_option( 'rmwc_google_routes_enabled', 'no' );
+        $enabled = 'yes' === get_option( 'rmwc_reminder_enabled', 'no' );
+        $hours   = max( 1, (int) get_option( 'rmwc_reminder_hours', 24 ) );
+        $subject = get_option( 'rmwc_reminder_subject', __( 'Reminder for your rental: %product%', 'patsch9-rental-engine' ) );
+        $body    = get_option( 'rmwc_reminder_body', __( "Hello %name%,\n\nThis is a reminder of your upcoming rental of %product%.\nPickup / rental start: %pickup%\nReturn: %return%\n\nBest regards", 'patsch9-rental-engine' ) );
         ?>
-        <form method="post" class="clr-settings-form">
-            <?php wp_nonce_field( 'clr_admin_action', 'clr_admin_nonce' ); ?>
-            <input type="hidden" name="clr_action" value="save_settings">
-            <h2>Lieferentfernung</h2>
-            <p>Wenn Startadresse und Google-Routes-API-Key gesetzt sind, berechnet das Plugin die tatsächliche Fahrstrecke serverseitig und ordnet automatisch die passende Lieferzone des Produkts zu.</p>
+        <form method="post" class="rmwc-settings-form">
+            <?php wp_nonce_field( 'rmwc_admin_action', 'rmwc_admin_nonce' ); ?>
+            <input type="hidden" name="rmwc_action" value="save_settings">
+            <h2><?php esc_html_e( 'Delivery distance', 'patsch9-rental-engine' ); ?></h2>
+            <p><?php esc_html_e( 'If start address and Google Routes API key are set, the plugin calculates the actual route on the server side and automatically assigns the appropriate delivery zone of the product.', 'patsch9-rental-engine' ); ?></p>
             <table class="form-table"><tbody>
-                <tr><th>Externer Dienst</th><td><label><input type="checkbox" name="clr_google_routes_enabled" value="1" <?php checked( $routes_enabled ); ?>> Google Routes API ausdrücklich aktivieren</label><p class="description"><strong>Datenschutz:</strong> Nur wenn aktiviert, wird bei der Entfernungsberechnung die vom Kunden eingegebene Lieferadresse zusammen mit der Startadresse an Google übertragen. Ohne Aktivierung erfolgen keine Google-Routes-Anfragen.</p></td></tr>
-                <tr><th><label for="clr_delivery_origin">Startadresse</label></th><td><input class="regular-text" maxlength="250" type="text" id="clr_delivery_origin" name="clr_delivery_origin" value="<?php echo esc_attr( $origin ); ?>" placeholder="z. B. Besenhausen 1, 37133 Friedland"></td></tr>
-                <tr><th><label for="clr_google_routes_api_key">Google Routes API Key</label></th><td><?php if ( $api_key_from_constant ) : ?><p><strong><?php esc_html_e( 'API-Key wird über wp-config.php bereitgestellt.', 'patsch9-rental-engine' ); ?></strong></p><p class="description"><?php esc_html_e( 'Der Key wird dadurch nicht in der WordPress-Datenbank gespeichert und kann hier nicht geändert werden.', 'patsch9-rental-engine' ); ?></p><?php else : ?><input class="regular-text" maxlength="255" type="password" id="clr_google_routes_api_key" name="clr_google_routes_api_key" value="" placeholder="<?php echo esc_attr( $has_api_key ? __( 'API-Key gespeichert – leer lassen zum Beibehalten', 'patsch9-rental-engine' ) : '' ); ?>" autocomplete="new-password"><p class="description"><?php esc_html_e( 'Der gespeicherte Key wird aus Sicherheitsgründen nicht zurück in das HTML-Formular geschrieben. Noch sicherer ist die Bereitstellung über RMWC_GOOGLE_ROUTES_API_KEY in wp-config.php.', 'patsch9-rental-engine' ); ?></p><?php if ( $has_api_key ) : ?><label><input type="checkbox" name="clr_google_routes_clear_key" value="1"> <?php esc_html_e( 'gespeicherten API-Key löschen', 'patsch9-rental-engine' ); ?></label><?php endif; ?><?php endif; ?></td></tr>
+                <tr><th><?php esc_html_e( 'External service', 'patsch9-rental-engine' ); ?></th><td><label><input type="checkbox" name="rmwc_google_routes_enabled" value="1" <?php checked( $routes_enabled ); ?>> <?php esc_html_e( 'Enable Google Routes API explicitly', 'patsch9-rental-engine' ); ?></label><p class="description"><strong><?php esc_html_e( 'Data protection:', 'patsch9-rental-engine' ); ?></strong> <?php esc_html_e( 'Only when activated, the delivery address entered by the customer together with the start address is transmitted to Google. Without activation, Google route requests are not made.', 'patsch9-rental-engine' ); ?></p></td></tr>
+                <tr><th><label for="rmwc_delivery_origin"><?php esc_html_e( 'Origin address', 'patsch9-rental-engine' ); ?></label></th><td><input class="regular-text" maxlength="250" type="text" id="rmwc_delivery_origin" name="rmwc_delivery_origin" value="<?php echo esc_attr( $origin ); ?>" placeholder="<?php esc_attr_e( 'e.g. 123 Example Street, Example City', 'patsch9-rental-engine' ); ?>"></td></tr>
+                <tr><th><label for="rmwc_google_routes_api_key"><?php esc_html_e( 'Google Routes API key', 'patsch9-rental-engine' ); ?></label></th><td><?php if ( $api_key_from_constant ) : ?><p><strong><?php esc_html_e( 'API key is provided via wp-config.php.', 'patsch9-rental-engine' ); ?></strong></p><p class="description"><?php esc_html_e( 'The key is not saved in the WordPress database and cannot be changed here.', 'patsch9-rental-engine' ); ?></p><?php else : ?><input class="regular-text" maxlength="255" type="password" id="rmwc_google_routes_api_key" name="rmwc_google_routes_api_key" value="" placeholder="<?php echo esc_attr( $has_api_key ? __( 'API key saved – leave empty to keep', 'patsch9-rental-engine' ) : '' ); ?>" autocomplete="new-password"><p class="description"><?php esc_html_e( 'For security reasons, the stored key is not written back into the HTML form. Even more secure is the deployment via RMWC_GOOGLE_ROUTES_API_KEY in wp-config.php.', 'patsch9-rental-engine' ); ?></p><?php if ( $has_api_key ) : ?><label><input type="checkbox" name="rmwc_google_routes_clear_key" value="1"> <?php esc_html_e( 'Delete saved API key', 'patsch9-rental-engine' ); ?></label><?php endif; ?><?php endif; ?></td></tr>
             </tbody></table>
 
-            <h2>Erinnerungsmails</h2>
+            <h2><?php esc_html_e( 'Reminder emails', 'patsch9-rental-engine' ); ?></h2>
             <table class="form-table"><tbody>
-                <tr><th>Aktiv</th><td><label><input type="checkbox" name="clr_reminder_enabled" value="1" <?php checked( $enabled ); ?>> Kunden vor der Miete erinnern</label></td></tr>
-                <tr><th><label for="clr_reminder_hours">Vorlauf in Stunden</label></th><td><input type="number" min="1" step="1" id="clr_reminder_hours" name="clr_reminder_hours" value="<?php echo esc_attr( $hours ); ?>"></td></tr>
-                <tr><th><label for="clr_reminder_subject">Betreff</label></th><td><input class="large-text" type="text" id="clr_reminder_subject" name="clr_reminder_subject" value="<?php echo esc_attr( $subject ); ?>"></td></tr>
-                <tr><th><label for="clr_reminder_body">Text</label></th><td><textarea class="large-text" rows="8" id="clr_reminder_body" name="clr_reminder_body"><?php echo esc_textarea( $body ); ?></textarea><p class="description">Platzhalter: %name%, %product%, %pickup%, %return%, %order%</p></td></tr>
+                <tr><th><?php esc_html_e( 'Active', 'patsch9-rental-engine' ); ?></th><td><label><input type="checkbox" name="rmwc_reminder_enabled" value="1" <?php checked( $enabled ); ?>> <?php esc_html_e( 'Remind customers before renting', 'patsch9-rental-engine' ); ?></label></td></tr>
+                <tr><th><label for="rmwc_reminder_hours"><?php esc_html_e( 'Lead time in hours', 'patsch9-rental-engine' ); ?></label></th><td><input type="number" min="1" step="1" id="rmwc_reminder_hours" name="rmwc_reminder_hours" value="<?php echo esc_attr( $hours ); ?>"></td></tr>
+                <tr><th><label for="rmwc_reminder_subject"><?php esc_html_e( 'Subject', 'patsch9-rental-engine' ); ?></label></th><td><input class="large-text" type="text" id="rmwc_reminder_subject" name="rmwc_reminder_subject" value="<?php echo esc_attr( $subject ); ?>"></td></tr>
+                <tr><th><label for="rmwc_reminder_body"><?php esc_html_e( 'Text', 'patsch9-rental-engine' ); ?></label></th><td><textarea class="large-text" rows="8" id="rmwc_reminder_body" name="rmwc_reminder_body"><?php echo esc_textarea( $body ); ?></textarea><p class="description"><?php
+      /* translators: Literal reminder-template tokens. Keep %name%, %product%, %pickup%, %return% and %order% unchanged. */
+      esc_html_e( 'Placeholders: %name%, %product%, %pickup%, %return%, %order%', 'patsch9-rental-engine' );
+      ?></p></td></tr>
             </tbody></table>
 
-            <h2>Daten bei Deinstallation</h2>
-            <h2>Buchungsreservierung</h2>
-            <table class="form-table"><tbody><tr><th><label for="clr_unpaid_hold_minutes">Unbezahlte Online-Reservierung halten</label></th><td><input type="number" min="5" max="1440" step="1" id="clr_unpaid_hold_minutes" name="clr_unpaid_hold_minutes" value="<?php echo esc_attr( max( 5, min( 1440, (int) get_option( 'clr_unpaid_hold_minutes', 60 ) ) ) ); ?>"> Minuten<p class="description">Nur unbezahlte Pending-Bestellungen mit einer Online-Zahlungsart werden nach dieser Frist automatisch storniert und der Mietbestand freigegeben. Zahlungsarten aus der Liste „Offline-Zahlungsarten“ (z. B. Rechnung/Überweisung) sind ausgenommen und bleiben bis zur manuellen bzw. gatewayseitigen Statusänderung reserviert. Das Plugin schützt diese Mietbestellungen zusätzlich vor der WooCommerce-eigenen Pending-Stornierung.</p></td></tr></tbody></table>
-            <table class="form-table"><tbody><tr><th>Bereinigung</th><td><label><input type="checkbox" name="clr_delete_data_on_uninstall" value="1" <?php checked( 'yes' === get_option( 'clr_delete_data_on_uninstall', 'no' ) ); ?>> Buchungstabelle und Plugin-Einstellungen beim Löschen des Plugins endgültig entfernen</label><p class="description">Standardmäßig bleiben Buchungsdaten erhalten, damit Geschäftsunterlagen nicht versehentlich durch eine Plugin-Deinstallation gelöscht werden.</p></td></tr></tbody></table>
+            <h2><?php esc_html_e( 'Data on uninstall', 'patsch9-rental-engine' ); ?></h2>
+            <h2><?php esc_html_e( 'Reservations', 'patsch9-rental-engine' ); ?></h2>
+            <table class="form-table"><tbody><tr><th><label for="rmwc_unpaid_hold_minutes"><?php esc_html_e( 'Hold unpaid online reservation', 'patsch9-rental-engine' ); ?></label></th><td><input type="number" min="5" max="1440" step="1" id="rmwc_unpaid_hold_minutes" name="rmwc_unpaid_hold_minutes" value="<?php echo esc_attr( max( 5, min( 1440, (int) get_option( 'rmwc_unpaid_hold_minutes', 60 ) ) ) ); ?>"> <?php esc_html_e( 'Minutes', 'patsch9-rental-engine' ); ?><p class="description"><?php esc_html_e( 'Only unpaid pending orders with an online payment method are automatically cancelled after this period and the rental stock is released. Payment methods from the list "Offline payment methods" (e.g. invoice/transfer) are excluded and remain reserved until the manual or gateway-side status change. The plugin also protects these rental orders from WooCommerce\'s own Pending cancellation.', 'patsch9-rental-engine' ); ?></p></td></tr></tbody></table>
+            <table class="form-table"><tbody><tr><th><?php esc_html_e( 'Cleanup', 'patsch9-rental-engine' ); ?></th><td><label><input type="checkbox" name="rmwc_delete_data_on_uninstall" value="1" <?php checked( 'yes' === get_option( 'rmwc_delete_data_on_uninstall', 'no' ) ); ?>> <?php esc_html_e( 'Permanently remove booking tables and plugin settings when deleting the plugin', 'patsch9-rental-engine' ); ?></label><p class="description"><?php esc_html_e( 'By default, booking data is retained so that uninstalling the plugin does not accidentally delete business records.', 'patsch9-rental-engine' ); ?></p></td></tr></tbody></table>
             <?php do_action( 'rmwc_render_admin_tab_settings_after' ); ?>
-            <?php submit_button( 'Einstellungen speichern' ); ?>
+            <?php submit_button( __( 'Save Settings', 'patsch9-rental-engine' ) ); ?>
         </form>
         <?php
     }
 
     private function rental_product_search_field( $name ) {
-        echo '<select class="wc-product-search" style="width:100%" name="' . esc_attr( $name ) . '" data-placeholder="Mietprodukt suchen…" data-action="woocommerce_json_search_products_and_variations" data-allow_clear="true"></select>';
+        echo '<select class="wc-product-search" style="width:100%" name="' . esc_attr( $name ) . '" data-placeholder="' . esc_attr__( 'Search rental products…', 'patsch9-rental-engine' ) . '" data-action="woocommerce_json_search_products_and_variations" data-allow_clear="true"></select>';
     }
 
     private function render_admin_calendar_and_bookings() {
@@ -3086,99 +3176,99 @@ final class RMWC_Plugin {
             $edit_start_local = $edit_is_block && $edit_row['start_at'] ? ( new DateTimeImmutable( $edit_row['start_at'], wp_timezone() ) )->format( 'Y-m-d\TH:i' ) : '';
             $edit_end_local   = $edit_is_block && $edit_row['end_at'] ? ( new DateTimeImmutable( $edit_row['end_at'], wp_timezone() ) )->format( 'Y-m-d\TH:i' ) : '';
             ?>
-            <section class="clr-admin-card clr-booking-edit-card">
-                <div class="clr-v2-card-heading">
+            <section class="rmwc-admin-card rmwc-booking-edit-card">
+                <div class="rmwc-v2-card-heading">
                     <div>
                         <?php /* translators: %d: internal rental booking ID. */ ?>
-                        <h2><?php echo esc_html( sprintf( __( 'Buchung #%d bearbeiten', 'patsch9-rental-engine' ), (int) $edit_row['id'] ) ); ?></h2>
+                        <h2><?php echo esc_html( sprintf( __( 'Edit Booking #%d', 'patsch9-rental-engine' ), (int) $edit_row['id'] ) ); ?></h2>
                         <p><?php echo esc_html( $edit_product ? $edit_product->get_name() : '#' . (int) $edit_row['product_id'] ); ?></p>
                     </div>
-                    <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=clr-rentals&tab=calendar' ) ); ?>"><?php esc_html_e( 'Abbrechen', 'patsch9-rental-engine' ); ?></a>
+                    <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=rmwc-rentals&tab=calendar' ) ); ?>"><?php esc_html_e( 'Cancel', 'patsch9-rental-engine' ); ?></a>
                 </div>
                 <?php if ( 'reserved' !== sanitize_key( $edit_row['workflow_status'] ?? 'reserved' ) ) : ?>
-                    <div class="notice notice-warning inline"><p><?php esc_html_e( 'Diese Vermietung wurde bereits übergeben und kann deshalb nicht mehr nachträglich umdatiert werden. Die Historie und Protokolle bleiben unveränderlich.', 'patsch9-rental-engine' ); ?></p></div>
+                    <div class="notice notice-warning inline"><p><?php esc_html_e( 'This rental has already been handed over and can therefore no longer be re-dated afterwards. The history and protocols remain unchanged.', 'patsch9-rental-engine' ); ?></p></div>
                 <?php else : ?>
                     <form method="post">
-                        <?php wp_nonce_field( 'clr_admin_action', 'clr_admin_nonce' ); ?>
-                        <input type="hidden" name="clr_action" value="update_booking">
+                        <?php wp_nonce_field( 'rmwc_admin_action', 'rmwc_admin_nonce' ); ?>
+                        <input type="hidden" name="rmwc_action" value="update_booking">
                         <input type="hidden" name="booking_id" value="<?php echo esc_attr( $edit_row['id'] ); ?>">
                         <?php if ( $edit_is_block ) : ?>
-                            <div class="clr-form-cols">
-                                <p><label><?php esc_html_e( 'Von', 'patsch9-rental-engine' ); ?><input type="datetime-local" name="block_start" value="<?php echo esc_attr( $edit_start_local ); ?>" required></label></p>
-                                <p><label><?php esc_html_e( 'Bis', 'patsch9-rental-engine' ); ?><input type="datetime-local" name="block_end" value="<?php echo esc_attr( $edit_end_local ); ?>" required></label></p>
+                            <div class="rmwc-form-cols">
+                                <p><label><?php esc_html_e( 'From', 'patsch9-rental-engine' ); ?><input type="datetime-local" name="block_start" value="<?php echo esc_attr( $edit_start_local ); ?>" required></label></p>
+                                <p><label><?php esc_html_e( 'To', 'patsch9-rental-engine' ); ?><input type="datetime-local" name="block_end" value="<?php echo esc_attr( $edit_end_local ); ?>" required></label></p>
                             </div>
                         <?php else : ?>
-                            <div class="clr-form-cols">
-                                <p><label><?php esc_html_e( 'Abholdatum', 'patsch9-rental-engine' ); ?><input type="date" name="start_date" value="<?php echo esc_attr( $edit_row['start_date'] ); ?>" required></label></p>
-                                <p><label><?php esc_html_e( 'Rückgabedatum', 'patsch9-rental-engine' ); ?><input type="date" name="end_date" value="<?php echo esc_attr( $edit_row['end_date'] ); ?>" required></label></p>
+                            <div class="rmwc-form-cols">
+                                <p><label><?php esc_html_e( 'Pick-up date', 'patsch9-rental-engine' ); ?><input type="date" name="start_date" value="<?php echo esc_attr( $edit_row['start_date'] ); ?>" required></label></p>
+                                <p><label><?php esc_html_e( 'Return date', 'patsch9-rental-engine' ); ?><input type="date" name="end_date" value="<?php echo esc_attr( $edit_row['end_date'] ); ?>" required></label></p>
                             </div>
                         <?php endif; ?>
                         <?php if ( 'order' !== $edit_row['source'] ) : ?>
-                            <p><label><?php esc_html_e( 'Anzahl', 'patsch9-rental-engine' ); ?><input type="number" name="quantity" min="1" max="<?php echo esc_attr( $this->capacity( (int) $edit_row['product_id'] ) ); ?>" value="<?php echo esc_attr( $edit_row['quantity'] ); ?>" required></label></p>
+                            <p><label><?php esc_html_e( 'Number', 'patsch9-rental-engine' ); ?><input type="number" name="quantity" min="1" max="<?php echo esc_attr( $this->capacity( (int) $edit_row['product_id'] ) ); ?>" value="<?php echo esc_attr( $edit_row['quantity'] ); ?>" required></label></p>
                         <?php else : ?>
-                            <p><strong><?php esc_html_e( 'Anzahl:', 'patsch9-rental-engine' ); ?></strong> <?php echo esc_html( $edit_row['quantity'] ); ?> <span class="description"><?php esc_html_e( 'Die Menge einer bezahlten Bestellung wird hier bewusst nicht verändert.', 'patsch9-rental-engine' ); ?></span></p>
+                            <p><strong><?php esc_html_e( 'Number:', 'patsch9-rental-engine' ); ?></strong> <?php echo esc_html( $edit_row['quantity'] ); ?> <span class="description"><?php esc_html_e( 'The quantity of an already paid order cannot be changed here.', 'patsch9-rental-engine' ); ?></span></p>
                         <?php endif; ?>
                         <?php if ( 'manual' === $edit_row['source'] ) : ?>
-                            <div class="clr-form-cols">
-                                <p><label><?php esc_html_e( 'Kundenname', 'patsch9-rental-engine' ); ?><input type="text" name="customer_name" maxlength="190" value="<?php echo esc_attr( $edit_row['customer_name'] ); ?>"></label></p>
+                            <div class="rmwc-form-cols">
+                                <p><label><?php esc_html_e( 'Customer name', 'patsch9-rental-engine' ); ?><input type="text" name="customer_name" maxlength="190" value="<?php echo esc_attr( $edit_row['customer_name'] ); ?>"></label></p>
                                 <p><label><?php esc_html_e( 'E-Mail', 'patsch9-rental-engine' ); ?><input type="email" name="customer_email" maxlength="190" value="<?php echo esc_attr( $edit_row['customer_email'] ); ?>"></label></p>
                             </div>
                         <?php endif; ?>
-                        <p><label><?php esc_html_e( 'Notiz', 'patsch9-rental-engine' ); ?><textarea name="note" rows="3" maxlength="2000"><?php echo esc_textarea( $edit_row['note'] ); ?></textarea></label></p>
+                        <p><label><?php esc_html_e( 'Note', 'patsch9-rental-engine' ); ?><textarea name="note" rows="3" maxlength="2000"><?php echo esc_textarea( $edit_row['note'] ); ?></textarea></label></p>
                         <?php if ( 'order' === $edit_row['source'] ) : ?>
-                            <p class="description"><?php esc_html_e( 'Eine Terminänderung aktualisiert die Mietdaten und Verfügbarkeit, nicht automatisch den bereits berechneten Bestellpreis. Die Änderung wird als Bestellnotiz protokolliert.', 'patsch9-rental-engine' ); ?></p>
+                            <p class="description"><?php esc_html_e( 'A change of date updates the rental data and availability, not automatically the already calculated order price. The change is logged as an order notice.', 'patsch9-rental-engine' ); ?></p>
                         <?php endif; ?>
-                        <?php submit_button( __( 'Buchung speichern', 'patsch9-rental-engine' ), 'primary', 'submit', false ); ?>
+                        <?php submit_button( __( 'Save Booking', 'patsch9-rental-engine' ), 'primary', 'submit', false ); ?>
                     </form>
                 <?php endif; ?>
             </section>
         <?php endif; ?>
-        <div class="clr-admin-grid">
-            <section class="clr-admin-card">
-                <h2>Manuelle Buchung</h2>
+        <div class="rmwc-admin-grid">
+            <section class="rmwc-admin-card">
+                <h2><?php esc_html_e( 'Manual booking', 'patsch9-rental-engine' ); ?></h2>
                 <form method="post">
-                    <?php wp_nonce_field( 'clr_admin_action', 'clr_admin_nonce' ); ?>
-                    <input type="hidden" name="clr_action" value="add_manual">
+                    <?php wp_nonce_field( 'rmwc_admin_action', 'rmwc_admin_nonce' ); ?>
+                    <input type="hidden" name="rmwc_action" value="add_manual">
                     <p><label>Produkt<?php $this->rental_product_search_field( 'product_id' ); ?></label></p>
-                    <div class="clr-form-cols"><p><label>Abholdatum<input type="date" name="start_date" required></label></p><p><label>Rückgabedatum<input type="date" name="end_date" required></label></p></div>
-                    <p><label>Anzahl<input type="number" name="quantity" min="1" step="1" value="1" required></label></p>
-                    <p><label>Kundenname<input type="text" name="customer_name"></label></p>
-                    <p><label>E-Mail<input type="email" name="customer_email"></label></p>
-                    <p><label>Notiz<textarea name="note" rows="2"></textarea></label></p>
-                    <button class="button button-primary">Buchung anlegen</button>
+                    <div class="rmwc-form-cols"><p><label><?php esc_html_e( 'Pick-up date', 'patsch9-rental-engine' ); ?><input type="date" name="start_date" required></label></p><p><label><?php esc_html_e( 'Return date', 'patsch9-rental-engine' ); ?><input type="date" name="end_date" required></label></p></div>
+                    <p><label><?php esc_html_e( 'Number', 'patsch9-rental-engine' ); ?><input type="number" name="quantity" min="1" step="1" value="1" required></label></p>
+                    <p><label><?php esc_html_e( 'Customer name', 'patsch9-rental-engine' ); ?><input type="text" name="customer_name"></label></p>
+                    <p><label><?php esc_html_e( 'E-Mail', 'patsch9-rental-engine' ); ?><input type="email" name="customer_email"></label></p>
+                    <p><label><?php esc_html_e( 'Note', 'patsch9-rental-engine' ); ?><textarea name="note" rows="2"></textarea></label></p>
+                    <button class="button button-primary"><?php esc_html_e( 'Create a booking', 'patsch9-rental-engine' ); ?></button>
                 </form>
             </section>
-            <section class="clr-admin-card">
-                <h2>Zeitraum sperren</h2>
+            <section class="rmwc-admin-card">
+                <h2><?php esc_html_e( 'Lock the period', 'patsch9-rental-engine' ); ?></h2>
                 <form method="post">
-                    <?php wp_nonce_field( 'clr_admin_action', 'clr_admin_nonce' ); ?>
-                    <input type="hidden" name="clr_action" value="add_block">
+                    <?php wp_nonce_field( 'rmwc_admin_action', 'rmwc_admin_nonce' ); ?>
+                    <input type="hidden" name="rmwc_action" value="add_block">
                     <p><label>Produkt<?php $this->rental_product_search_field( 'product_id' ); ?></label></p>
-                    <div class="clr-form-cols"><p><label>Von<input type="datetime-local" name="block_start" required></label></p><p><label>Bis<input type="datetime-local" name="block_end" required></label></p></div>
-                    <p><label>Anzahl<input type="number" name="quantity" min="0" step="1" value="0"><span class="description">0 = gesamte Produktkapazität sperren</span></label></p>
-                    <p><label>Grund/Notiz<textarea name="note" rows="3" placeholder="z. B. Wartung, eigene Veranstaltung"></textarea></label></p>
-                    <button class="button">Sperre anlegen</button>
+                    <div class="rmwc-form-cols"><p><label><?php esc_html_e( 'From', 'patsch9-rental-engine' ); ?><input type="datetime-local" name="block_start" required></label></p><p><label><?php esc_html_e( 'To', 'patsch9-rental-engine' ); ?><input type="datetime-local" name="block_end" required></label></p></div>
+                    <p><label><?php esc_html_e( 'Number', 'patsch9-rental-engine' ); ?><input type="number" name="quantity" min="0" step="1" value="0"><span class="description"><?php esc_html_e( '0 = total product capacity lock', 'patsch9-rental-engine' ); ?></span></label></p>
+                    <p><label><?php esc_html_e( 'Reason / note', 'patsch9-rental-engine' ); ?><textarea name="note" rows="3" placeholder="<?php esc_attr_e( 'e.g. maintenance, internal event', 'patsch9-rental-engine' ); ?>"></textarea></label></p>
+                    <button class="button"><?php esc_html_e( 'Set Lock', 'patsch9-rental-engine' ); ?></button>
                 </form>
             </section>
         </div>
 
-        <section class="clr-admin-card clr-calendar-card">
-            <div class="clr-admin-cal-head">
-                <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=clr-rentals&month=' . $prev . ( $product_filter ? '&product_id=' . $product_filter : '' ) ) ); ?>">‹</a>
+        <section class="rmwc-admin-card rmwc-calendar-card">
+            <div class="rmwc-admin-cal-head">
+                <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=rmwc-rentals&month=' . $prev . ( $product_filter ? '&product_id=' . $product_filter : '' ) ) ); ?>">‹</a>
                 <h2><?php echo esc_html( wp_date( 'F Y', $month_start->getTimestamp(), wp_timezone() ) ); ?></h2>
-                <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=clr-rentals&month=' . $next . ( $product_filter ? '&product_id=' . $product_filter : '' ) ) ); ?>">›</a>
+                <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=rmwc-rentals&month=' . $next . ( $product_filter ? '&product_id=' . $product_filter : '' ) ) ); ?>">›</a>
             </div>
             <?php $this->render_month_calendar( $month_start, $calendar_rows ); ?>
         </section>
 
-        <section class="clr-admin-card">
-            <h2>Letzte Buchungen und Sperren</h2>
-            <table class="widefat striped"><thead><tr><th>ID</th><th>Quelle</th><th>Produkt</th><th>Zeitraum</th><th>Kunde</th><th>Bestellung</th><th>Anzahl</th><th>Kaution</th><th>Status</th><th></th></tr></thead><tbody>
-            <?php if ( ! $list_rows ) : ?><tr><td colspan="10">Noch keine Buchungen.</td></tr><?php endif; ?>
+        <section class="rmwc-admin-card">
+            <h2><?php esc_html_e( 'Last Bookings and Locks', 'patsch9-rental-engine' ); ?></h2>
+            <table class="widefat striped"><thead><tr><th><?php esc_html_e( 'ID', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'Source', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'Product', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'Period', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'Customer', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'Order', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'Number', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'Security deposit', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'Status', 'patsch9-rental-engine' ); ?></th><th></th></tr></thead><tbody>
+            <?php if ( ! $list_rows ) : ?><tr><td colspan="10"><?php esc_html_e( 'No bookings yet.', 'patsch9-rental-engine' ); ?></td></tr><?php endif; ?>
             <?php foreach ( $list_rows as $row ) :
                 $p = wc_get_product( $row['product_id'] );
                 $o = $row['order_id'] ? wc_get_order( $row['order_id'] ) : null;
-                $deposit_status = $o ? ( $o->get_meta( '_clr_deposit_status', true ) ?: '–' ) : '–';
+                $deposit_status = $o ? ( $o->get_meta( '_rmwc_deposit_status', true ) ?: '–' ) : '–';
                 ?>
                 <tr>
                     <td><?php echo (int) $row['id']; ?></td>
@@ -3190,14 +3280,14 @@ final class RMWC_Plugin {
                     <td><?php echo (int) $row['quantity']; ?></td>
                     <td><?php echo esc_html( $deposit_status ); ?></td>
                     <td><?php echo esc_html( $row['status'] ); ?></td>
-                    <td class="clr-row-actions">
+                    <td class="rmwc-row-actions">
                         <?php if ( in_array( $row['status'], [ 'reserved', 'blocked' ], true ) && 'reserved' === sanitize_key( $row['workflow_status'] ?? 'reserved' ) ) : ?>
-                            <a class="button button-small" href="<?php echo esc_url( admin_url( 'admin.php?page=clr-rentals&tab=calendar&edit_booking=' . (int) $row['id'] ) ); ?>"><?php esc_html_e( 'Bearbeiten', 'patsch9-rental-engine' ); ?></a>
-                            <form method="post" onsubmit="return confirm('<?php echo esc_js( 'order' === $row['source'] ? __( 'Diese Bestellbuchung wirklich stornieren? Die WooCommerce-Bestellung selbst bleibt bestehen.', 'patsch9-rental-engine' ) : __( 'Diesen Eintrag wirklich dauerhaft löschen?', 'patsch9-rental-engine' ) ); ?>');">
-                                <?php wp_nonce_field( 'clr_admin_action', 'clr_admin_nonce' ); ?>
-                                <input type="hidden" name="clr_action" value="delete_booking">
+                            <a class="button button-small" href="<?php echo esc_url( admin_url( 'admin.php?page=rmwc-rentals&tab=calendar&edit_booking=' . (int) $row['id'] ) ); ?>"><?php esc_html_e( 'Edit', 'patsch9-rental-engine' ); ?></a>
+                            <form method="post" onsubmit="return confirm('<?php echo esc_js( 'order' === $row['source'] ? __( 'Cancel this rental booking? The WooCommerce order itself will remain active.', 'patsch9-rental-engine' ) : __( 'Really delete this entry permanently?', 'patsch9-rental-engine' ) ); ?>');">
+                                <?php wp_nonce_field( 'rmwc_admin_action', 'rmwc_admin_nonce' ); ?>
+                                <input type="hidden" name="rmwc_action" value="delete_booking">
                                 <input type="hidden" name="booking_id" value="<?php echo esc_attr( $row['id'] ); ?>">
-                                <button type="submit" class="button-link-delete"><?php echo esc_html( 'order' === $row['source'] ? __( 'Stornieren', 'patsch9-rental-engine' ) : __( 'Löschen', 'patsch9-rental-engine' ) ); ?></button>
+                                <button type="submit" class="button-link-delete"><?php echo esc_html( 'order' === $row['source'] ? __( 'Cancel', 'patsch9-rental-engine' ) : __( 'Delete', 'patsch9-rental-engine' ) ); ?></button>
                             </form>
                         <?php endif; ?>
                     </td>
@@ -3211,18 +3301,18 @@ final class RMWC_Plugin {
     private function render_month_calendar( DateTimeImmutable $month_start, array $rows ) {
         $first_weekday = (int) $month_start->format( 'N' );
         $days_in_month = (int) $month_start->format( 't' );
-        echo '<div class="clr-admin-calendar">';
+        echo '<div class="rmwc-admin-calendar">';
         foreach ( [ 'Mo','Di','Mi','Do','Fr','Sa','So' ] as $day ) {
-            echo '<div class="clr-admin-weekday">' . esc_html( $day ) . '</div>';
+            echo '<div class="rmwc-admin-weekday">' . esc_html( $day ) . '</div>';
         }
         for ( $i = 1; $i < $first_weekday; $i++ ) {
-            echo '<div class="clr-admin-day is-empty"></div>';
+            echo '<div class="rmwc-admin-day is-empty"></div>';
         }
         for ( $day = 1; $day <= $days_in_month; $day++ ) {
             $date = $month_start->setDate( (int) $month_start->format( 'Y' ), (int) $month_start->format( 'm' ), $day );
             $day_start = $date->setTime( 0, 0, 0 );
             $day_end   = $date->setTime( 23, 59, 59 );
-            echo '<div class="clr-admin-day"><strong class="clr-admin-daynum">' . (int) $day . '</strong>';
+            echo '<div class="rmwc-admin-day"><strong class="rmwc-admin-daynum">' . (int) $day . '</strong>';
             foreach ( $rows as $row ) {
                 $start = new DateTimeImmutable( $row['start_at'], wp_timezone() );
                 $end   = new DateTimeImmutable( $row['end_at'], wp_timezone() );
@@ -3230,7 +3320,7 @@ final class RMWC_Plugin {
                     $p = wc_get_product( $row['product_id'] );
                     $label = ( $p ? $p->get_name() : '#' . $row['product_id'] ) . ' ×' . (int) $row['quantity'];
                     $event_class = 'blocked' === $row['status'] ? 'is-block' : 'is-booking';
-                    echo '<div class="' . esc_attr( 'clr-admin-event ' . $event_class ) . '" title="' . esc_attr( $this->format_datetime_display( $row['start_at'] ) . ' – ' . $this->format_datetime_display( $row['end_at'] ) ) . '">' . esc_html( $label ) . '</div>';
+                    echo '<div class="' . esc_attr( 'rmwc-admin-event ' . $event_class ) . '" title="' . esc_attr( $this->format_datetime_display( $row['start_at'] ) . ' – ' . $this->format_datetime_display( $row['end_at'] ) ) . '">' . esc_html( $label ) . '</div>';
                 }
             }
             echo '</div>';
@@ -3239,19 +3329,19 @@ final class RMWC_Plugin {
     }
 
     public function send_due_reminders() {
-        if ( 'yes' !== get_option( 'clr_reminder_enabled', 'no' ) ) {
+        if ( 'yes' !== get_option( 'rmwc_reminder_enabled', 'no' ) ) {
             return;
         }
         global $wpdb;
         $scope = ( defined( 'DB_NAME' ) ? (string) DB_NAME : '' ) . '|' . $wpdb->prefix . '|' . get_current_blog_id();
-        $lock  = 'clr_rem_' . substr( hash( 'sha256', $scope ), 0, 32 );
+        $lock  = 'rmwc_rem_' . substr( hash( 'sha256', $scope ), 0, 32 );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
         $got   = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 0)', $lock ) );
         if ( 1 !== $got ) {
             return;
         }
         try {
-            $hours = max( 1, (int) get_option( 'clr_reminder_hours', 24 ) );
+            $hours = max( 1, (int) get_option( 'rmwc_reminder_hours', 24 ) );
             $now   = new DateTimeImmutable( 'now', wp_timezone() );
             $until = $now->modify( '+' . $hours . ' hours' );
             $table = $this->table();
@@ -3266,15 +3356,15 @@ final class RMWC_Plugin {
                 ARRAY_A
             );
 
-            $subject_tpl = get_option( 'clr_reminder_subject', 'Erinnerung an Ihre Miete: %product%' );
-            $body_tpl    = get_option( 'clr_reminder_body', "Hallo %name%,\n\nwir erinnern an Ihre bevorstehende Miete von %product%.\nAbholung/Mietbeginn: %pickup%\nRückgabe: %return%\n\nViele Grüße" );
+            $subject_tpl = get_option( 'rmwc_reminder_subject', __( 'Reminder for your rental: %product%', 'patsch9-rental-engine' ) );
+            $body_tpl    = get_option( 'rmwc_reminder_body', __( "Hello %name%,\n\nThis is a reminder of your upcoming rental of %product%.\nPickup / rental start: %pickup%\nReturn: %return%\n\nBest regards", 'patsch9-rental-engine' ) );
 
             foreach ( $rows as $row ) {
                 $product = wc_get_product( $row['product_id'] );
                 $order   = $row['order_id'] ? wc_get_order( $row['order_id'] ) : null;
                 $replace = [
                     '%name%'    => $row['customer_name'] ?: 'Guten Tag',
-                    '%product%' => $product ? $product->get_name() : 'Mietartikel',
+                    '%product%' => $product ? $product->get_name() : __( 'Rental item', 'patsch9-rental-engine' ),
                     '%pickup%'  => $this->format_datetime_display( $row['start_at'] ),
                     '%return%'  => $this->format_datetime_display( $row['end_at'] ),
                     '%order%'   => $order ? '#' . $order->get_order_number() : '',
@@ -3301,38 +3391,52 @@ final class RMWC_Plugin {
     }
 
     private function migrate_legacy_bookings() {
-        if ( 'yes' === get_option( 'clr_legacy_migration_done_v1', 'no' ) ) {
-            return;
+        if ( 'yes' === get_option( 'rmwc_legacy_migration_done_v1', 'no' ) ) {
+            return true;
         }
         global $wpdb;
-        $table = $this->table();
-        for ( $batch = 0; $batch < 20; $batch++ ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
-            $rows = $wpdb->get_results( $wpdb->prepare( "SELECT id, product_id, start_date, end_date FROM %i WHERE (start_at IS NULL OR start_at = '0000-00-00 00:00:00') AND start_date IS NOT NULL AND end_date IS NOT NULL LIMIT 500", $table ), ARRAY_A );
-            if ( ! $rows ) {
-                break;
-            }
-            foreach ( $rows as $row ) {
-                $legacy_end = DateTimeImmutable::createFromFormat( '!Y-m-d', $row['end_date'], wp_timezone() );
-                $legacy_end_date = $legacy_end ? $legacy_end->modify( '+1 day' )->format( 'Y-m-d' ) : $row['end_date'];
-                $interval = $this->build_interval( (int) $row['product_id'], $row['start_date'], $legacy_end_date );
-                if ( is_wp_error( $interval ) ) {
-                    // Mark impossible legacy rows as cancelled rather than silently blocking forever.
-                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
-                    $wpdb->update( $table, [ 'status' => 'cancelled' ], [ 'id' => (int) $row['id'] ], [ '%s' ], [ '%d' ] );
-                    continue;
-                }
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
-                $wpdb->update( $table, [ 'start_at' => $interval['start_at'], 'end_at' => $interval['end_at'] ], [ 'id' => (int) $row['id'] ], [ '%s','%s' ], [ '%d' ] );
-            }
+        $lock = 'rmwc_intervals_' . substr( hash( 'sha256', DB_NAME . '|' . $wpdb->prefix ), 0, 40 );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serializes resumable interval conversion.
+        if ( '1' !== (string) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 0)', $lock ) ) ) {
+            return false;
         }
-        update_option( 'clr_legacy_migration_done_v1', 'yes', false );
+        try {
+            for ( $batch = 0; $batch < 20; $batch++ ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh incomplete rows in the plugin-owned booking table.
+                $rows = $wpdb->get_results( $wpdb->prepare( "SELECT id, product_id, start_date, end_date FROM %i WHERE start_at IS NULL OR start_at = '0000-00-00 00:00:00' OR end_at IS NULL OR end_at = '0000-00-00 00:00:00' LIMIT 500", $this->table() ), ARRAY_A );
+                if ( '' !== $wpdb->last_error || ! is_array( $rows ) ) {
+                    return false;
+                }
+                if ( ! $rows ) {
+                    return update_option( 'rmwc_legacy_migration_done_v1', 'yes', false ) || 'yes' === get_option( 'rmwc_legacy_migration_done_v1' );
+                }
+                foreach ( $rows as $row ) {
+                    // Old end_date was inclusive; the new return date is the next day.
+                    if ( ! $this->is_valid_date( (string) $row['start_date'] ) || ! $this->is_valid_date( (string) $row['end_date'] ) ) {
+                        return false; // Preserve invalid historic reservations for manual repair.
+                    }
+                    $end = DateTimeImmutable::createFromFormat( '!Y-m-d', $row['end_date'], wp_timezone() );
+                    $interval = $this->build_interval( (int) $row['product_id'], $row['start_date'], $end->modify( '+1 day' )->format( 'Y-m-d' ) );
+                    if ( is_wp_error( $interval ) ) {
+                        return false;
+                    }
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Checked in-place conversion, preserving reservation status.
+                    if ( false === $wpdb->update( $this->table(), [ 'start_at' => $interval['start_at'], 'end_at' => $interval['end_at'] ], [ 'id' => (int) $row['id'] ], [ '%s', '%s' ], [ '%d' ] ) ) {
+                        return false;
+                    }
+                }
+            }
+            return false; // Bounded request; next request resumes the remaining rows.
+        } finally {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Release interval-conversion lock.
+            $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
+        }
     }
 
 
     public function register_privacy_exporter( $exporters ) {
         $exporters['patsch9-rental-engine'] = [
-            'exporter_friendly_name' => __( ' – Vermietungsbuchungen', 'patsch9-rental-engine' ),
+            'exporter_friendly_name' => __( '– rental bookings', 'patsch9-rental-engine' ),
             'callback'               => [ $this, 'privacy_exporter' ],
         ];
         return $exporters;
@@ -3355,17 +3459,17 @@ final class RMWC_Plugin {
             $product = wc_get_product( (int) $row['product_id'] );
             $data[] = [
                 'group_id'    => 'patsch9-rental-engine-bookings',
-                'group_label' => __( 'Vermietungsbuchungen', 'patsch9-rental-engine' ),
+                'group_label' => __( 'Rental bookings', 'patsch9-rental-engine' ),
                 'item_id'     => 'booking-' . (int) $row['id'],
                 'data'        => [
-                    [ 'name' => __( 'Produkt', 'patsch9-rental-engine' ), 'value' => $product ? $product->get_name() : '#' . (int) $row['product_id'] ],
-                    [ 'name' => __( 'Mietbeginn', 'patsch9-rental-engine' ), 'value' => (string) $row['start_at'] ],
-                    [ 'name' => __( 'Rückgabe', 'patsch9-rental-engine' ), 'value' => (string) $row['end_at'] ],
-                    [ 'name' => __( 'Anzahl', 'patsch9-rental-engine' ), 'value' => (int) $row['quantity'] ],
+                    [ 'name' => __( 'Product', 'patsch9-rental-engine' ), 'value' => $product ? $product->get_name() : '#' . (int) $row['product_id'] ],
+                    [ 'name' => __( 'Start of rental', 'patsch9-rental-engine' ), 'value' => (string) $row['start_at'] ],
+                    [ 'name' => __( 'Return', 'patsch9-rental-engine' ), 'value' => (string) $row['end_at'] ],
+                    [ 'name' => __( 'Number', 'patsch9-rental-engine' ), 'value' => (int) $row['quantity'] ],
                     [ 'name' => __( 'Name', 'patsch9-rental-engine' ), 'value' => (string) $row['customer_name'] ],
                     [ 'name' => __( 'E-Mail', 'patsch9-rental-engine' ), 'value' => (string) $row['customer_email'] ],
-                    [ 'name' => __( 'Notiz', 'patsch9-rental-engine' ), 'value' => (string) $row['note'] ],
-                    [ 'name' => __( 'Bestellung', 'patsch9-rental-engine' ), 'value' => (int) $row['order_id'] ],
+                    [ 'name' => __( 'Note', 'patsch9-rental-engine' ), 'value' => (string) $row['note'] ],
+                    [ 'name' => __( 'Order', 'patsch9-rental-engine' ), 'value' => (int) $row['order_id'] ],
                 ],
             ];
         }
@@ -3374,7 +3478,7 @@ final class RMWC_Plugin {
 
     public function register_privacy_eraser( $erasers ) {
         $erasers['patsch9-rental-engine'] = [
-            'eraser_friendly_name' => __( ' – Vermietungsbuchungen', 'patsch9-rental-engine' ),
+            'eraser_friendly_name' => __( '– rental bookings', 'patsch9-rental-engine' ),
             'callback'             => [ $this, 'privacy_eraser' ],
         ];
         return $erasers;
@@ -3435,7 +3539,7 @@ final class RMWC_Plugin {
         );
         $messages = [];
         if ( $retained ) {
-            $messages[] = __( 'Personenbezogene Daten aktiver oder zukünftiger Vermietungen wurden vorerst beibehalten, damit die Vermietung erfüllt werden kann.', 'patsch9-rental-engine' );
+            $messages[] = __( 'Personal data of active or future rentals have been retained for the time being, so that the rental can be fulfilled.', 'patsch9-rental-engine' );
         }
 
         return [
@@ -3450,11 +3554,11 @@ final class RMWC_Plugin {
         if ( ! function_exists( 'wp_add_privacy_policy_content' ) ) {
             return;
         }
-        $content = '<p>' . esc_html__( 'Dieses Plugin speichert für Vermietungsbuchungen Produkt, Mietzeitraum, Anzahl sowie bei Buchungen Name und E-Mail-Adresse zusätzlich in einer eigenen Buchungstabelle. Diese Daten dienen der Verfügbarkeitsprüfung, Verwaltung und optionalen Erinnerung vor Mietbeginn.', 'patsch9-rental-engine' ) . '</p>';
-        $content .= '<p>' . esc_html__( 'Version 2 speichert außerdem die jeweils akzeptierte Version der Mietbedingungen als Bestell-Snapshot sowie Mietverträge und Kautionsquittungen als unveränderliche Geschäftsdokumente. Dokument-Snapshots können Kundendaten, Mietgegenstände, Mietzeitraum, Kautionsvorgänge und die akzeptierten Mietbedingungen enthalten. Physische Geräte können mit Inventar- und Seriennummern verwaltet und Vermietungen zugeordnet werden.', 'patsch9-rental-engine' ) . '</p>';
-        $content .= '<p>' . esc_html__( 'Als Miet-Zubehör markierte WooCommerce-Produkte werden aus dem öffentlichen Shop ausgeblendet und nur im Zusammenhang mit einem konfigurierten Mietartikel verwendet. Dabei gelten weiterhin die normalen WooCommerce-Daten zu Preis, Steuer und Lagerbestand des Zubehörprodukts.', 'patsch9-rental-engine' ) . '</p>';
-        $content .= '<p>' . esc_html__( 'Wenn die optionale automatische Lieferentfernung ausdrücklich aktiviert ist, werden Startadresse und die vom Kunden eingegebene Lieferadresse zur Streckenberechnung an die Google Routes API übertragen. Ohne diese Aktivierung sendet das Plugin keine Lieferadressen an Google.', 'patsch9-rental-engine' ) . '</p>';
-        $content .= '<p>' . esc_html__( 'Zum Schutz öffentlicher Verfügbarkeits- und Entfernungsabfragen vor Missbrauch verwendet das Plugin kurzlebige Rate-Limit-Einträge. Dafür wird die IP-Adresse nicht im Klartext gespeichert, sondern nur ein mit dem WordPress-Salt gebildeter, kurzlebiger Hash verwendet.', 'patsch9-rental-engine' ) . '</p>';
+        $content = '<p>' . esc_html__( 'This plugin stores product, rental period, number as well as for bookings name and e-mail address additionally in its own booking table for rental bookings. These data are used for availability check, administration and optional reminder before rental starts.', 'patsch9-rental-engine' ) . '</p>';
+        $content .= '<p>' . esc_html__( 'Version 2 also stores the respective accepted version of the rental terms as an order snapshot, as well as rental contracts and deposit receipts as unchangeable business documents. Document snapshots may contain customer data, rental items, rental period, deposit transactions and accepted rental terms. Physical devices can be managed with inventory and serial numbers and rented.', 'patsch9-rental-engine' ) . '</p>';
+        $content .= '<p>' . esc_html__( 'WooCommerce products marked as rental accessories are hidden from the public shop and only used in connection with a configured rental item. Here, the normal WooCommerce data on the price, tax and inventory of the accessory product continue to apply.', 'patsch9-rental-engine' ) . '</p>';
+        $content .= '<p>' . esc_html__( 'If the optional automatic delivery distance is explicitly activated, the start address and the delivery address entered by the customer are transferred to the Google Routes API for route calculation. Without this activation, the plugin does not send any delivery addresses to Google.', 'patsch9-rental-engine' ) . '</p>';
+        $content .= '<p>' . esc_html__( 'To protect public availability and distance queries from abuse, the plugin uses short-lived rate limits. IP addresses are stored only as a short-lived hash generated with the WordPress salt.', 'patsch9-rental-engine' ) . '</p>';
         wp_add_privacy_policy_content( __( 'Rental Manager for WooCommerce', 'patsch9-rental-engine' ), wp_kses_post( $content ) );
     }
 

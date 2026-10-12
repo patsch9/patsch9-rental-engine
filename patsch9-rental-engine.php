@@ -2,15 +2,16 @@
 /**
  * Plugin Name: Patsch9 Rental Engine for WooCommerce
  * Plugin URI: https://github.com/patsch9/patsch9-rental-engine
- * Description: Vermietungs- und Gerätebuchungen für WooCommerce mit Verfügbarkeit, Preisen, Kautionen, Bedingungen, Dokumenten und Übergabe-/Rückgabe-Workflow.
- * Version: 2026.10.0
+ * Description: Rental and equipment booking workflows for WooCommerce with availability, pricing, security deposits, terms, documents, and handover/return management.
+ * Version: 2026.10.1
  * Author: Patrick Schmidt
  * Author URI: https://github.com/patsch9
  * Text Domain: patsch9-rental-engine
+ * Domain Path: /languages
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Requires Plugins: woocommerce
- * Requires at least: 6.9.5
+ * Requires at least: 6.9
  * Requires PHP: 8.2
  * WC requires at least: 10.9.4
  * WC tested up to: 10.9.4
@@ -18,8 +19,10 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'RMWC_VERSION', '2026.10.0' );
-define( 'RMWC_DB_VERSION', '2.0.26' );
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-rmwc-legacy-migration.php';
+
+define( 'RMWC_VERSION', '2026.10.1' );
+define( 'RMWC_DB_VERSION', '2.0.27' );
 define( 'RMWC_FILE', __FILE__ );
 define( 'RMWC_DIR', plugin_dir_path( __FILE__ ) );
 define( 'RMWC_URL', plugin_dir_url( __FILE__ ) );
@@ -35,7 +38,7 @@ add_action( 'before_woocommerce_init', function() {
 function rmwc_install_database() {
     global $wpdb;
 
-    $table   = $wpdb->prefix . 'clr_bookings';
+    $table   = $wpdb->prefix . 'rmwc_bookings';
     $charset = $wpdb->get_charset_collate();
 
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -69,8 +72,11 @@ function rmwc_install_database() {
     ) {$charset};";
 
     dbDelta( $sql );
+    if ( '' !== $wpdb->last_error ) {
+        return false;
+    }
 
-    $terms_table = $wpdb->prefix . 'clr_terms_versions';
+    $terms_table = $wpdb->prefix . 'rmwc_terms_versions';
     $terms_sql = "CREATE TABLE {$terms_table} (
         id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
         version varchar(50) NOT NULL,
@@ -85,8 +91,11 @@ function rmwc_install_database() {
         KEY created_at (created_at)
     ) {$charset};";
     dbDelta( $terms_sql );
+    if ( '' !== $wpdb->last_error ) {
+        return false;
+    }
 
-    $documents_table = $wpdb->prefix . 'clr_documents';
+    $documents_table = $wpdb->prefix . 'rmwc_documents';
     $documents_sql = "CREATE TABLE {$documents_table} (
         id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
         order_id bigint(20) unsigned NOT NULL,
@@ -106,8 +115,11 @@ function rmwc_install_database() {
         KEY created_at (created_at)
     ) {$charset};";
     dbDelta( $documents_sql );
+    if ( '' !== $wpdb->last_error ) {
+        return false;
+    }
 
-    $assets_table = $wpdb->prefix . 'clr_assets';
+    $assets_table = $wpdb->prefix . 'rmwc_assets';
     $assets_sql = "CREATE TABLE {$assets_table} (
         id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
         product_id bigint(20) unsigned NOT NULL,
@@ -126,8 +138,11 @@ function rmwc_install_database() {
         KEY serial_number (serial_number(100))
     ) {$charset};";
     dbDelta( $assets_sql );
+    if ( '' !== $wpdb->last_error ) {
+        return false;
+    }
 
-    $assignments_table = $wpdb->prefix . 'clr_asset_assignments';
+    $assignments_table = $wpdb->prefix . 'rmwc_asset_assignments';
     $assignments_sql = "CREATE TABLE {$assignments_table} (
         id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
         asset_id bigint(20) unsigned NOT NULL,
@@ -144,12 +159,21 @@ function rmwc_install_database() {
         KEY order_id (order_id)
     ) {$charset};";
     dbDelta( $assignments_sql );
+    if ( '' !== $wpdb->last_error ) {
+        return false;
+    }
 
-    update_option( 'clr_db_version', RMWC_DB_VERSION, false );
+    return update_option( 'rmwc_db_version', RMWC_DB_VERSION, false ) || RMWC_DB_VERSION === get_option( 'rmwc_db_version' );
 }
 
 function rmwc_activate() {
-    rmwc_install_database();
+    if ( ! RMWC_Legacy_Migration::run() ) {
+        return;
+    }
+    if ( ! rmwc_install_database() ) {
+        RMWC_Legacy_Migration::stop();
+        return;
+    }
     if ( ! wp_next_scheduled( 'rmwc_hourly_reminders' ) ) {
         wp_schedule_event( time() + 300, 'hourly', 'rmwc_hourly_reminders' );
     }
@@ -158,7 +182,6 @@ register_activation_hook( __FILE__, 'rmwc_activate' );
 
 function rmwc_deactivate() {
     wp_clear_scheduled_hook( 'rmwc_hourly_reminders' );
-    wp_clear_scheduled_hook( 'clr_hourly_reminders' ); // Legacy 1.0.x hook.
     wp_clear_scheduled_hook( 'rmwc_expire_unpaid_order' );
     if ( function_exists( 'as_unschedule_all_actions' ) ) {
         // Empty args + no group cancels every pending occurrence of this unique hook,
@@ -169,25 +192,36 @@ function rmwc_deactivate() {
 register_deactivation_hook( __FILE__, 'rmwc_deactivate' );
 
 add_action( 'plugins_loaded', function() {
-    if ( get_option( 'clr_db_version' ) !== RMWC_DB_VERSION ) {
-        rmwc_install_database();
+    if ( ! RMWC_Legacy_Migration::run() ) {
+        RMWC_Legacy_Migration::register_checkout_guards();
+        return;
+    }
+    if ( get_option( 'rmwc_db_version' ) !== RMWC_DB_VERSION ) {
+        if ( ! rmwc_install_database() ) {
+            RMWC_Legacy_Migration::stop();
+            RMWC_Legacy_Migration::register_checkout_guards();
+            return;
+        }
     }
 
     if ( ! class_exists( 'WooCommerce' ) ) {
         add_action( 'admin_notices', function() {
-            echo '<div class="notice notice-error"><p><strong>' . esc_html__( 'Patsch9 Rental Engine for WooCommerce', 'patsch9-rental-engine' ) . '</strong> ' . esc_html__( 'benötigt WooCommerce.', 'patsch9-rental-engine' ) . '</p></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Both fragments escaped above.
+            echo '<div class="notice notice-error"><p><strong>' . esc_html__( 'Patsch9 Rental Engine for WooCommerce', 'patsch9-rental-engine' ) . '</strong> ' . esc_html__( 'requires WooCommerce.', 'patsch9-rental-engine' ) . '</p></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Both fragments escaped above.
         } );
         return;
     }
     if ( ! defined( 'WC_VERSION' ) || version_compare( WC_VERSION, '10.9.4', '<' ) ) {
         add_action( 'admin_notices', function() {
-            echo '<div class="notice notice-error"><p><strong>' . esc_html__( 'Patsch9 Rental Engine for WooCommerce', 'patsch9-rental-engine' ) . '</strong> ' . esc_html__( 'benötigt WooCommerce 10.9.4 oder höher.', 'patsch9-rental-engine' ) . '</p></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Both fragments escaped above.
+            echo '<div class="notice notice-error"><p><strong>' . esc_html__( 'Patsch9 Rental Engine for WooCommerce', 'patsch9-rental-engine' ) . '</strong> ' . esc_html__( 'requires WooCommerce 10.9.4 or newer.', 'patsch9-rental-engine' ) . '</p></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Both fragments escaped above.
         } );
         return;
     }
 
     require_once RMWC_DIR . 'includes/class-rmwc-plugin.php';
-    RMWC_Plugin::instance();
+    if ( ! RMWC_Plugin::instance()->is_ready() ) {
+        RMWC_Legacy_Migration::register_checkout_guards();
+        return;
+    }
 
     require_once RMWC_DIR . 'includes/v2/class-rmwc-v2.php';
     RMWC_V2::instance();
