@@ -59,7 +59,7 @@ final class RMWC_V2_Documents {
     public function create_document( WC_Order $order, $type, array $snapshot, $amount = 0.0, $event_key = '' ) {
         $type = sanitize_key( $type );
         if ( ! in_array( $type, [ 'contract', 'contract_revision', 'deposit_received', 'deposit_refund', 'handover_protocol', 'return_protocol' ], true ) ) {
-            return new WP_Error( 'rmwc_document_type', __( 'Ungültiger Dokumenttyp.', 'patsch9-rental-engine' ) );
+            return new WP_Error( 'rmwc_document_type', __( 'Invalid document type.', 'patsch9-rental-engine' ) );
         }
         $event_key = sanitize_key( $event_key );
         if ( '' !== $event_key ) {
@@ -78,10 +78,10 @@ final class RMWC_V2_Documents {
 
         $snapshot_json = wp_json_encode( $snapshot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
         if ( false === $snapshot_json ) {
-            return new WP_Error( 'rmwc_document_json', __( 'Dokumentdaten konnten nicht verarbeitet werden.', 'patsch9-rental-engine' ) );
+            return new WP_Error( 'rmwc_document_json', __( 'Document data could not be processed.', 'patsch9-rental-engine' ) );
         }
         if ( strlen( $snapshot_json ) > 2 * MB_IN_BYTES ) {
-            return new WP_Error( 'rmwc_document_size', __( 'Die Dokumentdaten sind für eine sichere Verarbeitung zu groß.', 'patsch9-rental-engine' ) );
+            return new WP_Error( 'rmwc_document_size', __( 'The document data is too large for secure processing.', 'patsch9-rental-engine' ) );
         }
         $hash = hash( 'sha256', $snapshot_json );
         $amount = max( 0, (float) wc_format_decimal( $amount ) );
@@ -114,7 +114,7 @@ final class RMWC_V2_Documents {
                     return $existing;
                 }
             }
-            return new WP_Error( 'rmwc_document_db', __( 'Dokument konnte nicht gespeichert werden.', 'patsch9-rental-engine' ) );
+            return new WP_Error( 'rmwc_document_db', __( 'Could not save document.', 'patsch9-rental-engine' ) );
         }
         $id = (int) $wpdb->insert_id;
         $prefixes = [
@@ -201,7 +201,7 @@ final class RMWC_V2_Documents {
             $document = $this->get_document( $existing );
             if ( ! $document ) {
                 if ( 'yes' !== $order->get_meta( '_rmwc_document_integrity_warning', true ) ) {
-                    $order->add_order_note( __( 'Vermietung: Die Integritätsprüfung eines gespeicherten Mietdokuments ist fehlgeschlagen. Das Dokument wurde aus Sicherheitsgründen nicht ausgeliefert. Bitte technisch prüfen.', 'patsch9-rental-engine' ) );
+                    $order->add_order_note( __( 'Rental: The integrity check of a stored rental document failed. The document was not delivered for security reasons. Please check technically.', 'patsch9-rental-engine' ) );
                     $order->update_meta_data( '_rmwc_document_integrity_warning', 'yes' );
                     $order->save_meta_data();
                 }
@@ -226,7 +226,7 @@ final class RMWC_V2_Documents {
                 ];
                 $corrected = $this->create_document( $order, 'contract_revision', $snapshot, 0, 'contract_terms_repair_v2' );
                 if ( ! is_wp_error( $corrected ) && $corrected ) {
-                    $order->add_order_note( __( 'Vermietung: Eine korrigierte Vertragsfassung mit den ursprünglich akzeptierten Mietbedingungen wurde erzeugt.', 'patsch9-rental-engine' ) );
+                    $order->add_order_note( __( 'Rental: A corrected contract with the originally accepted rental terms was created.', 'patsch9-rental-engine' ) );
                     return (int) $corrected;
                 }
             }
@@ -345,11 +345,11 @@ final class RMWC_V2_Documents {
     private function render_contract_pdf( array $document, array $snapshot ) {
         $is_terms_correction = 'missing_terms_appendix' === sanitize_key( $snapshot['correction']['type'] ?? '' );
         $title = $is_terms_correction
-            ? __( 'Mietvertrag – korrigierte Fassung', 'patsch9-rental-engine' )
-            : ( 'contract_revision' === ( $document['type'] ?? '' ) ? __( 'Mietvertragsänderung', 'patsch9-rental-engine' ) : __( 'Mietvertrag', 'patsch9-rental-engine' ) );
+            ? __( 'Rental contract – corrected version', 'patsch9-rental-engine' )
+            : ( 'contract_revision' === ( $document['type'] ?? '' ) ? __( 'Change in rental contract', 'patsch9-rental-engine' ) : __( 'Rental agreement', 'patsch9-rental-engine' ) );
         $blocks = [
             [ 'type' => 'row', 'label' => __( 'Vertragsnummer', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $document['document_number'] ?? '' ) ],
-            [ 'type' => 'row', 'label' => __( 'Bestellung', 'patsch9-rental-engine' ), 'value' => '#' . sanitize_text_field( $snapshot['order_number'] ?? '' ) ],
+            [ 'type' => 'row', 'label' => __( 'Order', 'patsch9-rental-engine' ), 'value' => '#' . sanitize_text_field( $snapshot['order_number'] ?? '' ) ],
             [ 'type' => 'row', 'label' => __( 'Erstellt', 'patsch9-rental-engine' ), 'value' => $this->display_datetime( $document['created_at'] ?? ( $snapshot['created_at'] ?? '' ) ) ],
             [ 'type' => 'spacer', 'height' => 4 ],
             [ 'type' => 'section', 'title' => __( 'Vertragsparteien', 'patsch9-rental-engine' ) ],
@@ -360,7 +360,7 @@ final class RMWC_V2_Documents {
         if ( '' !== $store_address ) {
             $store .= "\n" . $store_address;
         }
-        $blocks[] = [ 'type' => 'row', 'label' => __( 'Vermieter', 'patsch9-rental-engine' ), 'value' => $store ];
+        $blocks[] = [ 'type' => 'row', 'label' => __( 'Owner', 'patsch9-rental-engine' ), 'value' => $store ];
 
         $customer = is_array( $snapshot['customer'] ?? null ) ? $snapshot['customer'] : [];
         $customer_lines = [];
@@ -397,9 +397,9 @@ final class RMWC_V2_Documents {
         if ( ! empty( $customer['phone'] ) ) {
             $customer_lines[] = __( 'Telefon:', 'patsch9-rental-engine' ) . ' ' . sanitize_text_field( $customer['phone'] );
         }
-        $blocks[] = [ 'type' => 'row', 'label' => __( 'Mieter', 'patsch9-rental-engine' ), 'value' => implode( "\n", $customer_lines ) ];
+        $blocks[] = [ 'type' => 'row', 'label' => __( 'Rental customers', 'patsch9-rental-engine' ), 'value' => implode( "\n", $customer_lines ) ];
 
-        $blocks[] = [ 'type' => 'section', 'title' => __( 'Mietgegenstände und Mietzeitraum', 'patsch9-rental-engine' ) ];
+        $blocks[] = [ 'type' => 'section', 'title' => __( 'Rental and rental period', 'patsch9-rental-engine' ) ];
         foreach ( $snapshot['items'] ?? [] as $item ) {
             if ( ! is_array( $item ) ) {
                 continue;
@@ -410,9 +410,9 @@ final class RMWC_V2_Documents {
                 'size' => 10.4,
                 'text' => sprintf( '%dx %s', max( 1, absint( $item['quantity'] ?? 1 ) ), sanitize_text_field( $item['name'] ?? '' ) ),
             ];
-            $blocks[] = [ 'type' => 'row', 'label' => __( 'Mietbeginn', 'patsch9-rental-engine' ), 'value' => $this->display_datetime( $item['pickup'] ?? '' ) ];
-            $blocks[] = [ 'type' => 'row', 'label' => __( 'Rückgabe', 'patsch9-rental-engine' ), 'value' => $this->display_datetime( $item['return'] ?? '' ) ];
-            $blocks[] = [ 'type' => 'row', 'label' => __( 'Transport / Übergabe', 'patsch9-rental-engine' ), 'value' => $this->fulfilment_label( $item['fulfilment'] ?? '' ) ];
+            $blocks[] = [ 'type' => 'row', 'label' => __( 'Start of rental', 'patsch9-rental-engine' ), 'value' => $this->display_datetime( $item['pickup'] ?? '' ) ];
+            $blocks[] = [ 'type' => 'row', 'label' => __( 'Return', 'patsch9-rental-engine' ), 'value' => $this->display_datetime( $item['return'] ?? '' ) ];
+            $blocks[] = [ 'type' => 'row', 'label' => __( 'Transport / handover', 'patsch9-rental-engine' ), 'value' => $this->fulfilment_label( $item['fulfilment'] ?? '' ) ];
             if ( ! empty( $item['delivery'] ) ) {
                 $blocks[] = [ 'type' => 'row', 'label' => __( 'Liefer-/Abholadresse', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $item['delivery'] ) ];
             }
@@ -429,7 +429,7 @@ final class RMWC_V2_Documents {
         }
 
         if ( ! empty( $snapshot['accessories'] ) ) {
-            $blocks[] = [ 'type' => 'section', 'title' => __( 'Miet-Zubehör / Verbrauchsmaterial', 'patsch9-rental-engine' ) ];
+            $blocks[] = [ 'type' => 'section', 'title' => __( 'Rental accessories / consumables', 'patsch9-rental-engine' ) ];
             foreach ( $snapshot['accessories'] as $accessory ) {
                 if ( ! is_array( $accessory ) ) {
                     continue;
@@ -462,23 +462,23 @@ final class RMWC_V2_Documents {
                 )
             );
             $deposit_method = in_array( 'cash', $deposit_modes, true )
-                ? __( 'Separat überweisen oder bei Abholung bar hinterlegen', 'patsch9-rental-engine' )
-                : __( 'Online mit der Bestellung hinterlegt', 'patsch9-rental-engine' );
-            $blocks[] = [ 'type' => 'section', 'title' => __( 'Kaution', 'patsch9-rental-engine' ) ];
+                ? __( 'Transfer separately or deposit cash at collection', 'patsch9-rental-engine' )
+                : __( 'Filed online with the order', 'patsch9-rental-engine' );
+            $blocks[] = [ 'type' => 'section', 'title' => __( 'Security deposit', 'patsch9-rental-engine' ) ];
             $blocks[] = [ 'type' => 'row', 'label' => __( 'Sicherheitsleistung', 'patsch9-rental-engine' ), 'value' => trim( $amount ) ];
             $blocks[] = [ 'type' => 'row', 'label' => __( 'Hinterlegung', 'patsch9-rental-engine' ), 'value' => $deposit_method ];
-            $blocks[] = [ 'type' => 'notice', 'text' => __( 'Die Kaution ist eine rückzahlbare Sicherheitsleistung. Rückzahlung und ein möglicher Einbehalt richten sich nach den akzeptierten Mietbedingungen.', 'patsch9-rental-engine' ) ];
+            $blocks[] = [ 'type' => 'notice', 'text' => __( 'The security deposit is a refundable guarantee. Repayment and a possible retention depend on the accepted rental conditions.', 'patsch9-rental-engine' ) ];
         }
 
         $terms         = is_array( $snapshot['terms'] ?? null ) ? $snapshot['terms'] : [];
         $product_terms = is_array( $snapshot['product_terms'] ?? null ) ? $snapshot['product_terms'] : [];
         if ( $terms || $product_terms ) {
-            $blocks[] = [ 'type' => 'section', 'title' => __( 'Vertragsgrundlage / Mietbedingungen', 'patsch9-rental-engine' ) ];
+            $blocks[] = [ 'type' => 'section', 'title' => __( 'Contractual basis / rental conditions', 'patsch9-rental-engine' ) ];
             foreach ( $terms as $terms_snapshot ) {
                 if ( ! is_array( $terms_snapshot ) ) {
                     continue;
                 }
-                $label = __( 'Allgemeine Mietbedingungen', 'patsch9-rental-engine' ) . ': ' . __( 'Version', 'patsch9-rental-engine' ) . ' ' . sanitize_text_field( $terms_snapshot['version'] ?? '' );
+                $label = __( 'General rental conditions', 'patsch9-rental-engine' ) . ': ' . __( 'Version', 'patsch9-rental-engine' ) . ' ' . sanitize_text_field( $terms_snapshot['version'] ?? '' );
                 if ( ! empty( $terms_snapshot['accepted_at'] ) ) {
                     $label .= ' - ' . __( 'akzeptiert', 'patsch9-rental-engine' ) . ' ' . $this->display_datetime( $terms_snapshot['accepted_at'] );
                 }
@@ -488,10 +488,10 @@ final class RMWC_V2_Documents {
                 if ( ! is_array( $terms_snapshot ) ) {
                     continue;
                 }
-                $name  = sanitize_text_field( $terms_snapshot['product_name'] ?? __( 'Mietartikel', 'patsch9-rental-engine' ) );
+                $name  = sanitize_text_field( $terms_snapshot['product_name'] ?? __( 'Rental goods', 'patsch9-rental-engine' ) );
                 $label = sprintf(
                     /* translators: %s: rental product name. */
-                    __( 'Ergänzende Mietbedingungen – %s', 'patsch9-rental-engine' ),
+                    __( 'Additional rental conditions – %s', 'patsch9-rental-engine' ),
                     $name
                 );
                 if ( ! empty( $terms_snapshot['version'] ) ) {
@@ -504,7 +504,7 @@ final class RMWC_V2_Documents {
             }
             $blocks[] = [
                 'type' => 'notice',
-                'text' => __( 'Die zum Bestellzeitpunkt akzeptierten allgemeinen und artikelspezifischen Mietbedingungen sind Bestandteil dieses Mietvertrags und werden auf den folgenden Seiten vollständig als Anlagen wiedergegeben.', 'patsch9-rental-engine' ),
+                'text' => __( 'The general and article-specific rental conditions accepted at the time of ordering are part of this rental agreement and are reproduced as attachments on the following pages.', 'patsch9-rental-engine' ),
             ];
 
             foreach ( $terms as $terms_snapshot ) {
@@ -512,14 +512,14 @@ final class RMWC_V2_Documents {
                     continue;
                 }
                 $blocks[] = [ 'type' => 'page_break' ];
-                $blocks[] = [ 'type' => 'section', 'title' => __( 'Anlage: Allgemeine Mietbedingungen', 'patsch9-rental-engine' ) ];
+                $blocks[] = [ 'type' => 'section', 'title' => __( 'Appendix: General rental conditions', 'patsch9-rental-engine' ) ];
                 $blocks[] = [ 'type' => 'row', 'label' => __( 'Version', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $terms_snapshot['version'] ?? '' ) ];
                 if ( ! empty( $terms_snapshot['accepted_at'] ) ) {
                     $blocks[] = [ 'type' => 'row', 'label' => __( 'Akzeptiert am', 'patsch9-rental-engine' ), 'value' => $this->display_datetime( $terms_snapshot['accepted_at'] ) ];
                 }
                 $hash = sanitize_text_field( $terms_snapshot['hash'] ?? '' );
                 if ( '' !== $hash ) {
-                    $blocks[] = [ 'type' => 'row', 'label' => __( 'Prüfsumme', 'patsch9-rental-engine' ), 'value' => $hash ];
+                    $blocks[] = [ 'type' => 'row', 'label' => __( 'checksum', 'patsch9-rental-engine' ), 'value' => $hash ];
                 }
                 $blocks[] = [ 'type' => 'spacer', 'height' => 5 ];
                 foreach ( RMWC_PDF::html_to_lines( $terms_snapshot['content'] ?? '' ) as $terms_line ) {
@@ -531,17 +531,17 @@ final class RMWC_V2_Documents {
                 if ( ! is_array( $terms_snapshot ) ) {
                     continue;
                 }
-                $name = sanitize_text_field( $terms_snapshot['product_name'] ?? __( 'Mietartikel', 'patsch9-rental-engine' ) );
+                $name = sanitize_text_field( $terms_snapshot['product_name'] ?? __( 'Rental goods', 'patsch9-rental-engine' ) );
                 $blocks[] = [ 'type' => 'page_break' ];
                 $blocks[] = [
                     'type'  => 'section',
                     'title' => sprintf(
                         /* translators: %s: rental product name. */
-                        __( 'Anlage: Ergänzende Mietbedingungen – %s', 'patsch9-rental-engine' ),
+                        __( 'Installation: Additional rental conditions – %s', 'patsch9-rental-engine' ),
                         $name
                     ),
                 ];
-                $blocks[] = [ 'type' => 'row', 'label' => __( 'Mietartikel', 'patsch9-rental-engine' ), 'value' => $name ];
+                $blocks[] = [ 'type' => 'row', 'label' => __( 'Rental goods', 'patsch9-rental-engine' ), 'value' => $name ];
                 if ( ! empty( $terms_snapshot['version'] ) ) {
                     $blocks[] = [ 'type' => 'row', 'label' => __( 'Version', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $terms_snapshot['version'] ) ];
                 }
@@ -550,7 +550,7 @@ final class RMWC_V2_Documents {
                 }
                 $hash = sanitize_text_field( $terms_snapshot['hash'] ?? '' );
                 if ( '' !== $hash ) {
-                    $blocks[] = [ 'type' => 'row', 'label' => __( 'Prüfsumme', 'patsch9-rental-engine' ), 'value' => $hash ];
+                    $blocks[] = [ 'type' => 'row', 'label' => __( 'checksum', 'patsch9-rental-engine' ), 'value' => $hash ];
                 }
                 $blocks[] = [ 'type' => 'spacer', 'height' => 5 ];
                 foreach ( RMWC_PDF::html_to_lines( $terms_snapshot['content'] ?? '' ) as $terms_line ) {
@@ -565,7 +565,7 @@ final class RMWC_V2_Documents {
                 'type' => 'notice',
                 'text' => sprintf(
                     /* translators: %s: original rental-contract document number. */
-                    __( 'Diese Fassung ergänzt die beim ursprünglichen Dokument %s technisch nicht eingebettete, bei der Bestellung akzeptierte Mietbedingungsfassung. Die übrigen Vertragsdaten bleiben unverändert.', 'patsch9-rental-engine' ),
+                    __( 'This version complements the technically non-embedded version of the rental conditions accepted when ordering with the original document %s. The remaining contract data remains unchanged.', 'patsch9-rental-engine' ),
                     sanitize_text_field( $snapshot['correction']['original_document_number'] ?? '' )
                 ),
             ];
@@ -573,8 +573,8 @@ final class RMWC_V2_Documents {
 
         if ( 'contract_revision' === ( $document['type'] ?? '' ) && ! empty( $snapshot['change'] ) && is_array( $snapshot['change'] ) ) {
             $change = $snapshot['change'];
-            $blocks[] = [ 'type' => 'section', 'title' => __( 'Dokumentierte Vertragsänderung', 'patsch9-rental-engine' ) ];
-            $blocks[] = [ 'type' => 'row', 'label' => __( 'Buchung', 'patsch9-rental-engine' ), 'value' => '#' . absint( $change['booking_id'] ?? 0 ) ];
+            $blocks[] = [ 'type' => 'section', 'title' => __( 'Documented amendment of the contract', 'patsch9-rental-engine' ) ];
+            $blocks[] = [ 'type' => 'row', 'label' => __( 'Booking', 'patsch9-rental-engine' ), 'value' => '#' . absint( $change['booking_id'] ?? 0 ) ];
             $blocks[] = [ 'type' => 'row', 'label' => __( 'Vorher', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $change['old_period'] ?? '' ) ];
             $blocks[] = [ 'type' => 'row', 'label' => __( 'Jetzt', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $change['new_period'] ?? '' ) ];
         }
@@ -585,7 +585,7 @@ final class RMWC_V2_Documents {
     private function render_deposit_pdf( array $document, array $snapshot ) {
         $is_refund     = 'deposit_refund' === ( $document['type'] ?? '' );
         $has_retention = $is_refund && ! empty( $snapshot['retained'] );
-        $title         = $is_refund ? ( $has_retention ? __( 'Kautionsabrechnung', 'patsch9-rental-engine' ) : __( 'Kautionsrückzahlungsquittung', 'patsch9-rental-engine' ) ) : __( 'Kautionsquittung', 'patsch9-rental-engine' );
+        $title         = $is_refund ? ( $has_retention ? __( 'Deposit account', 'patsch9-rental-engine' ) : __( 'Deposit repayment receipt', 'patsch9-rental-engine' ) ) : __( 'Deposit receipt', 'patsch9-rental-engine' );
         $currency      = sanitize_text_field( $document['currency'] ?? 'EUR' );
         $plain_price   = static function( $amount ) use ( $currency ) {
             $value = html_entity_decode( wp_strip_all_tags( wc_price( (float) $amount, [ 'currency' => $currency ] ) ), ENT_QUOTES | ENT_HTML5, get_bloginfo( 'charset' ) ?: 'UTF-8' );
@@ -595,13 +595,13 @@ final class RMWC_V2_Documents {
         $blocks = [
             [ 'type' => 'section', 'title' => __( 'Belegdetails', 'patsch9-rental-engine' ) ],
             [ 'type' => 'row', 'label' => __( 'Belegnummer', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $document['document_number'] ?? '' ) ],
-            [ 'type' => 'row', 'label' => __( 'Bestellung', 'patsch9-rental-engine' ), 'value' => '#' . sanitize_text_field( $snapshot['order_number'] ?? '' ) ],
+            [ 'type' => 'row', 'label' => __( 'Order', 'patsch9-rental-engine' ), 'value' => '#' . sanitize_text_field( $snapshot['order_number'] ?? '' ) ],
             [ 'type' => 'row', 'label' => __( 'Datum', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $snapshot['date'] ?? '' ) ],
-            [ 'type' => 'section', 'title' => __( 'Mieter', 'patsch9-rental-engine' ) ],
+            [ 'type' => 'section', 'title' => __( 'Rental customers', 'patsch9-rental-engine' ) ],
             [ 'type' => 'row', 'label' => __( 'Name', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $snapshot['customer_name'] ?? '' ) ],
             [ 'type' => 'section', 'title' => $is_refund ? __( 'Auszahlung / Verrechnung', 'patsch9-rental-engine' ) : __( 'Erhaltene Sicherheitsleistung', 'patsch9-rental-engine' ) ],
-            [ 'type' => 'row', 'label' => $is_refund ? __( 'Zurückgezahlt', 'patsch9-rental-engine' ) : __( 'Erhalten', 'patsch9-rental-engine' ), 'value' => $plain_price( $document['amount'] ?? 0 ) ],
-            [ 'type' => 'row', 'label' => __( 'Zahlungsart', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $snapshot['method_label'] ?? '' ) ],
+            [ 'type' => 'row', 'label' => $is_refund ? __( 'Repaid', 'patsch9-rental-engine' ) : __( 'Erhalten', 'patsch9-rental-engine' ), 'value' => $plain_price( $document['amount'] ?? 0 ) ],
+            [ 'type' => 'row', 'label' => __( 'Method of payment', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $snapshot['method_label'] ?? '' ) ],
         ];
 
         if ( isset( $snapshot['remaining'] ) ) {
@@ -611,22 +611,22 @@ final class RMWC_V2_Documents {
             $blocks[] = [ 'type' => 'row', 'label' => __( 'Einbehalten', 'patsch9-rental-engine' ), 'value' => $plain_price( $snapshot['retained'] ) ];
         }
         if ( ! empty( $snapshot['reason'] ) ) {
-            $blocks[] = [ 'type' => 'row', 'label' => __( 'Begründung / Hinweis', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $snapshot['reason'] ) ];
+            $blocks[] = [ 'type' => 'row', 'label' => __( 'Reason / Note', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $snapshot['reason'] ) ];
         }
 
-        $blocks[] = [ 'type' => 'section', 'title' => __( 'Bestätigung', 'patsch9-rental-engine' ) ];
+        $blocks[] = [ 'type' => 'section', 'title' => __( 'Confirmation', 'patsch9-rental-engine' ) ];
         $blocks[] = [
             'type' => 'notice',
             'text' => $is_refund
                 ? ( $has_retention
-                    ? __( 'Dieser Beleg dokumentiert die Rückzahlung der Teilkaution sowie den ausgewiesenen Einbehalt gemäß Mietbedingungen.', 'patsch9-rental-engine' )
-                    : __( 'Dieser Beleg bestätigt die Rückzahlung der oben genannten Kaution bzw. Teilkaution gemäß Mietbedingungen.', 'patsch9-rental-engine' ) )
-                : __( 'Dieser Beleg bestätigt den Erhalt der oben genannten rückzahlbaren Sicherheitsleistung gemäß Mietbedingungen.', 'patsch9-rental-engine' ),
+                    ? __( 'This document documents the repayment of the partial deposit as well as the stated retention in accordance with rental conditions.', 'patsch9-rental-engine' )
+                    : __( 'This document confirms the repayment of the above deposit or partial deposit in accordance with rental conditions.', 'patsch9-rental-engine' ) )
+                : __( 'This document confirms the receipt of the refundable guarantee referred to above in accordance with rental conditions.', 'patsch9-rental-engine' ),
         ];
         $blocks[] = [
             'type' => 'text',
             'size' => 8.8,
-            'text' => __( 'Dieser Beleg wurde elektronisch erstellt und bedarf keiner Unterschrift.', 'patsch9-rental-engine' ),
+            'text' => __( 'This document has been prepared electronically and requires no signature.', 'patsch9-rental-engine' ),
         ];
 
         return RMWC_PDF::build_styled( $title, $blocks, '', sanitize_text_field( get_bloginfo( 'name' ) ) );
@@ -634,21 +634,21 @@ final class RMWC_V2_Documents {
 
     private function render_workflow_pdf( array $document, array $snapshot ) {
         $is_return = 'return_protocol' === ( $document['type'] ?? '' );
-        $title     = $is_return ? __( 'Rückgabeprotokoll', 'patsch9-rental-engine' ) : __( 'Übergabeprotokoll', 'patsch9-rental-engine' );
+        $title     = $is_return ? __( 'Return Log', 'patsch9-rental-engine' ) : __( 'Transfer Log', 'patsch9-rental-engine' );
         $blocks    = [
             [ 'type' => 'row', 'label' => __( 'Protokollnummer', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $document['document_number'] ?? '' ) ],
-            [ 'type' => 'row', 'label' => __( 'Bestellung', 'patsch9-rental-engine' ), 'value' => '#' . sanitize_text_field( $snapshot['order_number'] ?? '' ) ],
-            [ 'type' => 'row', 'label' => __( 'Buchung', 'patsch9-rental-engine' ), 'value' => '#' . absint( $snapshot['booking_id'] ?? 0 ) ],
+            [ 'type' => 'row', 'label' => __( 'Order', 'patsch9-rental-engine' ), 'value' => '#' . sanitize_text_field( $snapshot['order_number'] ?? '' ) ],
+            [ 'type' => 'row', 'label' => __( 'Booking', 'patsch9-rental-engine' ), 'value' => '#' . absint( $snapshot['booking_id'] ?? 0 ) ],
             [ 'type' => 'row', 'label' => __( 'Dokumentiert am', 'patsch9-rental-engine' ), 'value' => $this->display_datetime( $snapshot['event_at'] ?? '' ) ],
-            [ 'type' => 'section', 'title' => __( 'Vermietung', 'patsch9-rental-engine' ) ],
-            [ 'type' => 'row', 'label' => __( 'Mieter', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $snapshot['customer_name'] ?? '' ) ],
-            [ 'type' => 'row', 'label' => __( 'Mietartikel', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $snapshot['product_name'] ?? '' ) ],
-            [ 'type' => 'row', 'label' => __( 'Mietbeginn', 'patsch9-rental-engine' ), 'value' => $this->display_datetime( $snapshot['start_at'] ?? '' ) ],
-            [ 'type' => 'row', 'label' => __( 'Rückgabe', 'patsch9-rental-engine' ), 'value' => $this->display_datetime( $snapshot['end_at'] ?? '' ) ],
+            [ 'type' => 'section', 'title' => __( 'Rental', 'patsch9-rental-engine' ) ],
+            [ 'type' => 'row', 'label' => __( 'Rental customers', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $snapshot['customer_name'] ?? '' ) ],
+            [ 'type' => 'row', 'label' => __( 'Rental goods', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $snapshot['product_name'] ?? '' ) ],
+            [ 'type' => 'row', 'label' => __( 'Start of rental', 'patsch9-rental-engine' ), 'value' => $this->display_datetime( $snapshot['start_at'] ?? '' ) ],
+            [ 'type' => 'row', 'label' => __( 'Return', 'patsch9-rental-engine' ), 'value' => $this->display_datetime( $snapshot['end_at'] ?? '' ) ],
         ];
 
         if ( ! empty( $snapshot['fulfilment'] ) ) {
-            $blocks[] = [ 'type' => 'row', 'label' => __( 'Transport / Übergabe', 'patsch9-rental-engine' ), 'value' => $this->fulfilment_label( $snapshot['fulfilment'] ) ];
+            $blocks[] = [ 'type' => 'row', 'label' => __( 'Transport / handover', 'patsch9-rental-engine' ), 'value' => $this->fulfilment_label( $snapshot['fulfilment'] ) ];
             if ( ! empty( $snapshot['delivery_address'] ) && in_array( sanitize_key( $snapshot['fulfilment'] ), [ 'delivery', 'delivery_return' ], true ) ) {
                 $blocks[] = [ 'type' => 'row', 'label' => __( 'Liefer-/Abholadresse', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $snapshot['delivery_address'] ) ];
             }
@@ -661,22 +661,22 @@ final class RMWC_V2_Documents {
                 $value = html_entity_decode( wp_strip_all_tags( wc_price( (float) $amount, [ 'currency' => $currency ] ) ), ENT_QUOTES | ENT_HTML5, get_bloginfo( 'charset' ) ?: 'UTF-8' );
                 return trim( str_replace( "\xc2\xa0", ' ', $value ) );
             };
-            $blocks[] = [ 'type' => 'section', 'title' => __( 'Kaution', 'patsch9-rental-engine' ) ];
+            $blocks[] = [ 'type' => 'section', 'title' => __( 'Security deposit', 'patsch9-rental-engine' ) ];
             $blocks[] = [ 'type' => 'row', 'label' => __( 'Erforderlich', 'patsch9-rental-engine' ), 'value' => $plain_price( $deposit['required'] ?? 0 ) ];
             $blocks[] = [ 'type' => 'row', 'label' => __( 'Erhalten', 'patsch9-rental-engine' ), 'value' => $plain_price( $deposit['received'] ?? 0 ) ];
-            $blocks[] = [ 'type' => 'row', 'label' => __( 'Zurückgezahlt', 'patsch9-rental-engine' ), 'value' => $plain_price( $deposit['refunded'] ?? 0 ) ];
+            $blocks[] = [ 'type' => 'row', 'label' => __( 'Repaid', 'patsch9-rental-engine' ), 'value' => $plain_price( $deposit['refunded'] ?? 0 ) ];
             if ( (float) ( $deposit['retained'] ?? 0 ) > 0.0001 ) {
                 $blocks[] = [ 'type' => 'row', 'label' => __( 'Einbehalten', 'patsch9-rental-engine' ), 'value' => $plain_price( $deposit['retained'] ?? 0 ) ];
             }
             $blocks[] = [ 'type' => 'row', 'label' => __( 'Noch offen / hinterlegt', 'patsch9-rental-engine' ), 'value' => $plain_price( $deposit['available'] ?? 0 ) ];
             if ( ! $is_return && (float) ( $deposit['missing'] ?? 0 ) > 0.0001 ) {
-                $blocks[] = [ 'type' => 'notice', 'text' => __( 'Zum Zeitpunkt des Protokolls war die erforderliche Kaution noch nicht vollständig erfasst.', 'patsch9-rental-engine' ) ];
+                $blocks[] = [ 'type' => 'notice', 'text' => __( 'At the time of the protocol, the required security deposit was not yet fully recorded.', 'patsch9-rental-engine' ) ];
             }
         }
 
         $assets = is_array( $snapshot['assets'] ?? null ) ? $snapshot['assets'] : [];
         if ( $assets ) {
-            $blocks[] = [ 'type' => 'section', 'title' => __( 'Zugeordnete Geräte und dokumentierter Ausgangszustand', 'patsch9-rental-engine' ) ];
+            $blocks[] = [ 'type' => 'section', 'title' => __( 'Associated devices and documented output state', 'patsch9-rental-engine' ) ];
             foreach ( $assets as $asset ) {
                 if ( ! is_array( $asset ) ) {
                     continue;
@@ -695,21 +695,21 @@ final class RMWC_V2_Documents {
                 if ( '' !== trim( (string) ( $asset['known_damage'] ?? '' ) ) ) {
                     $blocks[] = [
                         'type' => 'notice',
-                        'text' => __( 'Bereits vor der Übergabe im Inventar dokumentiert: ', 'patsch9-rental-engine' ) . sanitize_textarea_field( $asset['known_damage'] ),
+                        'text' => __( 'Already documented before handover in the inventory:', 'patsch9-rental-engine' ) . sanitize_textarea_field( $asset['known_damage'] ),
                     ];
                 } else {
-                    $blocks[] = [ 'type' => 'text', 'size' => 9.4, 'text' => __( 'Keine bekannten Vorschäden / Gebrauchsspuren im Inventar hinterlegt.', 'patsch9-rental-engine' ) ];
+                    $blocks[] = [ 'type' => 'text', 'size' => 9.4, 'text' => __( 'No known pre-damages / traces of usage stored in the inventory.', 'patsch9-rental-engine' ) ];
                 }
             }
         }
 
-        $blocks[] = [ 'type' => 'section', 'title' => $is_return ? __( 'Rückgabe-Checkliste', 'patsch9-rental-engine' ) : __( 'Übergabe-Checkliste', 'patsch9-rental-engine' ) ];
+        $blocks[] = [ 'type' => 'section', 'title' => $is_return ? __( 'Return checklist', 'patsch9-rental-engine' ) : __( 'Transfer checklist', 'patsch9-rental-engine' ) ];
         foreach ( $snapshot['checklist'] ?? [] as $item ) {
             if ( is_array( $item ) ) {
                 $status_labels = [
                     'ok'    => __( 'In Ordnung', 'patsch9-rental-engine' ),
                     'issue' => __( 'Abweichung / fehlt', 'patsch9-rental-engine' ),
-                    'na'    => __( 'Nicht zutreffend', 'patsch9-rental-engine' ),
+                    'na'    => __( 'Not applicable', 'patsch9-rental-engine' ),
                 ];
                 $status = sanitize_key( $item['status'] ?? '' );
                 $label  = sanitize_text_field( $item['label'] ?? '' );
@@ -720,11 +720,11 @@ final class RMWC_V2_Documents {
                 $blocks[] = [ 'type' => 'bullet', 'text' => $text ];
                 continue;
             }
-            $blocks[] = [ 'type' => 'bullet', 'text' => __( 'Bestätigt: ', 'patsch9-rental-engine' ) . sanitize_text_field( $item ) ];
+            $blocks[] = [ 'type' => 'bullet', 'text' => __( 'Confirmed:', 'patsch9-rental-engine' ) . sanitize_text_field( $item ) ];
         }
 
         if ( ! empty( $snapshot['notes'] ) ) {
-            $blocks[] = [ 'type' => 'section', 'title' => __( 'Notizen / neu festgestellte Auffälligkeiten', 'patsch9-rental-engine' ) ];
+            $blocks[] = [ 'type' => 'section', 'title' => __( 'Notes / newly identified abnormalities', 'patsch9-rental-engine' ) ];
             $blocks[] = [ 'type' => 'notice', 'text' => sanitize_textarea_field( $snapshot['notes'] ) ];
         }
         if ( ! empty( $snapshot['staff_name'] ) ) {
@@ -733,8 +733,8 @@ final class RMWC_V2_Documents {
         $blocks[] = [
             'type' => 'notice',
             'text' => $is_return
-                ? __( 'Die Rückgabe wurde mit den oben dokumentierten Angaben abgeschlossen.', 'patsch9-rental-engine' )
-                : __( 'Die Übergabe wurde mit den oben dokumentierten Angaben abgeschlossen.', 'patsch9-rental-engine' ),
+                ? __( 'The return has been completed with the information documented above.', 'patsch9-rental-engine' )
+                : __( 'The handover was completed with the information documented above.', 'patsch9-rental-engine' ),
         ];
 
         return RMWC_PDF::build_styled(
@@ -747,9 +747,9 @@ final class RMWC_V2_Documents {
 
     private function fulfilment_label( $mode ) {
         $labels = [
-            'pickup'          => __( 'Abholung und Rückgabe durch Kunde', 'patsch9-rental-engine' ),
-            'delivery'        => __( 'Lieferung durch Vermieter und Rückgabe durch Kunde', 'patsch9-rental-engine' ),
-            'delivery_return' => __( 'Lieferung und Abholung durch Vermieter', 'patsch9-rental-engine' ),
+            'pickup'          => __( 'Pickup and return by customer', 'patsch9-rental-engine' ),
+            'delivery'        => __( 'Delivery by rental operator and return by customer', 'patsch9-rental-engine' ),
+            'delivery_return' => __( 'Delivery and collection by rental operator', 'patsch9-rental-engine' ),
         ];
         $mode = sanitize_key( (string) $mode );
         return $labels[ $mode ] ?? sanitize_text_field( (string) $mode );
@@ -848,7 +848,7 @@ final class RMWC_V2_Documents {
             $this->document_filename( $document ),
             $this->render_pdf( $document ),
             'rmwc_tempfile',
-            __( 'Temporäre PDF-Datei konnte nicht angelegt werden.', 'patsch9-rental-engine' )
+            __( 'Temporary PDF file could not be created.', 'patsch9-rental-engine' )
         );
     }
 
@@ -910,7 +910,7 @@ final class RMWC_V2_Documents {
         $order = wc_get_order( $order_id );
         if ( ! $document || ! $order || (int) $document['order_id'] !== $order->get_id() || ! $this->can_download( $document, $order, $token, $expires, $nonce ) ) {
             status_header( 403 );
-            wp_die( esc_html__( 'Dieses Dokument kann nicht heruntergeladen werden.', 'patsch9-rental-engine' ), '', [ 'response' => 403 ] );
+            wp_die( esc_html__( 'This document cannot be downloaded.', 'patsch9-rental-engine' ), '', [ 'response' => 403 ] );
         }
         $pdf = $this->render_pdf( $document );
         nocache_headers();
@@ -931,20 +931,20 @@ final class RMWC_V2_Documents {
             $screens[] = wc_get_page_screen_id( 'shop-order' );
         }
         foreach ( array_unique( $screens ) as $screen ) {
-            add_meta_box( 'rmwc_v2_documents', __( 'Mietdokumente', 'patsch9-rental-engine' ), [ $this, 'render_order_meta_box' ], $screen, 'side', 'default' );
+            add_meta_box( 'rmwc_v2_documents', __( 'Rental documents', 'patsch9-rental-engine' ), [ $this, 'render_order_meta_box' ], $screen, 'side', 'default' );
         }
     }
 
     public function render_order_meta_box( $object ) {
         $order = $object instanceof WC_Order ? $object : ( $object instanceof WP_Post ? wc_get_order( $object->ID ) : null );
         if ( ! $order || ! $this->order_has_rental( $order ) ) {
-            echo '<p>' . esc_html__( 'Keine Mietdokumente.', 'patsch9-rental-engine' ) . '</p>';
+            echo '<p>' . esc_html__( 'No rental documents.', 'patsch9-rental-engine' ) . '</p>';
             return;
         }
         $this->ensure_contract_for_order( $order->get_id() );
         $documents = $this->documents_for_order( $order->get_id() );
         if ( ! $documents ) {
-            echo '<p>' . esc_html__( 'Noch keine Dokumente vorhanden.', 'patsch9-rental-engine' ) . '</p>';
+            echo '<p>' . esc_html__( 'No documents available yet.', 'patsch9-rental-engine' ) . '</p>';
             return;
         }
         echo '<ul class="rmwc-v2-document-list">';
@@ -964,9 +964,9 @@ final class RMWC_V2_Documents {
         if ( $contract_id ) {
             $mail_status = isset( $_GET['rmwc_contract_mail'] ) ? sanitize_key( wp_unslash( $_GET['rmwc_contract_mail'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display notice.
             if ( 'sent' === $mail_status ) {
-                echo '<p class="rmwc-v2-document-mail-notice">' . esc_html__( 'Mietvertrag und Mietbedingungen wurden erneut per E-Mail versendet.', 'patsch9-rental-engine' ) . '</p>';
+                echo '<p class="rmwc-v2-document-mail-notice">' . esc_html__( 'Rental contract and rental terms were sent again by e-mail.', 'patsch9-rental-engine' ) . '</p>';
             } elseif ( 'failed' === $mail_status ) {
-                echo '<p class="rmwc-v2-document-mail-error">' . esc_html__( 'Die E-Mail konnte nicht versendet werden. Bitte WooCommerce-E-Mail-/SMTP-Konfiguration prüfen.', 'patsch9-rental-engine' ) . '</p>';
+                echo '<p class="rmwc-v2-document-mail-error">' . esc_html__( 'The email could not be sent. Please check WooCommerce e-mail/SMTP configuration.', 'patsch9-rental-engine' ) . '</p>';
             }
             $form_id = 'rmwc-v2-contract-mail-' . $order->get_id();
             $this->admin_footer_forms[ $form_id ] = [
@@ -975,8 +975,8 @@ final class RMWC_V2_Documents {
                 'nonce'    => wp_create_nonce( 'rmwc_send_contract_email_' . $order->get_id() ),
             ];
             echo '<div class="rmwc-v2-contract-mail-form">';
-            echo '<button form="' . esc_attr( $form_id ) . '" type="submit" class="button button-secondary">' . esc_html__( 'Mietvertrag per E-Mail senden', 'patsch9-rental-engine' ) . '</button>';
-            echo '<p class="description">' . esc_html__( 'Sendet den Mietvertrag inklusive der zum Bestellzeitpunkt akzeptierten Mietbedingungen. Die Bedingungen sind im Vertrags-PDF vollständig als Anlage enthalten und werden zusätzlich separat beigefügt.', 'patsch9-rental-engine' ) . '</p>';
+            echo '<button form="' . esc_attr( $form_id ) . '" type="submit" class="button button-secondary">' . esc_html__( 'Send rental agreement by e-mail', 'patsch9-rental-engine' ) . '</button>';
+            echo '<p class="description">' . esc_html__( 'Sends the rental contract including the rental conditions accepted at the time of order. The conditions are fully included in the contract PDF as an attachment and are added separately.', 'patsch9-rental-engine' ) . '</p>';
             echo '</div>';
         }
     }
@@ -1003,7 +1003,7 @@ final class RMWC_V2_Documents {
         if ( ! $documents ) {
             return;
         }
-        echo '<section class="woocommerce-order-details rmwc-v2-account-documents"><h2>' . esc_html__( 'Mietdokumente', 'patsch9-rental-engine' ) . '</h2><ul>';
+        echo '<section class="woocommerce-order-details rmwc-v2-account-documents"><h2>' . esc_html__( 'Rental documents', 'patsch9-rental-engine' ) . '</h2><ul>';
         foreach ( $documents as $document ) {
             echo '<li><a href="' . esc_url( $this->signed_download_url( $document, $order ) ) . '">' . esc_html( $this->type_label( $document['type'] ) . ' ' . $document['document_number'] ) . '</a></li>';
         }
@@ -1012,14 +1012,14 @@ final class RMWC_V2_Documents {
 
     private function type_label( $type ) {
         $labels = [
-            'contract'          => __( 'Mietvertrag', 'patsch9-rental-engine' ),
-            'contract_revision' => __( 'Mietvertragsänderung', 'patsch9-rental-engine' ),
-            'deposit_received'  => __( 'Kautionsquittung', 'patsch9-rental-engine' ),
-            'deposit_refund'    => __( 'Kautionsrückzahlungsquittung', 'patsch9-rental-engine' ),
-            'handover_protocol' => __( 'Übergabeprotokoll', 'patsch9-rental-engine' ),
-            'return_protocol'   => __( 'Rückgabeprotokoll', 'patsch9-rental-engine' ),
+            'contract'          => __( 'Rental agreement', 'patsch9-rental-engine' ),
+            'contract_revision' => __( 'Change in rental contract', 'patsch9-rental-engine' ),
+            'deposit_received'  => __( 'Deposit receipt', 'patsch9-rental-engine' ),
+            'deposit_refund'    => __( 'Deposit repayment receipt', 'patsch9-rental-engine' ),
+            'handover_protocol' => __( 'Transfer Log', 'patsch9-rental-engine' ),
+            'return_protocol'   => __( 'Return Log', 'patsch9-rental-engine' ),
         ];
-        return $labels[ $type ] ?? __( 'Mietdokument', 'patsch9-rental-engine' );
+        return $labels[ $type ] ?? __( 'Rental document', 'patsch9-rental-engine' );
     }
 
     public function standard_email_attachments( $attachments, $email_id, $order, $email = null ) {
@@ -1087,7 +1087,7 @@ final class RMWC_V2_Documents {
             'mietbedingungen-bestellung-' . sanitize_file_name( $order->get_order_number() ) . '.pdf',
             RMWC_PDF::build( 'Akzeptierte Mietbedingungen', $lines ),
             'rmwc_terms_temp',
-            __( 'Mietbedingungen-PDF konnte nicht angelegt werden.', 'patsch9-rental-engine' )
+            __( 'Rental conditions PDF could not be created.', 'patsch9-rental-engine' )
         );
     }
 
@@ -1222,22 +1222,22 @@ final class RMWC_V2_Documents {
         $sent = $this->send_document_email(
             $order,
             $contract_id,
-            __( 'Ihr Mietvertrag zu Ihrer Bestellung #{order_number}', 'patsch9-rental-engine' ),
-            __( 'Mietvertrag und Mietbedingungen', 'patsch9-rental-engine' ),
-            __( 'Vielen Dank für Ihre Mietbestellung. Im Anhang erhalten Sie Ihren Mietvertrag. Die von Ihnen bei der Bestellung akzeptierte Fassung der Mietbedingungen ist im Mietvertrag vollständig als Anlage enthalten und wird zusätzlich als separates PDF beigefügt. Bitte bewahren Sie die Dokumente für den Mietzeitraum auf.', 'patsch9-rental-engine' )
+            __( 'Your rental contract for your order #{order_number}', 'patsch9-rental-engine' ),
+            __( 'Rental contract and conditions', 'patsch9-rental-engine' ),
+            __( 'Thank you very much for your rental order. In the appendix you will receive your rental contract. The version of the rental conditions accepted by you when ordering is included in the rental contract as a whole and will be added as a separate PDF. Please keep the documents for the rental period.', 'patsch9-rental-engine' )
         );
         if ( $sent ) {
             $order->update_meta_data( '_rmwc_contract_email_document_id', $contract_id );
             $order->delete_meta_data( '_rmwc_contract_email_last_failed_at' );
             $order->save();
-            $order->add_order_note( __( 'Vermietung: Mietvertrag und akzeptierte Mietbedingungen wurden automatisch per E-Mail versendet.', 'patsch9-rental-engine' ) );
+            $order->add_order_note( __( 'Rental: Rental contract and accepted rental terms were automatically sent by e-mail.', 'patsch9-rental-engine' ) );
         } else {
             $last_failed = (string) $order->get_meta( '_rmwc_contract_email_last_failed_at', true );
             $now         = current_time( 'mysql', true );
             // Avoid filling the order notes when several status hooks run in a
             // short period, but keep a visible diagnostic for failed sends.
             if ( '' === $last_failed || strtotime( $last_failed . ' UTC' ) < time() - HOUR_IN_SECONDS ) {
-                $order->add_order_note( __( 'Vermietung: Der automatische Versand des Mietvertrags ist fehlgeschlagen. Bitte WooCommerce-E-Mail-/SMTP-Konfiguration prüfen oder den Vertrag über „Mietdokumente“ erneut senden.', 'patsch9-rental-engine' ) );
+                $order->add_order_note( __( 'Rental: Automatic dispatch of the rental contract failed. Please check WooCommerce e-mail/SMTP configuration or re-send the rental document contract.', 'patsch9-rental-engine' ) );
             }
             $order->update_meta_data( '_rmwc_contract_email_last_failed_at', $now );
             $order->save();
@@ -1250,33 +1250,33 @@ final class RMWC_V2_Documents {
      */
     public function admin_send_contract_email() {
         if ( ! current_user_can( 'manage_woocommerce' ) ) {
-            wp_die( esc_html__( 'Keine Berechtigung.', 'patsch9-rental-engine' ), '', [ 'response' => 403 ] );
+            wp_die( esc_html__( 'No permission.', 'patsch9-rental-engine' ), '', [ 'response' => 403 ] );
         }
         $order_id = isset( $_POST['order_id'] ) ? absint( wp_unslash( $_POST['order_id'] ) ) : 0;
         $nonce    = isset( $_POST['rmwc_contract_email_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['rmwc_contract_email_nonce'] ) ) : '';
         if ( ! $order_id || ! $nonce || ! wp_verify_nonce( $nonce, 'rmwc_send_contract_email_' . $order_id ) ) {
-            wp_die( esc_html__( 'Sicherheitsprüfung fehlgeschlagen.', 'patsch9-rental-engine' ), '', [ 'response' => 403 ] );
+            wp_die( esc_html__( 'Security check failed.', 'patsch9-rental-engine' ), '', [ 'response' => 403 ] );
         }
 
         $order = wc_get_order( $order_id );
         if ( ! $order || ! $this->order_has_rental( $order ) ) {
-            wp_die( esc_html__( 'Mietbestellung nicht gefunden.', 'patsch9-rental-engine' ), '', [ 'response' => 404 ] );
+            wp_die( esc_html__( 'Rental order not found.', 'patsch9-rental-engine' ), '', [ 'response' => 404 ] );
         }
         $contract_id = $this->ensure_contract_for_order( $order_id );
         $sent = $contract_id
             ? $this->send_document_email(
                 $order,
                 $contract_id,
-                __( 'Ihr Mietvertrag zu Ihrer Bestellung #{order_number}', 'patsch9-rental-engine' ),
-                __( 'Mietvertrag und Mietbedingungen', 'patsch9-rental-engine' ),
-                __( 'Im Anhang erhalten Sie erneut Ihren Mietvertrag inklusive der vollständig beigefügten, von Ihnen akzeptierten Mietbedingungen. Die Mietbedingungen werden zusätzlich als separates PDF angehängt.', 'patsch9-rental-engine' )
+                __( 'Your rental contract for your order #{order_number}', 'patsch9-rental-engine' ),
+                __( 'Rental contract and conditions', 'patsch9-rental-engine' ),
+                __( 'In the appendix you will receive your rental contract again, including the fully enclosed rental terms accepted by you. The rental terms will also be appended as a separate PDF.', 'patsch9-rental-engine' )
             )
             : false;
 
         if ( $sent ) {
             $order->update_meta_data( '_rmwc_contract_email_document_id', $contract_id );
             $order->save();
-            $order->add_order_note( __( 'Vermietung: Mietvertrag und akzeptierte Mietbedingungen wurden manuell erneut per E-Mail versendet.', 'patsch9-rental-engine' ) );
+            $order->add_order_note( __( 'Rental: Rental contract and accepted rental terms were sent manually again by e-mail.', 'patsch9-rental-engine' ) );
         }
 
         $redirect = $order->get_edit_order_url();
@@ -1307,9 +1307,9 @@ final class RMWC_V2_Documents {
             $this->send_document_email(
                 $order,
                 (int) $created,
-                __( 'Aktualisierung Ihres Mietvertrags', 'patsch9-rental-engine' ),
-                __( 'Mietvertragsänderung', 'patsch9-rental-engine' ),
-                __( 'Die Daten Ihrer Vermietung wurden geändert. Die aktualisierte Vertragsdokumentation finden Sie im Anhang.', 'patsch9-rental-engine' )
+                __( 'Updating your rental contract', 'patsch9-rental-engine' ),
+                __( 'Change in rental contract', 'patsch9-rental-engine' ),
+                __( 'The data of your rental has been changed. The updated contract documentation can be found in the annex.', 'patsch9-rental-engine' )
             );
         }
         return is_wp_error( $created ) ? 0 : (int) $created;
@@ -1317,7 +1317,7 @@ final class RMWC_V2_Documents {
 
     public function register_privacy_exporter( $exporters ) {
         $exporters['patsch9-rental-engine-documents'] = [
-            'exporter_friendly_name' => __( ' Mietdokumente', 'patsch9-rental-engine' ),
+            'exporter_friendly_name' => __( 'Rental documents', 'patsch9-rental-engine' ),
             'callback'               => [ $this, 'privacy_exporter' ],
         ];
         return $exporters;
@@ -1333,7 +1333,7 @@ final class RMWC_V2_Documents {
             foreach ( $this->documents_for_order( $order_id ) as $document ) {
                 $data[] = [
                     'group_id'    => 'patsch9-rental-engine-documents',
-                    'group_label' => __( 'Mietdokumente', 'patsch9-rental-engine' ),
+                    'group_label' => __( 'Rental documents', 'patsch9-rental-engine' ),
                     'item_id'     => 'rmwc-document-' . (int) $document['id'],
                     'data'        => [
                         [ 'name' => __( 'Dokumentnummer', 'patsch9-rental-engine' ), 'value' => $document['document_number'] ],
@@ -1348,7 +1348,7 @@ final class RMWC_V2_Documents {
 
     public function register_privacy_eraser( $erasers ) {
         $erasers['patsch9-rental-engine-documents'] = [
-            'eraser_friendly_name' => __( ' Mietdokumente', 'patsch9-rental-engine' ),
+            'eraser_friendly_name' => __( 'Rental documents', 'patsch9-rental-engine' ),
             'callback'             => [ $this, 'privacy_eraser' ],
         ];
         return $erasers;
@@ -1365,7 +1365,7 @@ final class RMWC_V2_Documents {
         return [
             'items_removed'  => false,
             'items_retained' => ! empty( $orders ),
-            'messages'       => $orders ? [ __( 'Mietverträge und Kautionsbelege werden als Geschäftsunterlagen zusammen mit der zugehörigen WooCommerce-Bestellung aufbewahrt.', 'patsch9-rental-engine' ) ] : [],
+            'messages'       => $orders ? [ __( 'Rental contracts and deposit receipts are kept as business documents together with the corresponding WooCommerce order.', 'patsch9-rental-engine' ) ] : [],
             'done'           => true,
         ];
     }

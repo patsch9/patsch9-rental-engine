@@ -234,7 +234,7 @@ final class RMWC_V2_Terms {
         $product_id = absint( $product_id );
         $content    = trim( wp_kses_post( $content ) );
         if ( strlen( $content ) > 250000 ) {
-            wp_die( esc_html__( 'Die ergänzenden Mietbedingungen sind zu groß. Bitte kürzen Sie den Inhalt.', 'patsch9-rental-engine' ), '', [ 'response' => 413 ] );
+            wp_die( esc_html__( 'The additional rental conditions are too large. Please shorten the content.', 'patsch9-rental-engine' ), '', [ 'response' => 413 ] );
         }
         update_post_meta( $product_id, '_rmwc_product_terms_content', $content );
 
@@ -276,9 +276,9 @@ final class RMWC_V2_Terms {
             [
                 'id'            => '_rmwc_terms_required',
                 'wrapper_class' => 'rmwc-rental-field-row',
-                'label'         => __( 'Mietbedingungen bestätigen', 'patsch9-rental-engine' ),
+                'label'         => __( 'Confirm rental conditions', 'patsch9-rental-engine' ),
                 'value'         => $value,
-                'description'   => __( 'Kunden müssen die allgemeinen und – sofern hinterlegt – die ergänzenden artikelspezifischen Mietbedingungen vor dem Hinzufügen zum Warenkorb bestätigen.', 'patsch9-rental-engine' ),
+                'description'   => __( 'Customers must confirm the general and – if deposited – the additional product-specific rental conditions before adding to the shopping cart.', 'patsch9-rental-engine' ),
                 'desc_tip'      => true,
             ]
         );
@@ -287,9 +287,9 @@ final class RMWC_V2_Terms {
         $content = (string) get_post_meta( $product_id, '_rmwc_product_terms_content', true );
         ?>
         <div class="form-field rmwc-rental-field-row rmwc-product-terms-editor-row">
-            <label for="rmwc_product_terms_content_editor"><?php esc_html_e( 'Ergänzende Mietbedingungen für diesen Artikel', 'patsch9-rental-engine' ); ?></label>
+            <label for="rmwc_product_terms_content_editor"><?php esc_html_e( 'Additional rental conditions for this article', 'patsch9-rental-engine' ); ?></label>
             <div class="rmwc-product-terms-editor-wrap">
-                <p class="description rmwc-product-terms-editor-help"><?php esc_html_e( 'Optional. Hier nur die Besonderheiten dieses Mietartikels festhalten, z. B. zulässige Nutzung, Reinigung, Transport oder Bedienvorgaben. Bei jeder inhaltlichen Änderung wird automatisch eine neue unveränderliche Version erzeugt; bereits akzeptierte Bestellungen behalten ihren Snapshot.', 'patsch9-rental-engine' ); ?></p>
+                <p class="description rmwc-product-terms-editor-help"><?php esc_html_e( 'Optional. Here, only record the special features of this rental item, e.g. permitted use, cleaning, transport or operating requirements. Every change in content automatically creates a new unchangeable version; already accepted orders retain their snapshot.', 'patsch9-rental-engine' ); ?></p>
                 <?php
                 wp_editor(
                     $content,
@@ -308,7 +308,7 @@ final class RMWC_V2_Terms {
         </div>
         <?php
         if ( $active ) {
-            echo '<p class="form-field rmwc-product-terms-version"><label>' . esc_html__( 'Aktive Zusatzfassung', 'patsch9-rental-engine' ) . '</label><span><strong>' . esc_html__( 'Version', 'patsch9-rental-engine' ) . ' ' . esc_html( $this->product_terms_version_display( $active ) ) . '</strong><br><small>' . esc_html__( 'Prüfsumme:', 'patsch9-rental-engine' ) . ' ' . esc_html( $active['hash'] ?? '' ) . '</small></span></p>';
+            echo '<p class="form-field rmwc-product-terms-version"><label>' . esc_html__( 'Aktive Zusatzfassung', 'patsch9-rental-engine' ) . '</label><span><strong>' . esc_html__( 'Version', 'patsch9-rental-engine' ) . ' ' . esc_html( $this->product_terms_version_display( $active ) ) . '</strong><br><small>' . esc_html__( 'Date of check:', 'patsch9-rental-engine' ) . ' ' . esc_html( $active['hash'] ?? '' ) . '</small></span></p>';
         }
     }
 
@@ -347,11 +347,11 @@ final class RMWC_V2_Terms {
                 <input type="checkbox" name="rmwc_terms_accepted" value="yes" required>
                 <span><?php
                 if ( $has_general && $has_product ) {
-                    esc_html_e( 'Ich habe die allgemeinen Mietbedingungen sowie die ergänzenden Mietbedingungen für diesen Artikel gelesen und akzeptiere sie.', 'patsch9-rental-engine' );
+                    esc_html_e( 'I have read and accept the general rental conditions as well as the additional rental conditions for this article.', 'patsch9-rental-engine' );
                 } elseif ( $has_product ) {
-                    esc_html_e( 'Ich habe die ergänzenden Mietbedingungen für diesen Artikel gelesen und akzeptiere sie.', 'patsch9-rental-engine' );
+                    esc_html_e( 'I have read and accept the additional rental conditions for this article.', 'patsch9-rental-engine' );
                 } else {
-                    esc_html_e( 'Ich habe die Mietbedingungen gelesen und akzeptiere sie.', 'patsch9-rental-engine' );
+                    esc_html_e( 'I have read and accept the rental terms.', 'patsch9-rental-engine' );
                 }
                 ?></span>
             </label>
@@ -359,7 +359,7 @@ final class RMWC_V2_Terms {
                 <details class="rmwc-v2-terms-details">
                     <summary><?php
                     /* translators: %s: rental terms version. */
-                    echo esc_html( sprintf( __( 'Allgemeine Mietbedingungen anzeigen (Version %s)', 'patsch9-rental-engine' ), $terms['version'] ) );
+                    echo esc_html( sprintf( __( 'Show general rental conditions (Version %s)', 'patsch9-rental-engine' ), $terms['version'] ) );
                     ?></summary>
                     <div class="rmwc-v2-terms-content"><?php echo wp_kses_post( $terms['content'] ); ?></div>
                 </details>
@@ -370,7 +370,7 @@ final class RMWC_V2_Terms {
                     echo esc_html(
                         sprintf(
                             /* translators: 1: rental product name, 2: supplemental terms version. */
-                            __( 'Ergänzende Mietbedingungen – %1$s (Version %2$s)', 'patsch9-rental-engine' ),
+                            __( 'Additional rental conditions – %1$s (Version %2$s)', 'patsch9-rental-engine' ),
                             $product->get_name(),
                             $this->product_terms_version_display( $product_terms )
                         )
@@ -395,7 +395,7 @@ final class RMWC_V2_Terms {
             return $passed;
         }
         if ( ! $this->frontend_nonce_valid( $product_id ) ) {
-            wc_add_notice( __( 'Die Mietdaten konnten nicht verifiziert werden. Bitte Seite neu laden.', 'patsch9-rental-engine' ), 'error' );
+            wc_add_notice( __( 'The rental data could not be verified. Please reload page.', 'patsch9-rental-engine' ), 'error' );
             return false;
         }
         $has_general = (bool) $this->active_terms();
@@ -408,7 +408,7 @@ final class RMWC_V2_Terms {
         }
         $accepted = isset( $_POST['rmwc_terms_accepted'] ) ? sanitize_key( wp_unslash( $_POST['rmwc_terms_accepted'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- frontend_nonce_valid() verified the product-specific rental nonce immediately above.
         if ( 'yes' !== $accepted ) {
-            wc_add_notice( __( 'Bitte bestätigen Sie die Mietbedingungen.', 'patsch9-rental-engine' ), 'error' );
+            wc_add_notice( __( 'Please confirm the rental conditions.', 'patsch9-rental-engine' ), 'error' );
             return false;
         }
         return $passed;
@@ -747,20 +747,20 @@ final class RMWC_V2_Terms {
         if ( $plain_text ) {
             if ( $versions ) {
                 echo "
-" . esc_html__( 'Allgemeine Mietbedingungen:', 'patsch9-rental-engine' ) . ' ' . esc_html( implode( ', ', $versions ) ) . "
+" . esc_html__( 'General rental conditions:', 'patsch9-rental-engine' ) . ' ' . esc_html( implode( ', ', $versions ) ) . "
 ";
             }
             if ( $product_labels ) {
-                echo esc_html__( 'Ergänzende Mietbedingungen:', 'patsch9-rental-engine' ) . ' ' . esc_html( implode( '; ', $product_labels ) ) . "
+                echo esc_html__( 'Additional rental conditions:', 'patsch9-rental-engine' ) . ' ' . esc_html( implode( '; ', $product_labels ) ) . "
 ";
             }
             return;
         }
         if ( $versions ) {
-            echo '<p><strong>' . esc_html__( 'Allgemeine Mietbedingungen:', 'patsch9-rental-engine' ) . '</strong> ' . esc_html( implode( ', ', $versions ) ) . '</p>';
+            echo '<p><strong>' . esc_html__( 'General rental conditions:', 'patsch9-rental-engine' ) . '</strong> ' . esc_html( implode( ', ', $versions ) ) . '</p>';
         }
         if ( $product_labels ) {
-            echo '<p><strong>' . esc_html__( 'Ergänzende Mietbedingungen:', 'patsch9-rental-engine' ) . '</strong> ' . esc_html( implode( '; ', $product_labels ) ) . '</p>';
+            echo '<p><strong>' . esc_html__( 'Additional rental conditions:', 'patsch9-rental-engine' ) . '</strong> ' . esc_html( implode( '; ', $product_labels ) ) . '</p>';
         }
     }
 
@@ -772,7 +772,7 @@ final class RMWC_V2_Terms {
 
     public function render_admin_tab() {
         if ( ! current_user_can( 'manage_woocommerce' ) ) {
-            wp_die( esc_html__( 'Keine Berechtigung.', 'patsch9-rental-engine' ) );
+            wp_die( esc_html__( 'No permission.', 'patsch9-rental-engine' ) );
         }
         global $wpdb;
         $active = $this->active_terms();
@@ -780,12 +780,12 @@ final class RMWC_V2_Terms {
         $history = $wpdb->get_results( $wpdb->prepare( "SELECT id, version, content_hash, active, created_at, created_by FROM %i ORDER BY id DESC LIMIT 30", $this->table() ), ARRAY_A );
         ?>
         <div class="rmwc-v2-admin-card">
-            <h2><?php esc_html_e( 'Allgemeine Mietbedingungen', 'patsch9-rental-engine' ); ?></h2>
-            <p><?php esc_html_e( 'Jede Änderung wird als neue, unveränderliche Version gespeichert. Bereits abgeschlossene Bestellungen behalten ihren akzeptierten Snapshot.', 'patsch9-rental-engine' ); ?></p>
+            <h2><?php esc_html_e( 'General rental conditions', 'patsch9-rental-engine' ); ?></h2>
+            <p><?php esc_html_e( 'Each change is saved as a new, unchangeable version. Orders already completed retain their accepted snapshot.', 'patsch9-rental-engine' ); ?></p>
             <?php if ( $active ) : ?>
                 <p><strong><?php esc_html_e( 'Aktive Version:', 'patsch9-rental-engine' ); ?></strong> <?php echo esc_html( $active['version'] ); ?> · <?php echo esc_html( mysql2date( 'd.m.Y H:i', $active['created_at'] ) ); ?></p>
             <?php else : ?>
-                <p><strong><?php esc_html_e( 'Noch keine Mietbedingungen hinterlegt.', 'patsch9-rental-engine' ); ?></strong></p>
+                <p><strong><?php esc_html_e( 'No rental conditions provided yet.', 'patsch9-rental-engine' ); ?></strong></p>
             <?php endif; ?>
 
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -806,7 +806,7 @@ final class RMWC_V2_Terms {
                         'teeny'         => false,
                     ]
                 );
-                submit_button( __( 'Als neue Version speichern und aktivieren', 'patsch9-rental-engine' ) );
+                submit_button( __( 'Save and activate as new version', 'patsch9-rental-engine' ) );
                 ?>
             </form>
         </div>
@@ -814,10 +814,10 @@ final class RMWC_V2_Terms {
         <div class="rmwc-v2-admin-card">
             <h2><?php esc_html_e( 'Versionshistorie', 'patsch9-rental-engine' ); ?></h2>
             <table class="widefat striped">
-                <thead><tr><th><?php esc_html_e( 'Version', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'Status', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'Erstellt', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'Prüfsumme', 'patsch9-rental-engine' ); ?></th></tr></thead>
+                <thead><tr><th><?php esc_html_e( 'Version', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'Status', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'Erstellt', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'checksum', 'patsch9-rental-engine' ); ?></th></tr></thead>
                 <tbody>
                 <?php if ( ! $history ) : ?>
-                    <tr><td colspan="4"><?php esc_html_e( 'Noch keine Versionen vorhanden.', 'patsch9-rental-engine' ); ?></td></tr>
+                    <tr><td colspan="4"><?php esc_html_e( 'No versions available yet.', 'patsch9-rental-engine' ); ?></td></tr>
                 <?php else : foreach ( $history as $row ) : ?>
                     <tr>
                         <td><strong><?php echo esc_html( $row['version'] ); ?></strong></td>
@@ -834,11 +834,11 @@ final class RMWC_V2_Terms {
 
     public function save_terms() {
         if ( ! current_user_can( 'manage_woocommerce' ) ) {
-            wp_die( esc_html__( 'Keine Berechtigung.', 'patsch9-rental-engine' ), '', [ 'response' => 403 ] );
+            wp_die( esc_html__( 'No permission.', 'patsch9-rental-engine' ), '', [ 'response' => 403 ] );
         }
         $nonce = isset( $_POST['rmwc_terms_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['rmwc_terms_nonce'] ) ) : '';
         if ( ! $nonce || ! wp_verify_nonce( $nonce, 'rmwc_save_terms' ) ) {
-            wp_die( esc_html__( 'Sicherheitsprüfung fehlgeschlagen.', 'patsch9-rental-engine' ), '', [ 'response' => 403 ] );
+            wp_die( esc_html__( 'Security check failed.', 'patsch9-rental-engine' ), '', [ 'response' => 403 ] );
         }
 
         $version = isset( $_POST['rmwc_terms_version'] ) ? sanitize_text_field( wp_unslash( $_POST['rmwc_terms_version'] ) ) : '';
@@ -849,7 +849,7 @@ final class RMWC_V2_Terms {
         $content = isset( $_POST['rmwc_terms_content'] ) ? wp_kses_post( wp_unslash( $_POST['rmwc_terms_content'] ) ) : '';
         $content = trim( $content );
         if ( strlen( $content ) > 500000 ) {
-            wp_die( esc_html__( 'Die allgemeinen Mietbedingungen sind zu groß. Bitte kürzen Sie den Inhalt.', 'patsch9-rental-engine' ), '', [ 'response' => 413 ] );
+            wp_die( esc_html__( 'The general rental conditions are too large. Please shorten the content.', 'patsch9-rental-engine' ), '', [ 'response' => 413 ] );
         }
         $redirect_base = [ 'page' => 'rmwc-rentals', 'tab' => 'terms' ];
         if ( '' === trim( wp_strip_all_tags( $content ) ) ) {

@@ -19,7 +19,7 @@ do_action( 'woocommerce_email_header', $email_heading, $email );
         echo wp_kses_post(
             sprintf(
                 /* translators: %s order number. */
-                __( 'Zu Ihrer Bestellung <strong>#%s</strong> finden Sie den zugehörigen PDF-Beleg im Anhang.', 'patsch9-rental-engine' ),
+                __( 'To your order <strong>#%s</strong> you will find the corresponding PDF document in the attachment.', 'patsch9-rental-engine' ),
                 esc_html( $order->get_order_number() )
             )
         );

@@ -298,8 +298,8 @@ final class RMWC_Plugin {
         $options['rmwc_rental_enabled'] = [
             'id'            => '_rmwc_rental_enabled',
             'wrapper_class' => 'show_if_simple show_if_variable',
-            'label'         => __( 'Vermietung', 'patsch9-rental-engine' ),
-            'description'   => __( 'Dieses WooCommerce-Produkt als Mietartikel anbieten.', 'patsch9-rental-engine' ),
+            'label'         => __( 'Rental', 'patsch9-rental-engine' ),
+            'description'   => __( 'Offer this WooCommerce product as a rental item.', 'patsch9-rental-engine' ),
             'default'       => 'no',
         ];
 
@@ -419,8 +419,8 @@ final class RMWC_Plugin {
 
             <div class="options_group rmwc-weekday-section">
                 <div class="rmwc-product-section-head">
-                    <h4><?php esc_html_e( 'Wochentage & Sperrtage', 'patsch9-rental-engine' ); ?></h4>
-                    <p class="description"><?php esc_html_e( 'Lege fest, an welchen Wochentagen Abholung und Rückgabe möglich sind und ob an einzelnen Miettagen ein abweichender Tagespreis gilt. Laufende Vermietungen dürfen gesperrte Übergabetage überbrücken.', 'patsch9-rental-engine' ); ?></p>
+                    <h4><?php esc_html_e( 'Weekdays & blocked days', 'patsch9-rental-engine' ); ?></h4>
+                    <p class="description"><?php esc_html_e( 'Determine on which weekdays collection and return are possible and whether a different daily price applies on individual rental days. Current rentals may bridge blocked delivery days.', 'patsch9-rental-engine' ); ?></p>
                 </div>
                 <div class="rmwc-weekday-cards">
                     <?php foreach ( $this->weekday_options() as $day_number => $day_label ) : ?>
@@ -429,15 +429,15 @@ final class RMWC_Plugin {
                             <label class="rmwc-weekday-toggle">
                                 <input type="checkbox" name="rmwc_blocked_pickup_days[]" value="<?php echo esc_attr( $day_number ); ?>" <?php checked( in_array( $day_number, $blocked_pickup_days, true ) ); ?>>
                                 <span>
-                                    <strong><?php esc_html_e( 'Keine Abholung', 'patsch9-rental-engine' ); ?></strong>
-                                    <small><?php esc_html_e( 'Kein Mietbeginn an diesem Tag', 'patsch9-rental-engine' ); ?></small>
+                                    <strong><?php esc_html_e( 'No pickup', 'patsch9-rental-engine' ); ?></strong>
+                                    <small><?php esc_html_e( 'No rental start on this day', 'patsch9-rental-engine' ); ?></small>
                                 </span>
                             </label>
                             <label class="rmwc-weekday-toggle">
                                 <input type="checkbox" name="rmwc_blocked_return_days[]" value="<?php echo esc_attr( $day_number ); ?>" <?php checked( in_array( $day_number, $blocked_return_days, true ) ); ?>>
                                 <span>
-                                    <strong><?php esc_html_e( 'Keine Rückgabe', 'patsch9-rental-engine' ); ?></strong>
-                                    <small><?php esc_html_e( 'Keine Rückgabe an diesem Tag', 'patsch9-rental-engine' ); ?></small>
+                                    <strong><?php esc_html_e( 'No return', 'patsch9-rental-engine' ); ?></strong>
+                                    <small><?php esc_html_e( 'No return on this day', 'patsch9-rental-engine' ); ?></small>
                                 </span>
                             </label>
                             <div class="rmwc-weekday-price">
@@ -452,7 +452,7 @@ final class RMWC_Plugin {
                                            placeholder="<?php esc_attr_e( 'Standardpreis', 'patsch9-rental-engine' ); ?>">
                                     <span aria-hidden="true"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
                                 </span>
-                                <small><?php esc_html_e( 'Leer = Standard-Mietpreis', 'patsch9-rental-engine' ); ?></small>
+                                <small><?php esc_html_e( 'Empty = standard rental price', 'patsch9-rental-engine' ); ?></small>
                             </div>
                         </section>
                     <?php endforeach; ?>
@@ -558,7 +558,7 @@ final class RMWC_Plugin {
                 <p style="padding:0 12px" class="description">Für Materialgrößen und bepreiste Zubehörartikel verwende Miet-Zubehör. Einfache Zusatzoptionen sind für Leistungen oder Aufschläge gedacht, die keinen eigenen Lagerartikel benötigen.</p>
                 <?php do_action( 'rmwc_product_panel_accessories', $id ); ?>
                 <details class="rmwc-simple-addons" <?php if ( $addons ) : ?>open<?php endif; ?>>
-                    <summary><?php esc_html_e( 'Einfache Zusatzoptionen (ohne eigenen WooCommerce-Artikel)', 'patsch9-rental-engine' ); ?></summary>
+                    <summary><?php esc_html_e( 'Simple add-ons (without a separate WooCommerce product)', 'patsch9-rental-engine' ); ?></summary>
                     <div class="rmwc-simple-addons-inner">
                         <table class="widefat rmwc-addons-table rmwc-admin-table">
                             <thead><tr><th>Gruppe</th><th>Option</th><th>Preis</th><th>Abrechnung</th><th></th></tr></thead>
@@ -771,6 +771,35 @@ final class RMWC_Plugin {
             wp_enqueue_style( 'woocommerce_admin_styles' );
             wp_enqueue_editor();
             wp_enqueue_script( 'patsch9-rental-engine-admin-product', RMWC_URL . 'assets/admin.js', [ 'jquery', 'wc-enhanced-select' ], RMWC_VERSION, true );
+            wp_localize_script( 'patsch9-rental-engine-admin-product', 'RMWCAdminData', [
+                'strings' => [
+                    'addonMaterial'          => __( 'Material', 'patsch9-rental-engine' ),
+                    'addonFor20People'       => __( 'for 20 people', 'patsch9-rental-engine' ),
+                    'once'                   => __( 'once', 'patsch9-rental-engine' ),
+                    'perRentalUnit'          => __( 'per rental unit', 'patsch9-rental-engine' ),
+                    'perRentalDay'           => __( 'per rental day', 'patsch9-rental-engine' ),
+                    'upTo10Km'               => __( 'up to 10 km', 'patsch9-rental-engine' ),
+                    'rentalAccessoryProduct' => __( 'Rental accessory product', 'patsch9-rental-engine' ),
+                    'searchRentalAccessory'  => __( 'Search rental accessories…', 'patsch9-rental-engine' ),
+                    'productSourceNote'      => __( 'Price, tax, stock, and the “Sold individually” setting are taken directly from this WooCommerce product.', 'patsch9-rental-engine' ),
+                    'customerDisplay'        => __( 'Customer display', 'patsch9-rental-engine' ),
+                    'sweetPopcornExample'    => __( 'e.g. for approx. 1 kg sweet popcorn', 'patsch9-rental-engine' ),
+                    'optionalProductName'    => __( 'Optional. Empty = use product name.', 'patsch9-rental-engine' ),
+                    'calculation'            => __( 'Calculation', 'patsch9-rental-engine' ),
+                    'oncePerBooking'         => __( '1× per booking', 'patsch9-rental-engine' ),
+                    'removeAccessory'        => __( 'Remove rental accessory from group', 'patsch9-rental-engine' ),
+                    'groupName'              => __( 'Group name', 'patsch9-rental-engine' ),
+                    'selectionType'          => __( 'Selection type', 'patsch9-rental-engine' ),
+                    'singleSelection'        => __( 'Single selection – at most one option', 'patsch9-rental-engine' ),
+                    'multipleSelection'      => __( 'Multiple selection – multiple options allowed', 'patsch9-rental-engine' ),
+                    'requiredSelection'      => __( 'Required selection', 'patsch9-rental-engine' ),
+                    'atLeastOneOption'       => __( 'At least one option must be selected', 'patsch9-rental-engine' ),
+                    'addAccessory'           => __( '+ Add accessory', 'patsch9-rental-engine' ),
+                    'removeAccessoryGroup'   => __( 'Remove accessory group', 'patsch9-rental-engine' ),
+                    'emptyAccessoryGroup'    => __( 'No accessories in this group yet. Add at least one product.', 'patsch9-rental-engine' ),
+                    'removeChecklistItem'    => __( 'Remove checklist item', 'patsch9-rental-engine' ),
+                ],
+            ] );
             wp_enqueue_style( 'patsch9-rental-engine-admin', RMWC_URL . 'assets/admin.css', [], RMWC_VERSION );
         }
 
@@ -802,6 +831,32 @@ final class RMWC_Plugin {
             'currency'       => get_woocommerce_currency(),
             'currencySymbol' => get_woocommerce_currency_symbol(),
             'locale'         => str_replace( '_', '-', get_locale() ),
+            'strings'        => [
+                'weekdayMon'             => __( 'Mon', 'patsch9-rental-engine' ),
+                'weekdayTue'             => __( 'Tue', 'patsch9-rental-engine' ),
+                'weekdayWed'             => __( 'Wed', 'patsch9-rental-engine' ),
+                'weekdayThu'             => __( 'Thu', 'patsch9-rental-engine' ),
+                'weekdayFri'             => __( 'Fri', 'patsch9-rental-engine' ),
+                'weekdaySat'             => __( 'Sat', 'patsch9-rental-engine' ),
+                'weekdaySun'             => __( 'Sun', 'patsch9-rental-engine' ),
+                'noPickupThisWeekday'    => __( 'No pickup or rental start on this weekday', 'patsch9-rental-engine' ),
+                'noReturnThisWeekday'    => __( 'No return on this weekday', 'patsch9-rental-engine' ),
+                'previousMonth'          => __( 'Previous month', 'patsch9-rental-engine' ),
+                'nextMonth'              => __( 'Next month', 'patsch9-rental-engine' ),
+                'partiallyBooked'        => __( 'partially booked', 'patsch9-rental-engine' ),
+                'returnNotPossible'      => __( 'Returns are not possible on this weekday.', 'patsch9-rental-engine' ),
+                'periodNotBookable'      => __( 'This period cannot be booked, does not meet the permitted rental duration, or there is not enough stock available.', 'patsch9-rental-engine' ),
+                'weekendRate'            => __( 'Weekend rate', 'patsch9-rental-engine' ),
+                'tieredRate'             => __( 'Tiered rate', 'patsch9-rental-engine' ),
+                'weekdayRate'            => __( 'Weekday rate', 'patsch9-rental-engine' ),
+                'standardRate'           => __( 'Standard rate', 'patsch9-rental-engine' ),
+                'enterDeliveryAddress'   => __( 'Please enter the delivery address first.', 'patsch9-rental-engine' ),
+                'deliveryQuoteFailed'    => __( 'Delivery costs could not be calculated.', 'patsch9-rental-engine' ),
+                'calculateTransport'     => __( 'Calculate transport costs', 'patsch9-rental-engine' ),
+                'select'                 => __( 'Select', 'patsch9-rental-engine' ),
+                'withoutAddon'           => __( 'Without add-on', 'patsch9-rental-engine' ),
+                'selected'               => __( 'Selected', 'patsch9-rental-engine' ),
+            ],
             'pricingRules'   => $pricing_rules,
             'weekdayPrices'  => $this->weekday_prices( $post->ID ),
             'blockedPickupDays' => $this->blocked_pickup_days( $post->ID ),
@@ -943,14 +998,14 @@ final class RMWC_Plugin {
 
             <div class="rmwc-price-preview" aria-live="polite">
                 <div class="rmwc-rental-price-line">
-                    <span class="rmwc-price-label"><?php esc_html_e( 'Mietpreis', 'patsch9-rental-engine' ); ?></span>
+                    <span class="rmwc-price-label"><?php esc_html_e( 'Rental price', 'patsch9-rental-engine' ); ?></span>
                     <strong id="rmwc_price_preview" class="rmwc-price-value">–</strong>
                 </div>
                 <small id="rmwc_duration_preview" class="rmwc-duration-preview"></small>
                 <?php if ( $deposit > 0 ) : ?>
                     <div class="rmwc-deposit-notice">
-                        <span class="rmwc-deposit-label"><?php esc_html_e( 'Kaution', 'patsch9-rental-engine' ); ?></span>
-                        <strong><?php echo wp_kses_post( wc_price( $deposit ) ); ?> <?php esc_html_e( 'je Gerät', 'patsch9-rental-engine' ); ?></strong>
+                        <span class="rmwc-deposit-label"><?php esc_html_e( 'Security deposit', 'patsch9-rental-engine' ); ?></span>
+                        <strong><?php echo wp_kses_post( wc_price( $deposit ) ); ?> <?php esc_html_e( 'per rental unit', 'patsch9-rental-engine' ); ?></strong>
                         <?php if ( '' !== trim( $deposit_notice ) ) : ?><span class="rmwc-deposit-copy"><?php echo nl2br( esc_html( $deposit_notice ) ); ?></span><?php endif; ?>
                     </div>
                 <?php endif; ?>
@@ -1710,9 +1765,9 @@ final class RMWC_Plugin {
     private function fulfilment_label( $mode ) {
         $mode = sanitize_key( (string) $mode );
         $labels = [
-            'pickup'          => __( 'Abholung und Rückgabe durch Kunde', 'patsch9-rental-engine' ),
-            'delivery'        => __( 'Lieferung durch Vermieter und Rückgabe durch Kunde', 'patsch9-rental-engine' ),
-            'delivery_return' => __( 'Lieferung und Abholung durch Vermieter', 'patsch9-rental-engine' ),
+            'pickup'          => __( 'Pickup and return by customer', 'patsch9-rental-engine' ),
+            'delivery'        => __( 'Delivery by rental operator and return by customer', 'patsch9-rental-engine' ),
+            'delivery_return' => __( 'Delivery and collection by rental operator', 'patsch9-rental-engine' ),
         ];
         return $labels[ $mode ] ?? '';
     }
@@ -1757,19 +1812,19 @@ final class RMWC_Plugin {
             if ( 'online' === $deposit_mode ) {
                 $deposit_text = sprintf(
                     /* translators: %s: formatted refundable deposit amount. */
-                    __( '%s – online mit der Bestellung hinterlegen', 'patsch9-rental-engine' ),
+                    __( '%s – deposit online with the order', 'patsch9-rental-engine' ),
                     $deposit_amount
                 );
             } elseif ( 'cash' === $deposit_mode ) {
                 $deposit_text = sprintf(
                     /* translators: %s: formatted refundable deposit amount. */
-                    __( '%s – separat: Überweisung oder bar bei Abholung', 'patsch9-rental-engine' ),
+                    __( '%s – separately: bank transfer or cash upon collection', 'patsch9-rental-engine' ),
                     $deposit_amount
                 );
             } else {
                 $deposit_text = sprintf(
                     /* translators: %s: formatted refundable deposit amount. */
-                    __( '%s – Auswahl im Checkout: online oder separat (Überweisung / bar bei Abholung)', 'patsch9-rental-engine' ),
+                    __( '%s – Selection in checkout: online or separately (transfer / cash at collection)', 'patsch9-rental-engine' ),
                     $deposit_amount
                 );
             }
@@ -2308,7 +2363,7 @@ final class RMWC_Plugin {
                 }
                 return is_wp_error( $finalized )
                     ? $finalized
-                    : new WP_Error( 'rmwc_booking_finalize', __( 'Die Mietreservierung konnte nicht vollständig vorbereitet werden. Bitte erneut versuchen.', 'patsch9-rental-engine' ) );
+                    : new WP_Error( 'rmwc_booking_finalize', __( 'The rental reservation could not be fully prepared. Please try again.', 'patsch9-rental-engine' ) );
             }
             do_action( 'rmwc_bookings_created', $order, $inserted_ids );
 
@@ -2629,10 +2684,10 @@ final class RMWC_Plugin {
             $booking_id = isset( $_POST['booking_id'] ) ? absint( wp_unslash( $_POST['booking_id'] ) ) : 0;
             $row = $this->admin_booking_row( $booking_id );
             if ( ! $row ) {
-                return '<div class="notice notice-error"><p>' . esc_html__( 'Buchung nicht gefunden.', 'patsch9-rental-engine' ) . '</p></div>';
+                return '<div class="notice notice-error"><p>' . esc_html__( 'Booking not found.', 'patsch9-rental-engine' ) . '</p></div>';
             }
             if ( ! in_array( $row['status'], [ 'reserved', 'blocked' ], true ) || 'reserved' !== sanitize_key( $row['workflow_status'] ?? 'reserved' ) ) {
-                return '<div class="notice notice-error"><p>' . esc_html__( 'Nur noch nicht übergebene aktive Buchungen können bearbeitet werden.', 'patsch9-rental-engine' ) . '</p></div>';
+                return '<div class="notice notice-error"><p>' . esc_html__( 'Only active bookings that have not yet been passed can be edited.', 'patsch9-rental-engine' ) . '</p></div>';
             }
 
             $product_id = absint( $row['product_id'] );
@@ -2643,7 +2698,7 @@ final class RMWC_Plugin {
             $lock_name = $this->booking_lock_name( $product_id );
             $got_lock  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 8)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Booking advisory locks must reflect current database state and are intentionally not cached.
             if ( 1 !== $got_lock ) {
-                return '<div class="notice notice-error"><p>' . esc_html__( 'Die Buchung konnte gerade nicht sicher gesperrt werden. Bitte erneut versuchen.', 'patsch9-rental-engine' ) . '</p></div>';
+                return '<div class="notice notice-error"><p>' . esc_html__( 'The booking could not be locked safely. Please try again.', 'patsch9-rental-engine' ) . '</p></div>';
             }
 
             try {
@@ -2651,7 +2706,7 @@ final class RMWC_Plugin {
                     $start = $this->parse_admin_datetime( sanitize_text_field( wp_unslash( $_POST['block_start'] ?? '' ) ) );
                     $end   = $this->parse_admin_datetime( sanitize_text_field( wp_unslash( $_POST['block_end'] ?? '' ) ) );
                     if ( ! $start || ! $end || $end <= $start ) {
-                        return '<div class="notice notice-error"><p>' . esc_html__( 'Bitte einen gültigen Sperrzeitraum angeben.', 'patsch9-rental-engine' ) . '</p></div>';
+                        return '<div class="notice notice-error"><p>' . esc_html__( 'Please specify a valid blocking period.', 'patsch9-rental-engine' ) . '</p></div>';
                     }
                     $interval = [
                         'start_at'   => $start->format( 'Y-m-d H:i:s' ),
@@ -2665,7 +2720,7 @@ final class RMWC_Plugin {
                         0,
                         $booking_id
                     ) ) {
-                        return '<div class="notice notice-error"><p>' . esc_html__( 'Für den geänderten Zeitraum ist nicht genügend Bestand verfügbar.', 'patsch9-rental-engine' ) . '</p></div>';
+                        return '<div class="notice notice-error"><p>' . esc_html__( 'There is not enough stock available for the changed period.', 'patsch9-rental-engine' ) . '</p></div>';
                     }
                 } else {
                     $start_date = sanitize_text_field( wp_unslash( $_POST['start_date'] ?? '' ) );
@@ -2688,7 +2743,7 @@ final class RMWC_Plugin {
                     $updated['customer_name']  = substr( sanitize_text_field( wp_unslash( $_POST['customer_name'] ?? $row['customer_name'] ) ), 0, 190 );
                     $email = sanitize_email( wp_unslash( $_POST['customer_email'] ?? $row['customer_email'] ) );
                     if ( $email && ! is_email( $email ) ) {
-                        return '<div class="notice notice-error"><p>' . esc_html__( 'Bitte eine gültige E-Mail-Adresse angeben.', 'patsch9-rental-engine' ) . '</p></div>';
+                        return '<div class="notice notice-error"><p>' . esc_html__( 'Please provide a valid e-mail address.', 'patsch9-rental-engine' ) . '</p></div>';
                     }
                     $updated['customer_email'] = substr( $email, 0, 190 );
                 }
@@ -2696,7 +2751,7 @@ final class RMWC_Plugin {
                 $new_row = array_merge( $row, $updated );
                 $workflow_result = apply_filters( 'rmwc_validate_booking_update', true, $row, $new_row );
                 if ( is_wp_error( $workflow_result ) || false === $workflow_result ) {
-                    $message = is_wp_error( $workflow_result ) ? $workflow_result->get_error_message() : __( 'Die Gerätezuordnung konnte für den neuen Zeitraum nicht angepasst werden.', 'patsch9-rental-engine' );
+                    $message = is_wp_error( $workflow_result ) ? $workflow_result->get_error_message() : __( 'The equipment allocation could not be adjusted for the new period.', 'patsch9-rental-engine' );
                     return '<div class="notice notice-error"><p>' . esc_html( $message ) . '</p></div>';
                 }
 
@@ -2711,7 +2766,7 @@ final class RMWC_Plugin {
                     // assignments to the proposed interval. Restore the previous
                     // assignment state before returning the database error.
                     apply_filters( 'rmwc_validate_booking_update', true, $new_row, $row );
-                    return '<div class="notice notice-error"><p>' . esc_html__( 'Die Buchungsänderung konnte nicht gespeichert werden. Der vorherige Zustand wurde wiederhergestellt.', 'patsch9-rental-engine' ) . '</p></div>';
+                    return '<div class="notice notice-error"><p>' . esc_html__( 'The booking change could not be saved. The previous condition was restored.', 'patsch9-rental-engine' ) . '</p></div>';
                 }
                 if ( 'order' === $row['source'] && $row['order_id'] && $row['order_item_id'] ) {
                     $order = wc_get_order( (int) $row['order_id'] );
@@ -2726,7 +2781,7 @@ final class RMWC_Plugin {
                         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                         $wpdb->update( $this->table(), $restore, [ 'id' => $booking_id ], $restore_formats, [ '%d' ] );
                         apply_filters( 'rmwc_validate_booking_update', true, $new_row, $row );
-                        return '<div class="notice notice-error"><p>' . esc_html__( 'Die WooCommerce-Bestellposition zur Buchung wurde nicht gefunden. Die Änderung wurde zurückgesetzt.', 'patsch9-rental-engine' ) . '</p></div>';
+                        return '<div class="notice notice-error"><p>' . esc_html__( 'The WooCommerce order position for the booking was not found. The change was reset.', 'patsch9-rental-engine' ) . '</p></div>';
                     }
 
                     $old_rental = $item->get_meta( '_rmwc_rental_data', true );
@@ -2742,7 +2797,7 @@ final class RMWC_Plugin {
                         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                         $wpdb->update( $this->table(), $restore, [ 'id' => $booking_id ], $restore_formats, [ '%d' ] );
                         apply_filters( 'rmwc_validate_booking_update', true, $new_row, $row );
-                        return '<div class="notice notice-error"><p>' . esc_html__( 'Die Mietdaten der WooCommerce-Bestellposition sind unvollständig. Die Änderung wurde zurückgesetzt.', 'patsch9-rental-engine' ) . '</p></div>';
+                        return '<div class="notice notice-error"><p>' . esc_html__( 'The rental data of the WooCommerce order position are incomplete. The change has been reset.', 'patsch9-rental-engine' ) . '</p></div>';
                     }
 
                     try {
@@ -2780,13 +2835,13 @@ final class RMWC_Plugin {
                         } catch ( Throwable $restore_error ) {
                             // Do not expose internal exception details to the administrator or logs by default.
                         }
-                        return '<div class="notice notice-error"><p>' . esc_html__( 'Die Bestellposition konnte nicht sicher aktualisiert werden. Buchung und Gerätezuordnung wurden auf den vorherigen Stand zurückgesetzt.', 'patsch9-rental-engine' ) . '</p></div>';
+                        return '<div class="notice notice-error"><p>' . esc_html__( 'The order position could not be safely updated. Booking and equipment assignment were reset to the previous level.', 'patsch9-rental-engine' ) . '</p></div>';
                     }
                     do_action( 'rmwc_order_booking_changed', $order, $booking_id, $row, $new_row );
                 }
 
                 do_action( 'rmwc_booking_updated', $booking_id, $row, $new_row );
-                return '<div class="notice notice-success"><p>' . esc_html__( 'Buchung wurde aktualisiert.', 'patsch9-rental-engine' ) . '</p></div>';
+                return '<div class="notice notice-success"><p>' . esc_html__( 'Booking updated.', 'patsch9-rental-engine' ) . '</p></div>';
             } finally {
                 $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Releases the matching booking advisory lock immediately; caching is invalid here.
             }
@@ -2797,10 +2852,10 @@ final class RMWC_Plugin {
             $booking_id = isset( $_POST['booking_id'] ) ? absint( wp_unslash( $_POST['booking_id'] ) ) : 0;
             $row = $this->admin_booking_row( $booking_id );
             if ( ! $row ) {
-                return '<div class="notice notice-error"><p>' . esc_html__( 'Buchung nicht gefunden.', 'patsch9-rental-engine' ) . '</p></div>';
+                return '<div class="notice notice-error"><p>' . esc_html__( 'Booking not found.', 'patsch9-rental-engine' ) . '</p></div>';
             }
             if ( ! in_array( sanitize_key( $row['status'] ?? '' ), [ 'reserved', 'blocked' ], true ) || 'reserved' !== sanitize_key( $row['workflow_status'] ?? 'reserved' ) ) {
-                return '<div class="notice notice-error"><p>' . esc_html__( 'Eine bereits übergebene, zurückgegebene oder anderweitig abgeschlossene Buchung kann aus Nachweisgründen nicht gelöscht oder storniert werden.', 'patsch9-rental-engine' ) . '</p></div>';
+                return '<div class="notice notice-error"><p>' . esc_html__( 'An already handed over, returned or otherwise completed booking cannot be deleted or cancelled for reasons of proof.', 'patsch9-rental-engine' ) . '</p></div>';
             }
             if ( 'order' === $row['source'] ) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
@@ -2816,13 +2871,13 @@ final class RMWC_Plugin {
                     $order->add_order_note( sprintf( 'Vermietung: Buchung #%d wurde in der Mietverwaltung storniert. Die Bestellung selbst wurde nicht automatisch storniert; die Mietreservierung wird bei späteren Statuswechseln nicht neu erzeugt.', $booking_id ) );
                     $order->save();
                 }
-                return '<div class="notice notice-success"><p>' . esc_html__( 'Die Bestellbuchung wurde storniert und bleibt aus Nachweisgründen in der Historie erhalten.', 'patsch9-rental-engine' ) . '</p></div>';
+                return '<div class="notice notice-success"><p>' . esc_html__( 'The order booking has been cancelled and remains in the history for reasons of proof.', 'patsch9-rental-engine' ) . '</p></div>';
             }
 
             do_action( 'rmwc_booking_cancelled', $booking_id, 0 );
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
             $wpdb->delete( $this->table(), [ 'id' => $booking_id ], [ '%d' ] );
-            return '<div class="notice notice-success"><p>' . esc_html__( 'Manuelle Buchung/Sperre wurde gelöscht.', 'patsch9-rental-engine' ) . '</p></div>';
+            return '<div class="notice notice-success"><p>' . esc_html__( 'Manual booking/block was deleted.', 'patsch9-rental-engine' ) . '</p></div>';
         }
 
         if ( 'cancel_booking' === $action ) {
@@ -2831,18 +2886,18 @@ final class RMWC_Plugin {
             if ( $booking_id ) {
                 $row = $this->admin_booking_row( $booking_id );
                 if ( ! $row ) {
-                    return '<div class="notice notice-error"><p>' . esc_html__( 'Buchung nicht gefunden.', 'patsch9-rental-engine' ) . '</p></div>';
+                    return '<div class="notice notice-error"><p>' . esc_html__( 'Booking not found.', 'patsch9-rental-engine' ) . '</p></div>';
                 }
                 if ( ! in_array( sanitize_key( $row['status'] ?? '' ), [ 'reserved', 'blocked' ], true ) || 'reserved' !== sanitize_key( $row['workflow_status'] ?? 'reserved' ) ) {
-                    return '<div class="notice notice-error"><p>' . esc_html__( 'Eine bereits übergebene oder abgeschlossene Buchung kann nicht mehr freigegeben werden.', 'patsch9-rental-engine' ) . '</p></div>';
+                    return '<div class="notice notice-error"><p>' . esc_html__( 'An already handed over or completed booking can no longer be released.', 'patsch9-rental-engine' ) . '</p></div>';
                 }
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                 $updated = $wpdb->update( $this->table(), [ 'status' => 'cancelled' ], [ 'id' => $booking_id ], [ '%s' ], [ '%d' ] );
                 if ( false === $updated ) {
-                    return '<div class="notice notice-error"><p>' . esc_html__( 'Die Buchung konnte nicht freigegeben werden.', 'patsch9-rental-engine' ) . '</p></div>';
+                    return '<div class="notice notice-error"><p>' . esc_html__( 'The booking could not be released.', 'patsch9-rental-engine' ) . '</p></div>';
                 }
                 do_action( 'rmwc_booking_cancelled', $booking_id, absint( $row['order_id'] ) );
-                return '<div class="notice notice-success"><p>' . esc_html__( 'Buchung/Sperre freigegeben.', 'patsch9-rental-engine' ) . '</p></div>';
+                return '<div class="notice notice-success"><p>' . esc_html__( 'Booking/block released.', 'patsch9-rental-engine' ) . '</p></div>';
             }
         }
 
@@ -2888,7 +2943,7 @@ final class RMWC_Plugin {
                 global $wpdb;
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
                 $wpdb->delete( $this->table(), [ 'id' => absint( $result ) ], [ '%d' ] );
-                $message = is_wp_error( $assignment ) ? $assignment->get_error_message() : __( 'Die Gerätezuordnung konnte nicht abgeschlossen werden.', 'patsch9-rental-engine' );
+                $message = is_wp_error( $assignment ) ? $assignment->get_error_message() : __( 'The equipment assignment could not be completed.', 'patsch9-rental-engine' );
                 return '<div class="notice notice-error"><p>' . esc_html( $message ) . '</p></div>';
             }
             do_action( 'rmwc_manual_booking_created', absint( $result ) );
@@ -3000,7 +3055,7 @@ final class RMWC_Plugin {
             <table class="form-table"><tbody>
                 <tr><th>Externer Dienst</th><td><label><input type="checkbox" name="rmwc_google_routes_enabled" value="1" <?php checked( $routes_enabled ); ?>> Google Routes API ausdrücklich aktivieren</label><p class="description"><strong>Datenschutz:</strong> Nur wenn aktiviert, wird bei der Entfernungsberechnung die vom Kunden eingegebene Lieferadresse zusammen mit der Startadresse an Google übertragen. Ohne Aktivierung erfolgen keine Google-Routes-Anfragen.</p></td></tr>
                 <tr><th><label for="rmwc_delivery_origin">Startadresse</label></th><td><input class="regular-text" maxlength="250" type="text" id="rmwc_delivery_origin" name="rmwc_delivery_origin" value="<?php echo esc_attr( $origin ); ?>" placeholder="z. B. Besenhausen 1, 37133 Friedland"></td></tr>
-                <tr><th><label for="rmwc_google_routes_api_key">Google Routes API Key</label></th><td><?php if ( $api_key_from_constant ) : ?><p><strong><?php esc_html_e( 'API-Key wird über wp-config.php bereitgestellt.', 'patsch9-rental-engine' ); ?></strong></p><p class="description"><?php esc_html_e( 'Der Key wird dadurch nicht in der WordPress-Datenbank gespeichert und kann hier nicht geändert werden.', 'patsch9-rental-engine' ); ?></p><?php else : ?><input class="regular-text" maxlength="255" type="password" id="rmwc_google_routes_api_key" name="rmwc_google_routes_api_key" value="" placeholder="<?php echo esc_attr( $has_api_key ? __( 'API-Key gespeichert – leer lassen zum Beibehalten', 'patsch9-rental-engine' ) : '' ); ?>" autocomplete="new-password"><p class="description"><?php esc_html_e( 'Der gespeicherte Key wird aus Sicherheitsgründen nicht zurück in das HTML-Formular geschrieben. Noch sicherer ist die Bereitstellung über RMWC_GOOGLE_ROUTES_API_KEY in wp-config.php.', 'patsch9-rental-engine' ); ?></p><?php if ( $has_api_key ) : ?><label><input type="checkbox" name="rmwc_google_routes_clear_key" value="1"> <?php esc_html_e( 'gespeicherten API-Key löschen', 'patsch9-rental-engine' ); ?></label><?php endif; ?><?php endif; ?></td></tr>
+                <tr><th><label for="rmwc_google_routes_api_key">Google Routes API Key</label></th><td><?php if ( $api_key_from_constant ) : ?><p><strong><?php esc_html_e( 'API key is provided via wp-config.php.', 'patsch9-rental-engine' ); ?></strong></p><p class="description"><?php esc_html_e( 'The key is not saved in the WordPress database and cannot be changed here.', 'patsch9-rental-engine' ); ?></p><?php else : ?><input class="regular-text" maxlength="255" type="password" id="rmwc_google_routes_api_key" name="rmwc_google_routes_api_key" value="" placeholder="<?php echo esc_attr( $has_api_key ? __( 'API key saved – leave empty to keep', 'patsch9-rental-engine' ) : '' ); ?>" autocomplete="new-password"><p class="description"><?php esc_html_e( 'For security reasons, the stored key is not written back into the HTML form. Even more secure is the deployment via RMWC_GOOGLE_ROUTES_API_KEY in wp-config.php.', 'patsch9-rental-engine' ); ?></p><?php if ( $has_api_key ) : ?><label><input type="checkbox" name="rmwc_google_routes_clear_key" value="1"> <?php esc_html_e( 'Delete saved API key', 'patsch9-rental-engine' ); ?></label><?php endif; ?><?php endif; ?></td></tr>
             </tbody></table>
 
             <h2>Erinnerungsmails</h2>
@@ -3080,13 +3135,13 @@ final class RMWC_Plugin {
                 <div class="rmwc-v2-card-heading">
                     <div>
                         <?php /* translators: %d: internal rental booking ID. */ ?>
-                        <h2><?php echo esc_html( sprintf( __( 'Buchung #%d bearbeiten', 'patsch9-rental-engine' ), (int) $edit_row['id'] ) ); ?></h2>
+                        <h2><?php echo esc_html( sprintf( __( 'Edit Booking #%d', 'patsch9-rental-engine' ), (int) $edit_row['id'] ) ); ?></h2>
                         <p><?php echo esc_html( $edit_product ? $edit_product->get_name() : '#' . (int) $edit_row['product_id'] ); ?></p>
                     </div>
                     <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=rmwc-rentals&tab=calendar' ) ); ?>"><?php esc_html_e( 'Abbrechen', 'patsch9-rental-engine' ); ?></a>
                 </div>
                 <?php if ( 'reserved' !== sanitize_key( $edit_row['workflow_status'] ?? 'reserved' ) ) : ?>
-                    <div class="notice notice-warning inline"><p><?php esc_html_e( 'Diese Vermietung wurde bereits übergeben und kann deshalb nicht mehr nachträglich umdatiert werden. Die Historie und Protokolle bleiben unveränderlich.', 'patsch9-rental-engine' ); ?></p></div>
+                    <div class="notice notice-warning inline"><p><?php esc_html_e( 'This rental has already been handed over and can therefore no longer be re-dated afterwards. The history and protocols remain unchanged.', 'patsch9-rental-engine' ); ?></p></div>
                 <?php else : ?>
                     <form method="post">
                         <?php wp_nonce_field( 'rmwc_admin_action', 'rmwc_admin_nonce' ); ?>
@@ -3100,25 +3155,25 @@ final class RMWC_Plugin {
                         <?php else : ?>
                             <div class="rmwc-form-cols">
                                 <p><label><?php esc_html_e( 'Abholdatum', 'patsch9-rental-engine' ); ?><input type="date" name="start_date" value="<?php echo esc_attr( $edit_row['start_date'] ); ?>" required></label></p>
-                                <p><label><?php esc_html_e( 'Rückgabedatum', 'patsch9-rental-engine' ); ?><input type="date" name="end_date" value="<?php echo esc_attr( $edit_row['end_date'] ); ?>" required></label></p>
+                                <p><label><?php esc_html_e( 'Return date', 'patsch9-rental-engine' ); ?><input type="date" name="end_date" value="<?php echo esc_attr( $edit_row['end_date'] ); ?>" required></label></p>
                             </div>
                         <?php endif; ?>
                         <?php if ( 'order' !== $edit_row['source'] ) : ?>
                             <p><label><?php esc_html_e( 'Anzahl', 'patsch9-rental-engine' ); ?><input type="number" name="quantity" min="1" max="<?php echo esc_attr( $this->capacity( (int) $edit_row['product_id'] ) ); ?>" value="<?php echo esc_attr( $edit_row['quantity'] ); ?>" required></label></p>
                         <?php else : ?>
-                            <p><strong><?php esc_html_e( 'Anzahl:', 'patsch9-rental-engine' ); ?></strong> <?php echo esc_html( $edit_row['quantity'] ); ?> <span class="description"><?php esc_html_e( 'Die Menge einer bezahlten Bestellung wird hier bewusst nicht verändert.', 'patsch9-rental-engine' ); ?></span></p>
+                            <p><strong><?php esc_html_e( 'Anzahl:', 'patsch9-rental-engine' ); ?></strong> <?php echo esc_html( $edit_row['quantity'] ); ?> <span class="description"><?php esc_html_e( 'The amount of a paid order is deliberately not changed here.', 'patsch9-rental-engine' ); ?></span></p>
                         <?php endif; ?>
                         <?php if ( 'manual' === $edit_row['source'] ) : ?>
                             <div class="rmwc-form-cols">
-                                <p><label><?php esc_html_e( 'Kundenname', 'patsch9-rental-engine' ); ?><input type="text" name="customer_name" maxlength="190" value="<?php echo esc_attr( $edit_row['customer_name'] ); ?>"></label></p>
+                                <p><label><?php esc_html_e( 'Customer name', 'patsch9-rental-engine' ); ?><input type="text" name="customer_name" maxlength="190" value="<?php echo esc_attr( $edit_row['customer_name'] ); ?>"></label></p>
                                 <p><label><?php esc_html_e( 'E-Mail', 'patsch9-rental-engine' ); ?><input type="email" name="customer_email" maxlength="190" value="<?php echo esc_attr( $edit_row['customer_email'] ); ?>"></label></p>
                             </div>
                         <?php endif; ?>
                         <p><label><?php esc_html_e( 'Notiz', 'patsch9-rental-engine' ); ?><textarea name="note" rows="3" maxlength="2000"><?php echo esc_textarea( $edit_row['note'] ); ?></textarea></label></p>
                         <?php if ( 'order' === $edit_row['source'] ) : ?>
-                            <p class="description"><?php esc_html_e( 'Eine Terminänderung aktualisiert die Mietdaten und Verfügbarkeit, nicht automatisch den bereits berechneten Bestellpreis. Die Änderung wird als Bestellnotiz protokolliert.', 'patsch9-rental-engine' ); ?></p>
+                            <p class="description"><?php esc_html_e( 'A change of date updates the rental data and availability, not automatically the already calculated order price. The change is logged as an order notice.', 'patsch9-rental-engine' ); ?></p>
                         <?php endif; ?>
-                        <?php submit_button( __( 'Buchung speichern', 'patsch9-rental-engine' ), 'primary', 'submit', false ); ?>
+                        <?php submit_button( __( 'Save Booking', 'patsch9-rental-engine' ), 'primary', 'submit', false ); ?>
                     </form>
                 <?php endif; ?>
             </section>
@@ -3182,12 +3237,12 @@ final class RMWC_Plugin {
                     <td><?php echo esc_html( $row['status'] ); ?></td>
                     <td class="rmwc-row-actions">
                         <?php if ( in_array( $row['status'], [ 'reserved', 'blocked' ], true ) && 'reserved' === sanitize_key( $row['workflow_status'] ?? 'reserved' ) ) : ?>
-                            <a class="button button-small" href="<?php echo esc_url( admin_url( 'admin.php?page=rmwc-rentals&tab=calendar&edit_booking=' . (int) $row['id'] ) ); ?>"><?php esc_html_e( 'Bearbeiten', 'patsch9-rental-engine' ); ?></a>
-                            <form method="post" onsubmit="return confirm('<?php echo esc_js( 'order' === $row['source'] ? __( 'Diese Bestellbuchung wirklich stornieren? Die WooCommerce-Bestellung selbst bleibt bestehen.', 'patsch9-rental-engine' ) : __( 'Diesen Eintrag wirklich dauerhaft löschen?', 'patsch9-rental-engine' ) ); ?>');">
+                            <a class="button button-small" href="<?php echo esc_url( admin_url( 'admin.php?page=rmwc-rentals&tab=calendar&edit_booking=' . (int) $row['id'] ) ); ?>"><?php esc_html_e( 'Edit', 'patsch9-rental-engine' ); ?></a>
+                            <form method="post" onsubmit="return confirm('<?php echo esc_js( 'order' === $row['source'] ? __( 'Do you really cancel this order booking? The WooCommerce order itself remains valid.', 'patsch9-rental-engine' ) : __( 'Really delete this entry permanently?', 'patsch9-rental-engine' ) ); ?>');">
                                 <?php wp_nonce_field( 'rmwc_admin_action', 'rmwc_admin_nonce' ); ?>
                                 <input type="hidden" name="rmwc_action" value="delete_booking">
                                 <input type="hidden" name="booking_id" value="<?php echo esc_attr( $row['id'] ); ?>">
-                                <button type="submit" class="button-link-delete"><?php echo esc_html( 'order' === $row['source'] ? __( 'Stornieren', 'patsch9-rental-engine' ) : __( 'Löschen', 'patsch9-rental-engine' ) ); ?></button>
+                                <button type="submit" class="button-link-delete"><?php echo esc_html( 'order' === $row['source'] ? __( 'Stornieren', 'patsch9-rental-engine' ) : __( 'Delete', 'patsch9-rental-engine' ) ); ?></button>
                             </form>
                         <?php endif; ?>
                     </td>
@@ -3322,7 +3377,7 @@ final class RMWC_Plugin {
 
     public function register_privacy_exporter( $exporters ) {
         $exporters['patsch9-rental-engine'] = [
-            'exporter_friendly_name' => __( ' – Vermietungsbuchungen', 'patsch9-rental-engine' ),
+            'exporter_friendly_name' => __( '– rental bookings', 'patsch9-rental-engine' ),
             'callback'               => [ $this, 'privacy_exporter' ],
         ];
         return $exporters;
@@ -3345,17 +3400,17 @@ final class RMWC_Plugin {
             $product = wc_get_product( (int) $row['product_id'] );
             $data[] = [
                 'group_id'    => 'patsch9-rental-engine-bookings',
-                'group_label' => __( 'Vermietungsbuchungen', 'patsch9-rental-engine' ),
+                'group_label' => __( 'Rental bookings', 'patsch9-rental-engine' ),
                 'item_id'     => 'booking-' . (int) $row['id'],
                 'data'        => [
                     [ 'name' => __( 'Produkt', 'patsch9-rental-engine' ), 'value' => $product ? $product->get_name() : '#' . (int) $row['product_id'] ],
-                    [ 'name' => __( 'Mietbeginn', 'patsch9-rental-engine' ), 'value' => (string) $row['start_at'] ],
-                    [ 'name' => __( 'Rückgabe', 'patsch9-rental-engine' ), 'value' => (string) $row['end_at'] ],
+                    [ 'name' => __( 'Start of rental', 'patsch9-rental-engine' ), 'value' => (string) $row['start_at'] ],
+                    [ 'name' => __( 'Return', 'patsch9-rental-engine' ), 'value' => (string) $row['end_at'] ],
                     [ 'name' => __( 'Anzahl', 'patsch9-rental-engine' ), 'value' => (int) $row['quantity'] ],
                     [ 'name' => __( 'Name', 'patsch9-rental-engine' ), 'value' => (string) $row['customer_name'] ],
                     [ 'name' => __( 'E-Mail', 'patsch9-rental-engine' ), 'value' => (string) $row['customer_email'] ],
                     [ 'name' => __( 'Notiz', 'patsch9-rental-engine' ), 'value' => (string) $row['note'] ],
-                    [ 'name' => __( 'Bestellung', 'patsch9-rental-engine' ), 'value' => (int) $row['order_id'] ],
+                    [ 'name' => __( 'Order', 'patsch9-rental-engine' ), 'value' => (int) $row['order_id'] ],
                 ],
             ];
         }
@@ -3364,7 +3419,7 @@ final class RMWC_Plugin {
 
     public function register_privacy_eraser( $erasers ) {
         $erasers['patsch9-rental-engine'] = [
-            'eraser_friendly_name' => __( ' – Vermietungsbuchungen', 'patsch9-rental-engine' ),
+            'eraser_friendly_name' => __( '– rental bookings', 'patsch9-rental-engine' ),
             'callback'             => [ $this, 'privacy_eraser' ],
         ];
         return $erasers;
@@ -3425,7 +3480,7 @@ final class RMWC_Plugin {
         );
         $messages = [];
         if ( $retained ) {
-            $messages[] = __( 'Personenbezogene Daten aktiver oder zukünftiger Vermietungen wurden vorerst beibehalten, damit die Vermietung erfüllt werden kann.', 'patsch9-rental-engine' );
+            $messages[] = __( 'Personal data of active or future rentals have been retained for the time being, so that the rental can be fulfilled.', 'patsch9-rental-engine' );
         }
 
         return [
@@ -3440,11 +3495,11 @@ final class RMWC_Plugin {
         if ( ! function_exists( 'wp_add_privacy_policy_content' ) ) {
             return;
         }
-        $content = '<p>' . esc_html__( 'Dieses Plugin speichert für Vermietungsbuchungen Produkt, Mietzeitraum, Anzahl sowie bei Buchungen Name und E-Mail-Adresse zusätzlich in einer eigenen Buchungstabelle. Diese Daten dienen der Verfügbarkeitsprüfung, Verwaltung und optionalen Erinnerung vor Mietbeginn.', 'patsch9-rental-engine' ) . '</p>';
-        $content .= '<p>' . esc_html__( 'Version 2 speichert außerdem die jeweils akzeptierte Version der Mietbedingungen als Bestell-Snapshot sowie Mietverträge und Kautionsquittungen als unveränderliche Geschäftsdokumente. Dokument-Snapshots können Kundendaten, Mietgegenstände, Mietzeitraum, Kautionsvorgänge und die akzeptierten Mietbedingungen enthalten. Physische Geräte können mit Inventar- und Seriennummern verwaltet und Vermietungen zugeordnet werden.', 'patsch9-rental-engine' ) . '</p>';
-        $content .= '<p>' . esc_html__( 'Als Miet-Zubehör markierte WooCommerce-Produkte werden aus dem öffentlichen Shop ausgeblendet und nur im Zusammenhang mit einem konfigurierten Mietartikel verwendet. Dabei gelten weiterhin die normalen WooCommerce-Daten zu Preis, Steuer und Lagerbestand des Zubehörprodukts.', 'patsch9-rental-engine' ) . '</p>';
-        $content .= '<p>' . esc_html__( 'Wenn die optionale automatische Lieferentfernung ausdrücklich aktiviert ist, werden Startadresse und die vom Kunden eingegebene Lieferadresse zur Streckenberechnung an die Google Routes API übertragen. Ohne diese Aktivierung sendet das Plugin keine Lieferadressen an Google.', 'patsch9-rental-engine' ) . '</p>';
-        $content .= '<p>' . esc_html__( 'Zum Schutz öffentlicher Verfügbarkeits- und Entfernungsabfragen vor Missbrauch verwendet das Plugin kurzlebige Rate-Limit-Einträge. Dafür wird die IP-Adresse nicht im Klartext gespeichert, sondern nur ein mit dem WordPress-Salt gebildeter, kurzlebiger Hash verwendet.', 'patsch9-rental-engine' ) . '</p>';
+        $content = '<p>' . esc_html__( 'This plugin stores product, rental period, number as well as for bookings name and e-mail address additionally in its own booking table for rental bookings. These data are used for availability check, administration and optional reminder before rental starts.', 'patsch9-rental-engine' ) . '</p>';
+        $content .= '<p>' . esc_html__( 'Version 2 also stores the respective accepted version of the rental terms as an order snapshot, as well as rental contracts and deposit receipts as unchangeable business documents. Document snapshots may contain customer data, rental items, rental period, deposit transactions and accepted rental terms. Physical devices can be managed with inventory and serial numbers and rented.', 'patsch9-rental-engine' ) . '</p>';
+        $content .= '<p>' . esc_html__( 'WooCommerce products marked as rental accessories are hidden from the public shop and only used in connection with a configured rental item. Here, the normal WooCommerce data on the price, tax and inventory of the accessory product continue to apply.', 'patsch9-rental-engine' ) . '</p>';
+        $content .= '<p>' . esc_html__( 'If the optional automatic delivery distance is explicitly activated, the start address and the delivery address entered by the customer are transferred to the Google Routes API for route calculation. Without this activation, the plugin does not send any delivery addresses to Google.', 'patsch9-rental-engine' ) . '</p>';
+        $content .= '<p>' . esc_html__( 'To protect public availability and removal queries from misuse, the plugin uses short-lived rate limit entries. For this purpose, the IP address is not stored in plain text, but only a short-lived hash formed with the WordPress Salt.', 'patsch9-rental-engine' ) . '</p>';
         wp_add_privacy_policy_content( __( 'Rental Manager for WooCommerce', 'patsch9-rental-engine' ), wp_kses_post( $content ) );
     }
 

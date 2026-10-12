@@ -1,3 +1,8 @@
+function rmwcAdminString(key,fallback){
+  const strings=(window.RMWCAdminData&&RMWCAdminData.strings)||{};
+  return Object.prototype.hasOwnProperty.call(strings,key)?strings[key]:fallback;
+}
+
 jQuery(function($){
   function toggleRentalTab(){
     const on=$('#_rmwc_rental_enabled').is(':checked');
@@ -19,7 +24,7 @@ jQuery(function($){
 
   let addonIdx=$('.rmwc-addons-table tbody tr').length;
   $('.rmwc-add-addon').on('click',function(){
-    $('.rmwc-addons-table tbody').append(`<tr><td><input type="text" name="rmwc_addons[${addonIdx}][group]" placeholder="Material"></td><td><input type="text" name="rmwc_addons[${addonIdx}][label]" placeholder="für 20 Personen"></td><td><input type="number" step="0.01" min="0" name="rmwc_addons[${addonIdx}][price]" value="0"></td><td><select name="rmwc_addons[${addonIdx}][mode]"><option value="once">einmalig</option><option value="unit">pro Mieteinheit</option><option value="day">pro Miettag</option></select></td><td><button type="button" class="button rmwc-remove-row">×</button></td></tr>`); addonIdx++;
+    $('.rmwc-addons-table tbody').append(`<tr><td><input type="text" name="rmwc_addons[${addonIdx}][group]" placeholder="${rmwcAdminString('addonMaterial','Material')}"></td><td><input type="text" name="rmwc_addons[${addonIdx}][label]" placeholder="${rmwcAdminString('addonFor20People','for 20 people')}"></td><td><input type="number" step="0.01" min="0" name="rmwc_addons[${addonIdx}][price]" value="0"></td><td><select name="rmwc_addons[${addonIdx}][mode]"><option value="once">${rmwcAdminString('once','once')}</option><option value="unit">${rmwcAdminString('perRentalUnit','per rental unit')}</option><option value="day">${rmwcAdminString('perRentalDay','per rental day')}</option></select></td><td><button type="button" class="button rmwc-remove-row">×</button></td></tr>`); addonIdx++;
   });
 
   let priceIdx=$('.rmwc-pricing-table tbody tr').length;
@@ -29,31 +34,31 @@ jQuery(function($){
 
   let deliveryIdx=$('.rmwc-delivery-table tbody tr').length;
   $('.rmwc-add-delivery').on('click',function(){
-    $('.rmwc-delivery-table tbody').append(`<tr><td><input type="text" name="rmwc_delivery_zones[${deliveryIdx}][label]" placeholder="bis 10 km"></td><td><input type="number" step="0.1" min="0.1" name="rmwc_delivery_zones[${deliveryIdx}][max_km]"></td><td><input type="number" step="0.01" min="0" name="rmwc_delivery_zones[${deliveryIdx}][price]" value="0"></td><td><button type="button" class="button rmwc-remove-row">×</button></td></tr>`); deliveryIdx++;
+    $('.rmwc-delivery-table tbody').append(`<tr><td><input type="text" name="rmwc_delivery_zones[${deliveryIdx}][label]" placeholder="${rmwcAdminString('upTo10Km','up to 10 km')}"></td><td><input type="number" step="0.1" min="0.1" name="rmwc_delivery_zones[${deliveryIdx}][max_km]"></td><td><input type="number" step="0.01" min="0" name="rmwc_delivery_zones[${deliveryIdx}][price]" value="0"></td><td><button type="button" class="button rmwc-remove-row">×</button></td></tr>`); deliveryIdx++;
   });
 
 
   let materialGroupIdx=$('.rmwc-v2-material-group').length;
   function materialOptionMarkup(groupIdx,optionIdx){
     return `<div class="rmwc-v2-material-option" data-option-index="${optionIdx}">
-      <div class="rmwc-v2-field rmwc-v2-field-product"><label>Miet-Zubehörprodukt</label><select class="wc-product-search" name="rmwc_v2_accessory_groups[${groupIdx}][options][${optionIdx}][product_id]" data-placeholder="Miet-Zubehör suchen…" data-action="woocommerce_json_search_products_and_variations" data-allow_clear="true"></select><p class="description">Preis, Steuer, Bestand und „Nur einzeln verkaufen“ stammen direkt aus diesem WooCommerce-Artikel.</p></div>
-      <div class="rmwc-v2-field rmwc-v2-field-label"><label>Anzeige für Kunden</label><input type="text" name="rmwc_v2_accessory_groups[${groupIdx}][options][${optionIdx}][label]" placeholder="z. B. für ca. 1 kg süßes Popcorn" maxlength="150"><p class="description">Optional. Leer = Produktname verwenden.</p></div>
-      <div class="rmwc-v2-field rmwc-v2-field-mode"><label>Berechnung</label><select name="rmwc_v2_accessory_groups[${groupIdx}][options][${optionIdx}][mode]"><option value="once">1× je Buchung</option><option value="per_device">je Mietgerät</option></select></div>
-      <button type="button" class="button-link-delete rmwc-remove-material-option" aria-label="Miet-Zubehör aus Gruppe entfernen">×</button>
+      <div class="rmwc-v2-field rmwc-v2-field-product"><label>${rmwcAdminString('rentalAccessoryProduct','Rental accessory product')}</label><select class="wc-product-search" name="rmwc_v2_accessory_groups[${groupIdx}][options][${optionIdx}][product_id]" data-placeholder="${rmwcAdminString('searchRentalAccessory','Search rental accessories…')}" data-action="woocommerce_json_search_products_and_variations" data-allow_clear="true"></select><p class="description">${rmwcAdminString('productSourceNote','Price, tax, stock, and the “Sold individually” setting are taken directly from this WooCommerce product.')}</p></div>
+      <div class="rmwc-v2-field rmwc-v2-field-label"><label>${rmwcAdminString('customerDisplay','Customer display')}</label><input type="text" name="rmwc_v2_accessory_groups[${groupIdx}][options][${optionIdx}][label]" placeholder="${rmwcAdminString('sweetPopcornExample','e.g. for approx. 1 kg sweet popcorn')}" maxlength="150"><p class="description">${rmwcAdminString('optionalProductName','Optional. Empty = use product name.')}</p></div>
+      <div class="rmwc-v2-field rmwc-v2-field-mode"><label>${rmwcAdminString('calculation','Calculation')}</label><select name="rmwc_v2_accessory_groups[${groupIdx}][options][${optionIdx}][mode]"><option value="once">${rmwcAdminString('oncePerBooking','1× per booking')}</option><option value="per_device">${rmwcAdminString('perRentalUnit','per rental unit')}</option></select></div>
+      <button type="button" class="button-link-delete rmwc-remove-material-option" aria-label="${rmwcAdminString('removeAccessory','Remove rental accessory from group')}">×</button>
     </div>`;
   }
   function materialGroupMarkup(groupIdx){
     return `<div class="rmwc-v2-material-group" data-group-index="${groupIdx}" data-next-option="0">
       <div class="rmwc-v2-material-group-head">
         <div class="rmwc-v2-material-group-settings">
-          <div class="rmwc-v2-field rmwc-v2-group-name"><label>Gruppenname</label><input type="text" name="rmwc_v2_accessory_groups[${groupIdx}][label]" placeholder="Material" maxlength="100" required></div>
-          <div class="rmwc-v2-field rmwc-v2-group-selection"><label>Auswahlart</label><select name="rmwc_v2_accessory_groups[${groupIdx}][selection]"><option value="single">Einfachauswahl – maximal eine Option</option><option value="multiple">Mehrfachauswahl – mehrere Optionen möglich</option></select></div>
-          <div class="rmwc-v2-field rmwc-v2-group-required"><span class="rmwc-v2-label">Pflichtauswahl</span><label class="rmwc-v2-checkbox"><input type="checkbox" name="rmwc_v2_accessory_groups[${groupIdx}][required]" value="1"><span>Mindestens eine Option muss gewählt werden</span></label></div>
+          <div class="rmwc-v2-field rmwc-v2-group-name"><label>${rmwcAdminString('groupName','Group name')}</label><input type="text" name="rmwc_v2_accessory_groups[${groupIdx}][label]" placeholder="${rmwcAdminString('addonMaterial','Material')}" maxlength="100" required></div>
+          <div class="rmwc-v2-field rmwc-v2-group-selection"><label>${rmwcAdminString('selectionType','Selection type')}</label><select name="rmwc_v2_accessory_groups[${groupIdx}][selection]"><option value="single">${rmwcAdminString('singleSelection','Single selection – at most one option')}</option><option value="multiple">${rmwcAdminString('multipleSelection','Multiple selection – multiple options allowed')}</option></select></div>
+          <div class="rmwc-v2-field rmwc-v2-group-required"><span class="rmwc-v2-label">${rmwcAdminString('requiredSelection','Required selection')}</span><label class="rmwc-v2-checkbox"><input type="checkbox" name="rmwc_v2_accessory_groups[${groupIdx}][required]" value="1"><span>${rmwcAdminString('atLeastOneOption','At least one option must be selected')}</span></label></div>
         </div>
-        <div class="rmwc-v2-material-group-actions"><button type="button" class="button rmwc-v2-add-material-option">+ Zubehör hinzufügen</button><button type="button" class="button-link-delete rmwc-remove-material-group" aria-label="Zubehörgruppe entfernen">×</button></div>
+        <div class="rmwc-v2-material-group-actions"><button type="button" class="button rmwc-v2-add-material-option">${rmwcAdminString('addAccessory','+ Add accessory')}</button><button type="button" class="button-link-delete rmwc-remove-material-group" aria-label="${rmwcAdminString('removeAccessoryGroup','Remove accessory group')}">×</button></div>
       </div>
       <div class="rmwc-v2-material-options-list"></div>
-      <p class="rmwc-v2-material-group-empty">Noch kein Zubehör in dieser Gruppe. Füge mindestens einen Artikel hinzu.</p>
+      <p class="rmwc-v2-material-group-empty">${rmwcAdminString('emptyAccessoryGroup','No accessories in this group yet. Add at least one product.')}</p>
     </div>`;
   }
   $(document).on('click','.rmwc-v2-add-material-group',function(){
@@ -90,7 +95,7 @@ jQuery(function($){
     const target=$(this).data('target')==='return'?'return':'handover';
     const name=target==='return'?'rmwc_return_checklist[]':'rmwc_handover_checklist[]';
     const $list=$(`.rmwc-checklist-items[data-checklist="${target}"]`);
-    $list.append(`<div class="rmwc-checklist-item"><input type="text" maxlength="220" name="${name}" value=""><button type="button" class="button-link-delete rmwc-remove-checklist-item" aria-label="Prüfpunkt entfernen">×</button></div>`);
+    $list.append(`<div class="rmwc-checklist-item"><input type="text" maxlength="220" name="${name}" value=""><button type="button" class="button-link-delete rmwc-remove-checklist-item" aria-label="${rmwcAdminString('removeChecklistItem','Remove checklist item')}">×</button></div>`);
     $list.find('input').last().trigger('focus');
   });
   $(document).on('click','.rmwc-remove-checklist-item',function(){ $(this).closest('.rmwc-checklist-item').remove(); });

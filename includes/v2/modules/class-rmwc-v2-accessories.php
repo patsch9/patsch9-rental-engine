@@ -38,8 +38,8 @@ final class RMWC_V2_Accessories {
         $options['rmwc_accessory_only'] = [
             'id'            => '_rmwc_accessory_only',
             'wrapper_class' => 'show_if_simple show_if_variable',
-            'label'         => __( 'Miet-Zubehör', 'patsch9-rental-engine' ),
-            'description'   => __( 'Dieses Produkt ausschließlich als Zubehör eines Mietartikels verwenden und nicht einzeln im Shop anbieten.', 'patsch9-rental-engine' ),
+            'label'         => __( 'Rental accessories', 'patsch9-rental-engine' ),
+            'description'   => __( 'Use this product exclusively as an accessory of a rental item and do not offer it individually in the shop.', 'patsch9-rental-engine' ),
             'default'       => 'no',
         ];
         return $options;
@@ -222,7 +222,7 @@ final class RMWC_V2_Accessories {
         }
         $product = $this->product_from_add_to_cart_ids( $product_id, $variation_id );
         if ( $product && $this->is_rental_accessory_product( $product ) ) {
-            wc_add_notice( __( 'Dieses Miet-Zubehör kann nur zusammen mit dem zugehörigen Mietartikel ausgewählt werden.', 'patsch9-rental-engine' ), 'error' );
+            wc_add_notice( __( 'This rental accessory can only be selected together with the corresponding rental item.', 'patsch9-rental-engine' ), 'error' );
             return false;
         }
         return $passed;
@@ -233,7 +233,7 @@ final class RMWC_V2_Accessories {
         if ( $this->internal_add || ! $product instanceof WC_Product || ! $this->is_rental_accessory_product( $product ) ) {
             return;
         }
-        throw new Exception( esc_html__( 'Dieses Miet-Zubehör kann nur zusammen mit dem zugehörigen Mietartikel ausgewählt werden.', 'patsch9-rental-engine' ) );
+        throw new Exception( esc_html__( 'This rental accessory can only be selected together with the corresponding rental item.', 'patsch9-rental-engine' ) );
     }
 
     public function keep_linked_cart_items_purchasable( $purchasable, $cart_item_key, $values, $product ) {

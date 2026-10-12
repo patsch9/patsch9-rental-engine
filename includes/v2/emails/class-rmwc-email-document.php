@@ -29,8 +29,8 @@ final class RMWC_Email_Document extends WC_Email {
 
     public function __construct() {
         $this->id             = 'rmwc_document';
-        $this->title          = __( 'Vermietung – Dokument', 'patsch9-rental-engine' );
-        $this->description    = __( 'Wird für Mietverträge, Kautionsbelege sowie Übergabe- und Rückgabeprotokolle verwendet.', 'patsch9-rental-engine' );
+        $this->title          = __( 'Rental – document', 'patsch9-rental-engine' );
+        $this->description    = __( 'Used for rental contracts, deposit receipts as well as handover and return protocols.', 'patsch9-rental-engine' );
         $this->customer_email = true;
         $this->template_html  = 'emails/rental-document.php';
         $this->template_plain = 'emails/plain/rental-document.php';
@@ -40,11 +40,11 @@ final class RMWC_Email_Document extends WC_Email {
     }
 
     public function get_default_subject() {
-        return __( 'Dokument zu Ihrer Vermietung #{order_number}', 'patsch9-rental-engine' );
+        return __( 'Document for your rental #{order_number}', 'patsch9-rental-engine' );
     }
 
     public function get_default_heading() {
-        return __( 'Dokument zu Ihrer Vermietung', 'patsch9-rental-engine' );
+        return __( 'Document about your rental', 'patsch9-rental-engine' );
     }
 
     public function get_subject() {

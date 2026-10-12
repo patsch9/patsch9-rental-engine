@@ -55,8 +55,8 @@ final class RMWC_V2_Integrations {
         if ( ! is_array( $options ) ) {
             $options = [];
         }
-        $options['rmwc']           = __( 'Vermietung', 'patsch9-rental-engine' );
-        $options['rmwc_accessory'] = __( 'Miet-Zubehör', 'patsch9-rental-engine' );
+        $options['rmwc']           = __( 'Rental', 'patsch9-rental-engine' );
+        $options['rmwc_accessory'] = __( 'Rental accessories', 'patsch9-rental-engine' );
         return $options;
     }
 
@@ -217,8 +217,8 @@ final class RMWC_V2_Integrations {
             return $display_value;
         }
         return 'cash' === sanitize_key( $rental['deposit_method'] ?? 'online' )
-            ? __( 'Separat überweisen oder bei Abholung bar hinterlegen', 'patsch9-rental-engine' )
-            : __( 'Online mit Bestellung hinterlegt', 'patsch9-rental-engine' );
+            ? __( 'Transfer separately or deposit cash at collection', 'patsch9-rental-engine' )
+            : __( 'Filed online with order', 'patsch9-rental-engine' );
     }
 
     private function booking_table() {
@@ -239,8 +239,8 @@ final class RMWC_V2_Integrations {
     private function workflow_status_label( $status ) {
         $labels = [
             'reserved'    => __( 'Reserviert', 'patsch9-rental-engine' ),
-            'handed_over' => __( 'Übergeben', 'patsch9-rental-engine' ),
-            'returned'    => __( 'Zurückgegeben', 'patsch9-rental-engine' ),
+            'handed_over' => __( 'Surrender', 'patsch9-rental-engine' ),
+            'returned'    => __( 'Returned', 'patsch9-rental-engine' ),
         ];
         $status = sanitize_key( $status );
         return $labels[ $status ] ?? sanitize_text_field( $status );
@@ -291,9 +291,9 @@ final class RMWC_V2_Integrations {
             }
             $fulfilment = sanitize_key( $rental['fulfilment'] ?? '' );
             $transport_map = [
-                'pickup'          => __( 'Abholung und Rückgabe durch Kunde', 'patsch9-rental-engine' ),
-                'delivery'        => __( 'Lieferung durch Vermieter und Rückgabe durch Kunde', 'patsch9-rental-engine' ),
-                'delivery_return' => __( 'Lieferung und Abholung durch Vermieter', 'patsch9-rental-engine' ),
+                'pickup'          => __( 'Pickup and return by customer', 'patsch9-rental-engine' ),
+                'delivery'        => __( 'Delivery by rental operator and return by customer', 'patsch9-rental-engine' ),
+                'delivery_return' => __( 'Delivery and collection by rental operator', 'patsch9-rental-engine' ),
             ];
             if ( isset( $transport_map[ $fulfilment ] ) ) {
                 $transport_labels[] = $product_name . ': ' . $transport_map[ $fulfilment ];
@@ -304,8 +304,8 @@ final class RMWC_V2_Integrations {
                     '%s: %s',
                     $product_name,
                     'cash' === sanitize_key( $rental['deposit_method'] ?? 'online' )
-                        ? __( 'Separat überweisen oder bei Abholung bar hinterlegen', 'patsch9-rental-engine' )
-                        : __( 'Online mit Bestellung hinterlegt', 'patsch9-rental-engine' )
+                        ? __( 'Transfer separately or deposit cash at collection', 'patsch9-rental-engine' )
+                        : __( 'Filed online with order', 'patsch9-rental-engine' )
                 );
             }
 
@@ -347,7 +347,7 @@ final class RMWC_V2_Integrations {
                 $mode = 'return';
             }
             if ( $mode ) {
-                $label = 'handover' === $mode ? __( 'Übergabe öffnen', 'patsch9-rental-engine' ) : __( 'Rückgabe öffnen', 'patsch9-rental-engine' );
+                $label = 'handover' === $mode ? __( 'Open commit', 'patsch9-rental-engine' ) : __( 'Open Return', 'patsch9-rental-engine' );
                 $url   = add_query_arg(
                     [
                         'page'       => 'rmwc-rentals',
@@ -495,8 +495,8 @@ final class RMWC_V2_Integrations {
                     '%s: %s',
                     $product_name,
                     'cash' === sanitize_key( $rental['deposit_method'] ?? 'online' )
-                        ? __( 'Separat überweisen oder bei Abholung bar hinterlegen', 'patsch9-rental-engine' )
-                        : __( 'Online mit Bestellung hinterlegt', 'patsch9-rental-engine' )
+                        ? __( 'Transfer separately or deposit cash at collection', 'patsch9-rental-engine' )
+                        : __( 'Filed online with order', 'patsch9-rental-engine' )
                 );
             }
 
@@ -504,8 +504,8 @@ final class RMWC_V2_Integrations {
             foreach ( $meta_data as &$meta_row ) {
                 if ( is_array( $meta_row ) && 'Kautionshinterlegung' === (string) ( $meta_row['key'] ?? '' ) && (float) ( $rental['deposit'] ?? 0 ) > 0 ) {
                     $meta_row['value'] = 'cash' === sanitize_key( $rental['deposit_method'] ?? 'online' )
-                        ? __( 'Separat überweisen oder bei Abholung bar hinterlegen', 'patsch9-rental-engine' )
-                        : __( 'Online mit Bestellung hinterlegt', 'patsch9-rental-engine' );
+                        ? __( 'Transfer separately or deposit cash at collection', 'patsch9-rental-engine' )
+                        : __( 'Filed online with order', 'patsch9-rental-engine' );
                 }
             }
             unset( $meta_row );
@@ -523,7 +523,7 @@ final class RMWC_V2_Integrations {
             if ( is_array( $booking ) ) {
                 $status       = sanitize_key( $booking['workflow_status'] ?? 'reserved' );
                 $status_label = $this->workflow_status_label( $status );
-                $this->append_rest_meta( $meta_data, __( 'Mietstatus', 'patsch9-rental-engine' ), $status_label );
+                $this->append_rest_meta( $meta_data, __( 'Rental status', 'patsch9-rental-engine' ), $status_label );
                 $statuses[] = $product_name . ': ' . $status_label;
 
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned operational tables require current state; WordPress provides no CRUD API for these tables.
@@ -537,7 +537,7 @@ final class RMWC_V2_Integrations {
                 );
                 if ( is_array( $assets ) && $assets ) {
                     $assets_text = implode( ', ', array_map( 'sanitize_text_field', $assets ) );
-                    $this->append_rest_meta( $meta_data, __( 'Mietgerät(e)', 'patsch9-rental-engine' ), $assets_text );
+                    $this->append_rest_meta( $meta_data, __( 'Rental equipment(s)', 'patsch9-rental-engine' ), $assets_text );
                     $asset_labels[] = $product_name . ': ' . $assets_text;
                 }
 
@@ -548,7 +548,7 @@ final class RMWC_V2_Integrations {
                     $mode = 'return';
                 }
                 if ( $mode ) {
-                    $label = 'handover' === $mode ? __( 'Übergabe öffnen', 'patsch9-rental-engine' ) : __( 'Rückgabe öffnen', 'patsch9-rental-engine' );
+                    $label = 'handover' === $mode ? __( 'Open commit', 'patsch9-rental-engine' ) : __( 'Open Return', 'patsch9-rental-engine' );
                     $url   = add_query_arg(
                         [
                             'page'       => 'rmwc-rentals',
@@ -559,7 +559,7 @@ final class RMWC_V2_Integrations {
                         admin_url( 'admin.php' )
                     );
                     $action_text = $label . ': ' . $url;
-                    $this->append_rest_meta( $meta_data, __( 'Mietaktion', 'patsch9-rental-engine' ), $action_text );
+                    $this->append_rest_meta( $meta_data, __( 'Rental action', 'patsch9-rental-engine' ), $action_text );
                     $action_labels[] = $product_name . ': ' . $action_text;
                 }
             }

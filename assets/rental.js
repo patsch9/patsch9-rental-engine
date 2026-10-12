@@ -2,6 +2,8 @@ jQuery(function($){
   const box = $('.rmwc-rental-box');
   if (!box.length) return;
 
+  const t = (key,fallback) => (RMWCData.strings && Object.prototype.hasOwnProperty.call(RMWCData.strings,key)) ? RMWCData.strings[key] : fallback;
+
   const cal = $('#rmwc-calendar');
   const startInput = $('#rmwc_start_date');
   const endInput = $('#rmwc_end_date');
@@ -122,8 +124,8 @@ jQuery(function($){
   function renderMonth(monthDate){
     const y=monthDate.getFullYear(), m=monthDate.getMonth();
     const first=new Date(y,m,1), last=new Date(y,m+1,0);
-    const names=['Mo','Di','Mi','Do','Fr','Sa','So'];
-    let html=`<div class="rmwc-month"><div class="rmwc-month-title">${first.toLocaleDateString('de-DE',{month:'long',year:'numeric'})}</div><div class="rmwc-cal-grid">`;
+    const names=[t('weekdayMon','Mon'),t('weekdayTue','Tue'),t('weekdayWed','Wed'),t('weekdayThu','Thu'),t('weekdayFri','Fri'),t('weekdaySat','Sat'),t('weekdaySun','Sun')];
+    let html=`<div class="rmwc-month"><div class="rmwc-month-title">${first.toLocaleDateString(RMWCData.locale||'en-US',{month:'long',year:'numeric'})}</div><div class="rmwc-cal-grid">`;
     names.forEach(n=>html+=`<div class="rmwc-cal-weekday">${n}</div>`);
     const offset=(first.getDay()+6)%7;
     for(let i=0;i<offset;i++) html+='<div class="rmwc-cal-empty"></div>';
@@ -141,14 +143,14 @@ jQuery(function($){
           disabled=false;
         } else if(d<start){
           disabled=!allowedStart(d);
-          if(dayBlocked(rules.blockedPickupDays,d)) title='Keine Abholung / kein Mietbeginn an diesem Wochentag';
+          if(dayBlocked(rules.blockedPickupDays,d)) title=t('noPickupThisWeekday','No pickup or rental start on this weekday');
         } else {
           disabled=!allowedReturn(d,start);
-          if(dayBlocked(rules.blockedReturnDays,d)) title='Keine Rückgabe an diesem Wochentag';
+          if(dayBlocked(rules.blockedReturnDays,d)) title=t('noReturnThisWeekday','No return on this weekday');
         }
       } else {
         disabled=!allowedStart(d);
-        if(dayBlocked(rules.blockedPickupDays,d)) title='Keine Abholung / kein Mietbeginn an diesem Wochentag';
+        if(dayBlocked(rules.blockedPickupDays,d)) title=t('noPickupThisWeekday','No pickup or rental start on this weekday');
       }
       html+=`<button type="button" class="${cls}" data-date="${s}" ${disabled?'disabled':''} ${title?`title="${title}"`:''}>${day}</button>`;
     }
@@ -157,7 +159,7 @@ jQuery(function($){
   }
 
   function render(){
-    cal.html(`<div class="rmwc-cal-head"><button type="button" class="rmwc-prev" aria-label="Vorheriger Monat">‹</button><span class="rmwc-cal-legend"><span class="rmwc-dot"></span> teilweise/zeitweise belegt</span><button type="button" class="rmwc-next" aria-label="Nächster Monat">›</button></div><div class="rmwc-months">${renderMonth(view)}${renderMonth(new Date(view.getFullYear(),view.getMonth()+1,1))}</div>`);
+    cal.html(`<div class="rmwc-cal-head"><button type="button" class="rmwc-prev" aria-label="${t('previousMonth','Previous month')}">‹</button><span class="rmwc-cal-legend"><span class="rmwc-dot"></span>${t('partiallyBooked','partially booked')}</span><button type="button" class="rmwc-next" aria-label="${t('nextMonth','Next month')}">›</button></div><div class="rmwc-months">${renderMonth(view)}${renderMonth(new Date(view.getFullYear(),view.getMonth()+1,1))}</div>`);
   }
 
   cal.on('click','.rmwc-prev',()=>{ view=new Date(view.getFullYear(),view.getMonth()-1,1); fetchAvailability(); });
@@ -170,11 +172,11 @@ jQuery(function($){
     }
     else {
       if(dayBlocked(rules.blockedReturnDays,d)){
-        alert('An diesem Wochentag ist keine Rückgabe möglich.');
+        alert(t('returnNotPossible','Returns are not possible on this weekday.'));
         return;
       }
       if(!allowedReturn(d,start)){
-        alert('Dieser Zeitraum ist nicht buchbar, hat nicht die erlaubte Mietdauer oder es ist nicht genügend Bestand frei.');
+        alert(t('periodNotBookable','This period cannot be booked, does not meet the permitted rental duration, or there is not enough stock available.'));
         return;
       }
       end=d;
@@ -205,7 +207,7 @@ jQuery(function($){
     const weekendStart=parseInt(w.startDay,10), weekendEnd=parseInt(w.endDay,10);
     const weekendSpan=((weekendEnd-weekendStart+7)%7)||7;
     if(w.enabled && days===weekendSpan && getDayN(start)===weekendStart && getDayN(end)===weekendEnd){
-      return {price:parseFloat(w.price||0),units:1,label:'Wochenendtarif'};
+      return {price:parseFloat(w.price||0),units:1,label:t('weekendRate','Weekend rate')};
     }
     const matches=(RMWCData.pricingRules||[]).filter(r=>{
       const min=Math.max(1,parseInt(r.min_days||1,10)), max=Math.max(0,parseInt(r.max_days||0,10));
@@ -221,7 +223,7 @@ jQuery(function($){
       const r=matches[0], included=Math.max(1,parseInt(r.included_days||r.min_days||1,10));
       let price=parseFloat(r.package_price||0);
       if(days>included && r.extra_day_price!=='' && r.extra_day_price!=null) price += (days-included)*parseFloat(r.extra_day_price||0);
-      return {price,units:1,label:'Preisstaffel'};
+      return {price,units:1,label:t('tieredRate','Tiered rate')};
     }
     const unit=box.data('unit');
     if(unit==='day'){
@@ -238,16 +240,16 @@ jQuery(function($){
           price+=standard;
         }
       }
-      return {price,units:days,label:usedOverride?'Wochentagstarif':'Standardtarif'};
+      return {price,units:days,label:usedOverride?t('weekdayRate','Weekday rate'):t('standardRate','Standard rate')};
     }
     let units=days;
     if(unit==='week') units=Math.ceil(days/7);
     if(unit==='month') units=Math.ceil(days/30);
-    return {price:parseFloat(box.data('unit-price')||0)*units,units,label:'Standardtarif'};
+    return {price:parseFloat(box.data('unit-price')||0)*units,units,label:t('standardRate','Standard rate')};
   }
 
   function currency(v){
-    try{return new Intl.NumberFormat(RMWCData.locale||'de-DE',{style:'currency',currency:RMWCData.currency||'EUR'}).format(v);}catch(e){return v.toFixed(2)+' '+(RMWCData.currencySymbol||'€');}
+    try{return new Intl.NumberFormat(RMWCData.locale||'en-US',{style:'currency',currency:RMWCData.currency||'EUR'}).format(v);}catch(e){return v.toFixed(2)+' '+(RMWCData.currencySymbol||'€');}
   }
 
   function updatePrice(){
@@ -302,7 +304,7 @@ jQuery(function($){
 
   box.on('click','.rmwc-quote-delivery',function(){
     const btn=$(this), address=$('#rmwc_delivery_address').val().trim();
-    if(!address){ alert('Bitte zuerst die Lieferadresse eingeben.'); return; }
+    if(!address){ alert(t('enterDeliveryAddress','Please enter the delivery address first.')); return; }
     btn.prop('disabled',true).text('Berechne …');
     $('#rmwc_delivery_result').removeClass('is-error').text('');
     $.post(RMWCData.ajaxUrl,{action:'rmwc_delivery_quote',nonce:RMWCData.nonce,product_id:RMWCData.productId,address})
@@ -316,14 +318,14 @@ jQuery(function($){
           $('#rmwc_delivery_result').text(`${r.data.distance} km je Fahrt – ${r.data.zone.label}: ${currency(deliveryFee)} je Fahrt${legs===2?' / '+currency(deliveryFee*2)+' gesamt':''} · Google Maps`);
           updatePrice();
         } else {
-          $('#rmwc_delivery_result').addClass('is-error').text((r&&r.data&&r.data.message)||'Lieferkosten konnten nicht berechnet werden.');
+          $('#rmwc_delivery_result').addClass('is-error').text((r&&r.data&&r.data.message)||t('deliveryQuoteFailed','Delivery costs could not be calculated.'));
         }
       })
       .fail(xhr=>{
         const m=xhr.responseJSON&&xhr.responseJSON.data&&xhr.responseJSON.data.message;
-        $('#rmwc_delivery_result').addClass('is-error').text(m||'Lieferkosten konnten nicht berechnet werden.');
+        $('#rmwc_delivery_result').addClass('is-error').text(m||t('deliveryQuoteFailed','Delivery costs could not be calculated.'));
       })
-      .always(()=>btn.prop('disabled',false).text('Transportkosten berechnen'));
+      .always(()=>btn.prop('disabled',false).text(t('calculateTransport','Calculate transport costs')));
   });
 
   function syncAccessoryCards($group){
@@ -331,11 +333,11 @@ jQuery(function($){
       const $card=$(this),$choice=$card.find('.rmwc-accessory-choice');
       const selected=$choice.is(':checked');
       $card.toggleClass('is-selected',selected);
-      let label='Auswählen';
+      let label=t('select','Select');
       if(selected){
-        label=$choice.val()==='0'?'Ohne Zusatz gewählt':'Ausgewählt';
+        label=$choice.val()==='0'?'Ohne Zusatz gewählt':t('selected','Selected');
       }else if($choice.val()==='0'){
-        label='Ohne Zusatz';
+        label=t('withoutAddon','Without add-on');
       }
       $card.find('.rmwc-accessory-select-label').text(label);
       const $qty=$card.find('.rmwc-accessory-qty-input');

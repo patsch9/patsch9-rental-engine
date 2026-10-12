@@ -130,10 +130,10 @@ final class RMWC_V2_Materials {
         <section class="rmwc-v2-materials-wrap" aria-labelledby="rmwc-v2-materials-title">
             <div class="rmwc-v2-section-heading">
                 <div>
-                    <h5 id="rmwc-v2-materials-title"><?php esc_html_e( 'Zubehör & Verbrauchsmaterial', 'patsch9-rental-engine' ); ?></h5>
-                    <p class="description"><?php esc_html_e( 'Lege zuerst eine Gruppe wie „Material“ oder „Zubehör“ an und füge darin die passenden Miet-Zubehörprodukte hinzu. Pflichtauswahl und Einfach-/Mehrfachauswahl werden einmal pro Gruppe festgelegt.', 'patsch9-rental-engine' ); ?></p>
+                    <h5 id="rmwc-v2-materials-title"><?php esc_html_e( 'Accessories & Consumables', 'patsch9-rental-engine' ); ?></h5>
+                    <p class="description"><?php esc_html_e( 'First create a group such as "Material" or "Accessories" and add the appropriate rental accessories. Mandatory selection and single/multiple selection are defined once per group.', 'patsch9-rental-engine' ); ?></p>
                 </div>
-                <button type="button" class="button rmwc-v2-add-material-group"><?php esc_html_e( '+ Gruppe hinzufügen', 'patsch9-rental-engine' ); ?></button>
+                <button type="button" class="button rmwc-v2-add-material-group"><?php esc_html_e( '+ Add group', 'patsch9-rental-engine' ); ?></button>
             </div>
             <div class="rmwc-v2-material-group-list">
                 <?php
@@ -145,7 +145,7 @@ final class RMWC_V2_Materials {
                 ?>
             </div>
             <?php if ( ! $groups ) : ?>
-                <p class="rmwc-v2-material-empty"><?php esc_html_e( 'Noch keine Zubehörgruppe hinterlegt.', 'patsch9-rental-engine' ); ?></p>
+                <p class="rmwc-v2-material-empty"><?php esc_html_e( 'No accessory set yet.', 'patsch9-rental-engine' ); ?></p>
             <?php endif; ?>
         </section>
         <?php
@@ -166,27 +166,27 @@ final class RMWC_V2_Materials {
                         <label><?php esc_html_e( 'Auswahlart', 'patsch9-rental-engine' ); ?></label>
                         <select name="rmwc_v2_accessory_groups[<?php echo esc_attr( $group_index ); ?>][selection]">
                             <option value="single" <?php selected( $selection, 'single' ); ?>><?php esc_html_e( 'Einfachauswahl – maximal eine Option', 'patsch9-rental-engine' ); ?></option>
-                            <option value="multiple" <?php selected( $selection, 'multiple' ); ?>><?php esc_html_e( 'Mehrfachauswahl – mehrere Optionen möglich', 'patsch9-rental-engine' ); ?></option>
+                            <option value="multiple" <?php selected( $selection, 'multiple' ); ?>><?php esc_html_e( 'Multiple selection – multiple options possible', 'patsch9-rental-engine' ); ?></option>
                         </select>
                     </div>
                     <div class="rmwc-v2-field rmwc-v2-group-required">
                         <span class="rmwc-v2-label"><?php esc_html_e( 'Pflichtauswahl', 'patsch9-rental-engine' ); ?></span>
                         <label class="rmwc-v2-checkbox">
                             <input type="checkbox" name="rmwc_v2_accessory_groups[<?php echo esc_attr( $group_index ); ?>][required]" value="1" <?php checked( ! empty( $group['required'] ) ); ?>>
-                            <span><?php esc_html_e( 'Mindestens eine Option muss gewählt werden', 'patsch9-rental-engine' ); ?></span>
+                            <span><?php esc_html_e( 'At least one option must be selected', 'patsch9-rental-engine' ); ?></span>
                         </label>
                     </div>
                 </div>
                 <div class="rmwc-v2-material-group-actions">
-                    <button type="button" class="button rmwc-v2-add-material-option"><?php esc_html_e( '+ Zubehör hinzufügen', 'patsch9-rental-engine' ); ?></button>
-                    <button type="button" class="button-link-delete rmwc-remove-material-group" aria-label="<?php esc_attr_e( 'Zubehörgruppe entfernen', 'patsch9-rental-engine' ); ?>">&times;</button>
+                    <button type="button" class="button rmwc-v2-add-material-option"><?php esc_html_e( '+ Add accessories', 'patsch9-rental-engine' ); ?></button>
+                    <button type="button" class="button-link-delete rmwc-remove-material-group" aria-label="<?php esc_attr_e( 'Remove accessory group', 'patsch9-rental-engine' ); ?>">&times;</button>
                 </div>
             </div>
             <div class="rmwc-v2-material-options-list">
                 <?php foreach ( $options as $option_index => $row ) : $this->admin_option( $group_index, $option_index, $row ); endforeach; ?>
             </div>
             <?php if ( ! $options ) : ?>
-                <p class="rmwc-v2-material-group-empty"><?php esc_html_e( 'Noch kein Zubehör in dieser Gruppe. Füge mindestens einen Artikel hinzu.', 'patsch9-rental-engine' ); ?></p>
+                <p class="rmwc-v2-material-group-empty"><?php esc_html_e( 'No accessories in this group yet. Add at least one article.', 'patsch9-rental-engine' ); ?></p>
             <?php endif; ?>
         </div>
         <?php
@@ -197,25 +197,25 @@ final class RMWC_V2_Materials {
         ?>
         <div class="rmwc-v2-material-option" data-option-index="<?php echo esc_attr( $option_index ); ?>">
             <div class="rmwc-v2-field rmwc-v2-field-product">
-                <label><?php esc_html_e( 'Miet-Zubehörprodukt', 'patsch9-rental-engine' ); ?></label>
-                <select class="wc-product-search" name="rmwc_v2_accessory_groups[<?php echo esc_attr( $group_index ); ?>][options][<?php echo esc_attr( $option_index ); ?>][product_id]" data-placeholder="<?php esc_attr_e( 'Miet-Zubehör suchen…', 'patsch9-rental-engine' ); ?>" data-action="woocommerce_json_search_products_and_variations" data-allow_clear="true">
+                <label><?php esc_html_e( 'Rental accessory product', 'patsch9-rental-engine' ); ?></label>
+                <select class="wc-product-search" name="rmwc_v2_accessory_groups[<?php echo esc_attr( $group_index ); ?>][options][<?php echo esc_attr( $option_index ); ?>][product_id]" data-placeholder="<?php esc_attr_e( 'Find rental accessories...', 'patsch9-rental-engine' ); ?>" data-action="woocommerce_json_search_products_and_variations" data-allow_clear="true">
                     <?php if ( $product ) : ?><option value="<?php echo esc_attr( $product->get_id() ); ?>" selected><?php echo esc_html( wp_strip_all_tags( $product->get_formatted_name() ) ); ?></option><?php endif; ?>
                 </select>
-                <p class="description"><?php esc_html_e( 'Preis, Steuer, Bestand und „Nur einzeln verkaufen“ stammen direkt aus diesem WooCommerce-Artikel.', 'patsch9-rental-engine' ); ?></p>
+                <p class="description"><?php esc_html_e( 'Price, tax, inventory and "Sell separately only" come directly from this WooCommerce article.', 'patsch9-rental-engine' ); ?></p>
             </div>
             <div class="rmwc-v2-field rmwc-v2-field-label">
-                <label><?php esc_html_e( 'Anzeige für Kunden', 'patsch9-rental-engine' ); ?></label>
+                <label><?php esc_html_e( 'Display for customers', 'patsch9-rental-engine' ); ?></label>
                 <input type="text" name="rmwc_v2_accessory_groups[<?php echo esc_attr( $group_index ); ?>][options][<?php echo esc_attr( $option_index ); ?>][label]" value="<?php echo esc_attr( $row['label'] ?? '' ); ?>" placeholder="z. B. für ca. 1 kg süßes Popcorn" maxlength="150">
                 <p class="description"><?php esc_html_e( 'Optional. Leer = Produktname verwenden.', 'patsch9-rental-engine' ); ?></p>
             </div>
             <div class="rmwc-v2-field rmwc-v2-field-mode">
                 <label><?php esc_html_e( 'Berechnung', 'patsch9-rental-engine' ); ?></label>
                 <select name="rmwc_v2_accessory_groups[<?php echo esc_attr( $group_index ); ?>][options][<?php echo esc_attr( $option_index ); ?>][mode]">
-                    <option value="once" <?php selected( $row['mode'] ?? 'once', 'once' ); ?>><?php esc_html_e( '1× je Buchung', 'patsch9-rental-engine' ); ?></option>
-                    <option value="per_device" <?php selected( $row['mode'] ?? 'once', 'per_device' ); ?>><?php esc_html_e( 'je Mietgerät', 'patsch9-rental-engine' ); ?></option>
+                    <option value="once" <?php selected( $row['mode'] ?? 'once', 'once' ); ?>><?php esc_html_e( '1× per booking', 'patsch9-rental-engine' ); ?></option>
+                    <option value="per_device" <?php selected( $row['mode'] ?? 'once', 'per_device' ); ?>><?php esc_html_e( 'Per rented unit', 'patsch9-rental-engine' ); ?></option>
                 </select>
             </div>
-            <button type="button" class="button-link-delete rmwc-remove-material-option" aria-label="<?php esc_attr_e( 'Miet-Zubehör aus Gruppe entfernen', 'patsch9-rental-engine' ); ?>">&times;</button>
+            <button type="button" class="button-link-delete rmwc-remove-material-option" aria-label="<?php esc_attr_e( 'Remove rental accessories from group', 'patsch9-rental-engine' ); ?>">&times;</button>
         </div>
         <?php
     }
@@ -341,12 +341,12 @@ final class RMWC_V2_Materials {
                 $group_id  = 'rmwc_v2_material_group_' . sanitize_html_class( $key );
                 if ( $multiple ) {
                     $helper = $group['required']
-                        ? __( 'Bitte wählen Sie mindestens eine Option aus. Mehrfachauswahl ist möglich.', 'patsch9-rental-engine' )
-                        : __( 'Optional – Sie können eine oder mehrere Optionen auswählen.', 'patsch9-rental-engine' );
+                        ? __( 'Please select at least one option. Multiple selection is possible.', 'patsch9-rental-engine' )
+                        : __( 'Optional – You can select one or more options.', 'patsch9-rental-engine' );
                 } else {
                     $helper = $group['required']
-                        ? __( 'Bitte wählen Sie eine Option aus.', 'patsch9-rental-engine' )
-                        : __( 'Optional – wählen Sie bei Bedarf eine Option aus.', 'patsch9-rental-engine' );
+                        ? __( 'Please select an option.', 'patsch9-rental-engine' )
+                        : __( 'Optional – select an option if required.', 'patsch9-rental-engine' );
                 }
                 ?>
                 <section class="rmwc-accessory-group" data-required="<?php echo $group['required'] ? 'yes' : 'no'; ?>" data-selection="<?php echo esc_attr( $selection ); ?>" aria-labelledby="<?php echo esc_attr( $group_id ); ?>">
@@ -356,9 +356,9 @@ final class RMWC_V2_Materials {
                             <p><?php echo esc_html( $helper ); ?></p>
                         </div>
                         <?php if ( count( $usable_options ) + ( ! $multiple && ! $group['required'] ? 1 : 0 ) > 2 ) : ?>
-                            <div class="rmwc-accessory-slider-nav" aria-label="<?php esc_attr_e( 'Zubehör durchblättern', 'patsch9-rental-engine' ); ?>">
+                            <div class="rmwc-accessory-slider-nav" aria-label="<?php esc_attr_e( 'Roll through accessories', 'patsch9-rental-engine' ); ?>">
                                 <button type="button" class="rmwc-accessory-slider-prev" aria-label="<?php esc_attr_e( 'Vorherige Produkte', 'patsch9-rental-engine' ); ?>">&#8249;</button>
-                                <button type="button" class="rmwc-accessory-slider-next" aria-label="<?php esc_attr_e( 'Nächste Produkte', 'patsch9-rental-engine' ); ?>">&#8250;</button>
+                                <button type="button" class="rmwc-accessory-slider-next" aria-label="<?php esc_attr_e( 'Next Products', 'patsch9-rental-engine' ); ?>">&#8250;</button>
                             </div>
                         <?php endif; ?>
                     </div>
@@ -369,10 +369,10 @@ final class RMWC_V2_Materials {
                                 <label class="rmwc-accessory-card-select" for="rmwc_v2_material_<?php echo esc_attr( $key ); ?>_none">
                                     <span class="rmwc-accessory-placeholder" aria-hidden="true">+</span>
                                     <span class="rmwc-accessory-card-body">
-                                        <strong><?php esc_html_e( 'Ohne Zusatz', 'patsch9-rental-engine' ); ?></strong>
-                                        <span><?php esc_html_e( 'Kein Zubehör aus dieser Gruppe hinzufügen.', 'patsch9-rental-engine' ); ?></span>
+                                        <strong><?php esc_html_e( 'Not elsewhere specified', 'patsch9-rental-engine' ); ?></strong>
+                                        <span><?php esc_html_e( 'No accessories from this group add.', 'patsch9-rental-engine' ); ?></span>
                                     </span>
-                                    <span class="rmwc-accessory-select-label"><?php esc_html_e( 'Ohne Zusatz gewählt', 'patsch9-rental-engine' ); ?></span>
+                                    <span class="rmwc-accessory-select-label"><?php esc_html_e( 'Selected without addition', 'patsch9-rental-engine' ); ?></span>
                                 </label>
                             </div>
                         <?php endif; ?>
@@ -399,9 +399,9 @@ final class RMWC_V2_Materials {
                                         <strong><?php echo esc_html( $label ); ?></strong>
                                         <?php if ( '' !== $desc ) : ?><span class="rmwc-accessory-description"><?php echo esc_html( $desc ); ?></span><?php endif; ?>
                                         <span class="rmwc-accessory-price"><?php echo wp_kses_post( wc_price( $price ) ); ?></span>
-                                        <small><?php echo esc_html( 'per_device' === $row['mode'] ? __( 'Berechnung je Mietgerät', 'patsch9-rental-engine' ) : __( 'Berechnung je Buchung', 'patsch9-rental-engine' ) ); ?></small>
+                                        <small><?php echo esc_html( 'per_device' === $row['mode'] ? __( 'Calculation per rental unit', 'patsch9-rental-engine' ) : __( 'Calculation per booking', 'patsch9-rental-engine' ) ); ?></small>
                                     </span>
-                                    <span class="rmwc-accessory-select-label"><?php esc_html_e( 'Auswählen', 'patsch9-rental-engine' ); ?></span>
+                                    <span class="rmwc-accessory-select-label"><?php esc_html_e( 'Select', 'patsch9-rental-engine' ); ?></span>
                                 </label>
                                 <div class="rmwc-accessory-quantity" <?php echo $fixed_qty ? 'data-fixed="yes"' : ''; ?>>
                                     <span class="rmwc-accessory-qty-title"><?php esc_html_e( 'Menge', 'patsch9-rental-engine' ); ?></span>
@@ -412,7 +412,7 @@ final class RMWC_V2_Materials {
                                         <div class="rmwc-accessory-qty-control">
                                             <button type="button" class="rmwc-accessory-qty-minus" aria-label="<?php esc_attr_e( 'Menge verringern', 'patsch9-rental-engine' ); ?>">−</button>
                                             <input class="rmwc-accessory-qty-input" type="number" name="rmwc_v2_material[<?php echo esc_attr( $key ); ?>][qty][<?php echo esc_attr( $accessory_id ); ?>]" value="1" min="1" max="<?php echo esc_attr( $max_qty ); ?>" step="1" inputmode="numeric" disabled>
-                                            <button type="button" class="rmwc-accessory-qty-plus" aria-label="<?php esc_attr_e( 'Menge erhöhen', 'patsch9-rental-engine' ); ?>">+</button>
+                                            <button type="button" class="rmwc-accessory-qty-plus" aria-label="<?php esc_attr_e( 'Increase quantity', 'patsch9-rental-engine' ); ?>">+</button>
                                         </div>
                                     <?php endif; ?>
                                 </div>
@@ -428,7 +428,7 @@ final class RMWC_V2_Materials {
     private function requested_selections( $product_id ) {
         $nonce = isset( $_POST['rmwc_rental_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['rmwc_rental_nonce'] ) ) : '';
         if ( ! $nonce || ! wp_verify_nonce( $nonce, 'rmwc_add_rental_' . absint( $product_id ) ) ) {
-            return new WP_Error( 'rmwc_material_nonce', __( 'Die Mietdaten konnten nicht verifiziert werden. Bitte Seite neu laden.', 'patsch9-rental-engine' ) );
+            return new WP_Error( 'rmwc_material_nonce', __( 'The rental data could not be verified. Please reload page.', 'patsch9-rental-engine' ) );
         }
         $groups = $this->grouped_config( $product_id );
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Signed rental form verified above; only configured IDs and bounded integer quantities are accepted below.
@@ -455,23 +455,23 @@ final class RMWC_V2_Materials {
             if ( ! $ids ) {
                 if ( $group['required'] ) {
                     /* translators: %s: accessory option group label. */
-                    return new WP_Error( 'rmwc_material_required', sprintf( __( 'Bitte wählen Sie mindestens eine Option für „%s“.', 'patsch9-rental-engine' ), $group['label'] ) );
+                    return new WP_Error( 'rmwc_material_required', sprintf( __( 'Please select at least one option for "%s".', 'patsch9-rental-engine' ), $group['label'] ) );
                 }
                 continue;
             }
 
             if ( ! $multiple && count( $ids ) > 1 ) {
-                return new WP_Error( 'rmwc_material_single', __( 'In dieser Zubehörgruppe darf nur eine Option ausgewählt werden.', 'patsch9-rental-engine' ) );
+                return new WP_Error( 'rmwc_material_single', __( 'In this accessory group, only one option may be selected.', 'patsch9-rental-engine' ) );
             }
 
             foreach ( $ids as $id ) {
                 if ( ! isset( $group['options'][ $id ] ) ) {
-                    return new WP_Error( 'rmwc_material_invalid', __( 'Eine ausgewählte Materialoption ist nicht gültig.', 'patsch9-rental-engine' ) );
+                    return new WP_Error( 'rmwc_material_invalid', __( 'A selected material option is not valid.', 'patsch9-rental-engine' ) );
                 }
                 $accessory = wc_get_product( $id );
                 if ( ! $accessory || ! $this->accessory_is_publicly_usable( $accessory ) ) {
                     /* translators: %s: accessory option label. */
-                    return new WP_Error( 'rmwc_material_stock', sprintf( __( 'Die Option „%s“ ist derzeit nicht verfügbar.', 'patsch9-rental-engine' ), $group['options'][ $id ]['label'] ?: get_the_title( $id ) ) );
+                    return new WP_Error( 'rmwc_material_stock', sprintf( __( 'The option "%s" is currently not available.', 'patsch9-rental-engine' ), $group['options'][ $id ]['label'] ?: get_the_title( $id ) ) );
                 }
 
                 $requested_qty = 1;
@@ -479,14 +479,14 @@ final class RMWC_V2_Materials {
                     $requested_qty = absint( $group_post['qty'][ $id ] );
                 }
                 if ( $requested_qty < 1 ) {
-                    return new WP_Error( 'rmwc_material_quantity', __( 'Die Menge des ausgewählten Miet-Zubehörs muss mindestens 1 betragen.', 'patsch9-rental-engine' ) );
+                    return new WP_Error( 'rmwc_material_quantity', __( 'The amount of selected rental accessories must be at least 1.', 'patsch9-rental-engine' ) );
                 }
                 $max_qty = $this->accessory_max_quantity( $accessory );
                 if ( $accessory->is_sold_individually() ) {
                     $requested_qty = 1;
                 } elseif ( $requested_qty > $max_qty ) {
                     /* translators: 1: accessory option label, 2: maximum selectable quantity. */
-                    return new WP_Error( 'rmwc_material_quantity', sprintf( __( 'Für „%1$s“ können höchstens %2$d Stück ausgewählt werden.', 'patsch9-rental-engine' ), $group['options'][ $id ]['label'] ?: $accessory->get_name(), $max_qty ) );
+                    return new WP_Error( 'rmwc_material_quantity', sprintf( __( 'For "%1$s" only %2$d pieces can be selected.', 'patsch9-rental-engine' ), $group['options'][ $id ]['label'] ?: $accessory->get_name(), $max_qty ) );
                 }
 
                 $row                 = $group['options'][ $id ];
@@ -516,12 +516,12 @@ final class RMWC_V2_Materials {
             $total_qty    = 'per_device' === $row['mode'] ? $customer_qty * max( 1, absint( $quantity ) ) : $customer_qty;
             if ( $accessory->is_sold_individually() && $total_qty > 1 ) {
                 /* translators: %s: accessory option label. */
-                wc_add_notice( sprintf( __( '„%s“ ist als nur einzeln verkäuflicher Artikel konfiguriert und kann daher nur einmal hinzugefügt werden.', 'patsch9-rental-engine' ), $row['label'] ?: $accessory->get_name() ), 'error' );
+                wc_add_notice( sprintf( __( '"%s is configured as an item that can only be sold individually and can therefore only be added once.', 'patsch9-rental-engine' ), $row['label'] ?: $accessory->get_name() ), 'error' );
                 return false;
             }
             if ( $accessory->managing_stock() && ! $accessory->has_enough_stock( $total_qty ) ) {
                 /* translators: %s: accessory option label. */
-                wc_add_notice( sprintf( __( 'Für „%s“ ist nicht genügend Bestand vorhanden.', 'patsch9-rental-engine' ), $row['label'] ?: $accessory->get_name() ), 'error' );
+                wc_add_notice( sprintf( __( 'There is not enough stock for %s.', 'patsch9-rental-engine' ), $row['label'] ?: $accessory->get_name() ), 'error' );
                 return false;
             }
         }
@@ -583,7 +583,7 @@ final class RMWC_V2_Materials {
                         WC()->cart->remove_cart_item( $child_key );
                     }
                     WC()->cart->remove_cart_item( $cart_item_key );
-                    wc_add_notice( __( 'Ein ausgewähltes Miet-Zubehör konnte nicht hinzugefügt werden. Die Buchungsposition wurde vollständig zurückgesetzt. Bitte versuchen Sie es erneut.', 'patsch9-rental-engine' ), 'error' );
+                    wc_add_notice( __( 'A selected rental accessory could not be added. The booking position was completely reset. Please try again.', 'patsch9-rental-engine' ), 'error' );
                     break;
                 }
                 $added_children[] = (string) $added;
@@ -659,7 +659,7 @@ final class RMWC_V2_Materials {
             }
             $parent = (string) ( $item['rmwc_rental_accessory_parent'] ?? '' );
             if ( '' === $parent || ! in_array( $parent, $keys, true ) ) {
-                wc_add_notice( __( 'Ein Miet-Zubehör befindet sich ohne zugehörigen Mietartikel im Warenkorb. Bitte entfernen Sie den Artikel und wählen Sie das Zubehör erneut über den Mietartikel.', 'patsch9-rental-engine' ), 'error' );
+                wc_add_notice( __( 'A rental accessory is in the shopping cart without any related rental items. Please remove the item and choose the accessory again via the rental item.', 'patsch9-rental-engine' ), 'error' );
             }
         }
     }
@@ -674,7 +674,7 @@ final class RMWC_V2_Materials {
             return $item_data;
         }
         if ( ! empty( $cart_item['rmwc_rental_accessory_group'] ) ) {
-            $item_data[] = [ 'key' => __( 'Miet-Zubehör', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $cart_item['rmwc_rental_accessory_group'] ) ];
+            $item_data[] = [ 'key' => __( 'Rental accessories', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $cart_item['rmwc_rental_accessory_group'] ) ];
         }
         return $item_data;
     }
@@ -691,7 +691,7 @@ final class RMWC_V2_Materials {
         $item->add_meta_data( '_rmwc_rental_accessory_mode', sanitize_key( $values['rmwc_rental_accessory_mode'] ?? 'once' ), true );
         $item->add_meta_data( '_rmwc_rental_accessory_customer_qty', max( 1, absint( $values['rmwc_rental_accessory_customer_qty'] ?? 1 ) ), true );
         if ( ! empty( $values['rmwc_rental_accessory_group'] ) ) {
-            $item->add_meta_data( __( 'Miet-Zubehör', 'patsch9-rental-engine' ), sanitize_text_field( $values['rmwc_rental_accessory_group'] ), true );
+            $item->add_meta_data( __( 'Rental accessories', 'patsch9-rental-engine' ), sanitize_text_field( $values['rmwc_rental_accessory_group'] ), true );
         }
     }
 }
