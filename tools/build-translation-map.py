@@ -20,20 +20,31 @@ OUT = ROOT / "tools" / "de-en-map.json"
 MODEL_NAME = "Helsinki-NLP/opus-mt-de-en"
 
 GERMAN_RE = re.compile(
-    r"(?:[äöüÄÖÜß]|\b(?:und|oder|für|mit|ohne|nicht|keine|kein|bitte|miet\w*|vermiet\w*|"
-    r"buchung\w*|kaution\w*|abholung|rückgabe|lieferung|kunde\w*|gerät\w*|einstellungen|"
-    r"speichern|gespeichert|bearbeiten|löschen|wählen|auswählen|verfügbar|preis\w*|tage?|"
-    r"woche\w*|monat\w*|adresse|bestellung\w*|zahlung\w*|erinnerung\w*|übergabe\w*)\b)",
+    r"(?:[äöüÄÖÜß]|\b(?:und|oder|für|mit|ohne|nicht|keine|kein|bitte|dies(?:e|er|es)?|wird|werden|wurde|"
+    r"vermiet\w*|miet\w*|buchung\w*|kaution\w*|abhol\w*|rückgab\w*|übergab\w*|liefer\w*|kunde\w*|"
+    r"gerät\w*|einstellungen?|speichern|gespeichert|bearbeiten|löschen|wählen|auswählen|verfüg\w*|preis\w*|"
+    r"tage?|woche\w*|monat\w*|adresse\w*|bestellung\w*|zahlung\w*|erinnerung\w*|inventarnummer|seriennummer|"
+    r"schäden?|quelle|produkt|zeitraum|anzahl|status|grunddaten|zeiten|abrechnung|standardpreis|tagespreis|"
+    r"vorausbuchung|sperr\w*|wochentag\w*|allgemeine|ergänzende|akzeptierte|hinweis|datenschutz|aktiv|bereinigung|"
+    r"rückerstattung\w*|transport\w*|entfernung\w*|fahrstrecke|fahrpreis|uhr|stunden?|minuten?|erhalten|offen|"
+    r"einbehalten|erlassen|beschädigung|reinigung\w*|verlust|sonstiger|montag|dienstag|mittwoch|donnerstag|"
+    r"freitag|samstag|sonntag|hallo|viele\s+grüße)\b)",
     re.IGNORECASE,
 )
 
-# Exact translations for terminology that generic MT tends to render poorly.
 MANUAL = {
     "Vermietung": "Rental",
+    "Vermietungen": "Rentals",
     "Kaution": "Security deposit",
     "Mietpreis": "Rental price",
     "Mietvertrag": "Rental agreement",
     "Mietbedingungen": "Rental terms",
+    "Allgemeine Mietbedingungen": "General rental terms",
+    "Akzeptierte Mietbedingungen": "Accepted rental terms",
+    "Abholung": "Pickup",
+    "Rückgabe": "Return",
+    "Mietdauer": "Rental duration",
+    "Transport / Übergabe": "Transport / handover",
     "Abholung und Rückgabe durch Kunde": "Pickup and return by customer",
     "Lieferung durch Vermieter und Rückgabe durch Kunde": "Delivery by rental operator and return by customer",
     "Lieferung und Abholung durch Vermieter": "Delivery and collection by rental operator",
@@ -136,8 +147,6 @@ def main() -> None:
             english = normalize_translation(restore(english, placeholders))
             if not english:
                 raise RuntimeError(f"Empty translation for: {original!r}")
-            # printf placeholders are API contracts. Refuse a translation that
-            # changes them instead of committing a latent runtime bug.
             old_printf = sorted(re.findall(r"%(?:\d+\$)?[-+0-9.]*[bcdeEfFgGosuxX]", original))
             new_printf = sorted(re.findall(r"%(?:\d+\$)?[-+0-9.]*[bcdeEfFgGosuxX]", english))
             if old_printf != new_printf:
