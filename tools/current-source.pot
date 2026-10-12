@@ -9,15 +9,15 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-12T08:42:30+00:00\n"
+"POT-Creation-Date: 2026-10-12T08:44:57+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: patsch9-rental-engine\n"
 
 #. Plugin Name of the plugin
 #: patsch9-rental-engine.php
-#: patsch9-rental-engine.php:192
-#: patsch9-rental-engine.php:198
+#: patsch9-rental-engine.php:194
+#: patsch9-rental-engine.php:200
 msgid "Patsch9 Rental Engine for WooCommerce"
 msgstr ""
 
@@ -28,7 +28,7 @@ msgstr ""
 
 #. Description of the plugin
 #: patsch9-rental-engine.php
-msgid "Vermietungs- und Gerätebuchungen für WooCommerce mit Verfügbarkeit, Preisen, Kautionen, Bedingungen, Dokumenten und Übergabe-/Rückgabe-Workflow."
+msgid "Rental and equipment booking workflows for WooCommerce with availability, pricing, security deposits, terms, documents, and handover/return management."
 msgstr ""
 
 #. Author of the plugin
@@ -2197,12 +2197,12 @@ msgstr ""
 msgid "Keine Mietbuchung in dieser Bestellung."
 msgstr ""
 
-#: patsch9-rental-engine.php:192
-msgid "benötigt WooCommerce."
+#: patsch9-rental-engine.php:194
+msgid "requires WooCommerce."
 msgstr ""
 
-#: patsch9-rental-engine.php:198
-msgid "benötigt WooCommerce 10.9.4 oder höher."
+#: patsch9-rental-engine.php:200
+msgid "requires WooCommerce 10.9.4 or newer."
 msgstr ""
 
 #. translators: %s: WooCommerce order number.
