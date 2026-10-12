@@ -308,7 +308,7 @@ final class RMWC_V2_Terms {
         </div>
         <?php
         if ( $active ) {
-            echo '<p class="form-field rmwc-product-terms-version"><label>' . esc_html__( 'Aktive Zusatzfassung', 'patsch9-rental-engine' ) . '</label><span><strong>' . esc_html__( 'Version', 'patsch9-rental-engine' ) . ' ' . esc_html( $this->product_terms_version_display( $active ) ) . '</strong><br><small>' . esc_html__( 'Date of check:', 'patsch9-rental-engine' ) . ' ' . esc_html( $active['hash'] ?? '' ) . '</small></span></p>';
+            echo '<p class="form-field rmwc-product-terms-version"><label>' . esc_html__( 'Active supplemental version', 'patsch9-rental-engine' ) . '</label><span><strong>' . esc_html__( 'Version', 'patsch9-rental-engine' ) . ' ' . esc_html( $this->product_terms_version_display( $active ) ) . '</strong><br><small>' . esc_html__( 'Checksum:', 'patsch9-rental-engine' ) . ' ' . esc_html( $active['hash'] ?? '' ) . '</small></span></p>';
         }
     }
 
@@ -783,7 +783,7 @@ final class RMWC_V2_Terms {
             <h2><?php esc_html_e( 'General rental conditions', 'patsch9-rental-engine' ); ?></h2>
             <p><?php esc_html_e( 'Each change is saved as a new, unchangeable version. Orders already completed retain their accepted snapshot.', 'patsch9-rental-engine' ); ?></p>
             <?php if ( $active ) : ?>
-                <p><strong><?php esc_html_e( 'Aktive Version:', 'patsch9-rental-engine' ); ?></strong> <?php echo esc_html( $active['version'] ); ?> · <?php echo esc_html( mysql2date( 'd.m.Y H:i', $active['created_at'] ) ); ?></p>
+                <p><strong><?php esc_html_e( 'Active version:', 'patsch9-rental-engine' ); ?></strong> <?php echo esc_html( $active['version'] ); ?> · <?php echo esc_html( mysql2date( 'd.m.Y H:i', $active['created_at'] ) ); ?></p>
             <?php else : ?>
                 <p><strong><?php esc_html_e( 'No rental conditions provided yet.', 'patsch9-rental-engine' ); ?></strong></p>
             <?php endif; ?>
@@ -792,8 +792,8 @@ final class RMWC_V2_Terms {
                 <input type="hidden" name="action" value="rmwc_save_terms">
                 <?php wp_nonce_field( 'rmwc_save_terms', 'rmwc_terms_nonce' ); ?>
                 <p>
-                    <label for="rmwc_terms_version"><strong><?php esc_html_e( 'Versionsbezeichnung', 'patsch9-rental-engine' ); ?></strong></label><br>
-                    <input type="text" class="regular-text" maxlength="50" id="rmwc_terms_version" name="rmwc_terms_version" placeholder="<?php esc_attr_e( 'z. B. 2026-08-13', 'patsch9-rental-engine' ); ?>">
+                    <label for="rmwc_terms_version"><strong><?php esc_html_e( 'Version label', 'patsch9-rental-engine' ); ?></strong></label><br>
+                    <input type="text" class="regular-text" maxlength="50" id="rmwc_terms_version" name="rmwc_terms_version" placeholder="<?php esc_attr_e( 'e.g. 2026-08-13', 'patsch9-rental-engine' ); ?>">
                 </p>
                 <?php
                 wp_editor(
@@ -812,16 +812,16 @@ final class RMWC_V2_Terms {
         </div>
 
         <div class="rmwc-v2-admin-card">
-            <h2><?php esc_html_e( 'Versionshistorie', 'patsch9-rental-engine' ); ?></h2>
+            <h2><?php esc_html_e( 'Version history', 'patsch9-rental-engine' ); ?></h2>
             <table class="widefat striped">
-                <thead><tr><th><?php esc_html_e( 'Version', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'Status', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'Erstellt', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'checksum', 'patsch9-rental-engine' ); ?></th></tr></thead>
+                <thead><tr><th><?php esc_html_e( 'Version', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'Status', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'Created', 'patsch9-rental-engine' ); ?></th><th><?php esc_html_e( 'checksum', 'patsch9-rental-engine' ); ?></th></tr></thead>
                 <tbody>
                 <?php if ( ! $history ) : ?>
                     <tr><td colspan="4"><?php esc_html_e( 'No versions available yet.', 'patsch9-rental-engine' ); ?></td></tr>
                 <?php else : foreach ( $history as $row ) : ?>
                     <tr>
                         <td><strong><?php echo esc_html( $row['version'] ); ?></strong></td>
-                        <td><?php echo (int) $row['active'] === 1 ? esc_html__( 'Active', 'patsch9-rental-engine' ) : esc_html__( 'Archiv', 'patsch9-rental-engine' ); ?></td>
+                        <td><?php echo (int) $row['active'] === 1 ? esc_html__( 'Active', 'patsch9-rental-engine' ) : esc_html__( 'Archive', 'patsch9-rental-engine' ); ?></td>
                         <td><?php echo esc_html( mysql2date( 'd.m.Y H:i', $row['created_at'] ) ); ?></td>
                         <td><code><?php echo esc_html( substr( $row['content_hash'], 0, 16 ) ); ?>…</code></td>
                     </tr>

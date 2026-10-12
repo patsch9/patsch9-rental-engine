@@ -40,8 +40,8 @@ final class RMWC_V2_Inventory {
             'available'      => __( 'Available', 'patsch9-rental-engine' ),
             'rented'         => __( 'Rented', 'patsch9-rental-engine' ),
             'cleaning'       => __( 'Cleaning / testing', 'patsch9-rental-engine' ),
-            'maintenance'    => __( 'Wartung', 'patsch9-rental-engine' ),
-            'defect'         => __( 'Defekt', 'patsch9-rental-engine' ),
+            'maintenance'    => __( 'Maintenance', 'patsch9-rental-engine' ),
+            'defect'         => __( 'Defective', 'patsch9-rental-engine' ),
             'out_of_service' => __( 'Out of service', 'patsch9-rental-engine' ),
         ];
     }
@@ -51,7 +51,7 @@ final class RMWC_V2_Inventory {
             [
                 'id'          => '_rmwc_asset_tracking',
                 'wrapper_class' => 'rmwc-rental-field-row',
-                'label'       => __( 'Manage Individual Devices', 'patsch9-rental-engine' ),
+                'label'       => __( 'Manage individual equipment', 'patsch9-rental-engine' ),
                 'value'       => get_post_meta( $product_id, '_rmwc_asset_tracking', true ),
                 'description' => __( 'Reservations are automatically assigned to specific devices with inventory/serial number. The master data is maintained under WooCommerce → Rentals → Devices.', 'patsch9-rental-engine' ),
                 'desc_tip'    => true,
@@ -111,7 +111,7 @@ final class RMWC_V2_Inventory {
         $notice = isset( $_GET['rmwc_asset_notice'] ) ? sanitize_key( wp_unslash( $_GET['rmwc_asset_notice'] ) ) : '';
         if ( $notice ) {
             $messages = [
-                'saved'              => [ 'success', __( 'Device stored.', 'patsch9-rental-engine' ) ],
+                'saved'              => [ 'success', __( 'Device saved.', 'patsch9-rental-engine' ) ],
                 'deleted'            => [ 'success', __( 'Unused device has been deleted.', 'patsch9-rental-engine' ) ],
                 'archived'           => [ 'success', __( 'The device already has history and was therefore set to "outside operation" instead of disappearing from old processes.', 'patsch9-rental-engine' ) ],
                 'active_assignment'  => [ 'error', __( 'The device is assigned to an active or ongoing rental and cannot currently be deleted/archived.', 'patsch9-rental-engine' ) ],
@@ -130,7 +130,7 @@ final class RMWC_V2_Inventory {
         <div class="rmwc-v2-admin-card">
             <div class="rmwc-v2-card-heading">
                 <div>
-                    <h2><?php echo esc_html( $editing ? __( 'Edit Device', 'patsch9-rental-engine' ) : __( 'Create Device', 'patsch9-rental-engine' ) ); ?></h2>
+                    <h2><?php echo esc_html( $editing ? __( 'Edit equipment', 'patsch9-rental-engine' ) : __( 'Add equipment', 'patsch9-rental-engine' ) ); ?></h2>
                     <p><?php esc_html_e( 'Inventory numbers remain permanently linked to the rental history. Already used devices are therefore archived instead of removed from existing protocols when deleted.', 'patsch9-rental-engine' ); ?></p>
                 </div>
                 <?php if ( $editing ) : ?>
@@ -167,8 +167,8 @@ final class RMWC_V2_Inventory {
                             </select>
                         </label>
                     </p>
-                    <p><label><strong><?php esc_html_e( 'Kaufdatum', 'patsch9-rental-engine' ); ?></strong><br><input type="date" name="purchase_date" value="<?php echo esc_attr( $editing['purchase_date'] ?? '' ); ?>"></label></p>
-                    <p><label><strong><?php esc_html_e( 'Letzte Wartung', 'patsch9-rental-engine' ); ?></strong><br><input type="date" name="last_service_date" value="<?php echo esc_attr( $editing['last_service_date'] ?? '' ); ?>"></label></p>
+                    <p><label><strong><?php esc_html_e( 'Purchase date', 'patsch9-rental-engine' ); ?></strong><br><input type="date" name="purchase_date" value="<?php echo esc_attr( $editing['purchase_date'] ?? '' ); ?>"></label></p>
+                    <p><label><strong><?php esc_html_e( 'Last service', 'patsch9-rental-engine' ); ?></strong><br><input type="date" name="last_service_date" value="<?php echo esc_attr( $editing['last_service_date'] ?? '' ); ?>"></label></p>
                 </div>
                 <div class="rmwc-v2-asset-textareas">
                     <p>
@@ -177,23 +177,23 @@ final class RMWC_V2_Inventory {
                         </label>
                         <span class="description"><?php esc_html_e( 'Only enter known pre-damages. They are displayed at the handover and are documented in transfer and return logs.', 'patsch9-rental-engine' ); ?></span>
                     </p>
-                    <p><label><strong><?php esc_html_e( 'Interne Notiz', 'patsch9-rental-engine' ); ?></strong><br><textarea name="notes" rows="4" maxlength="2000" style="width:100%"><?php echo esc_textarea( $editing['notes'] ?? '' ); ?></textarea></label></p>
+                    <p><label><strong><?php esc_html_e( 'Internal note', 'patsch9-rental-engine' ); ?></strong><br><textarea name="notes" rows="4" maxlength="2000" style="width:100%"><?php echo esc_textarea( $editing['notes'] ?? '' ); ?></textarea></label></p>
                 </div>
-                <?php submit_button( $editing ? __( 'Save Changes', 'patsch9-rental-engine' ) : __( 'Create Device', 'patsch9-rental-engine' ), 'primary', 'submit', false ); ?>
+                <?php submit_button( $editing ? __( 'Save Changes', 'patsch9-rental-engine' ) : __( 'Add equipment', 'patsch9-rental-engine' ), 'primary', 'submit', false ); ?>
             </form>
         </div>
 
         <div class="rmwc-v2-admin-card">
-            <h2><?php esc_html_e( 'Inventar', 'patsch9-rental-engine' ); ?></h2>
+            <h2><?php esc_html_e( 'Inventory', 'patsch9-rental-engine' ); ?></h2>
             <table class="widefat striped rmwc-assets-table">
                 <thead><tr>
                     <th><?php esc_html_e( 'Product', 'patsch9-rental-engine' ); ?></th>
-                    <th><?php esc_html_e( 'Inventar', 'patsch9-rental-engine' ); ?></th>
+                    <th><?php esc_html_e( 'Inventory', 'patsch9-rental-engine' ); ?></th>
                     <th><?php esc_html_e( 'Serial number', 'patsch9-rental-engine' ); ?></th>
                     <th><?php esc_html_e( 'Status', 'patsch9-rental-engine' ); ?></th>
                     <th><?php esc_html_e( 'Known damage', 'patsch9-rental-engine' ); ?></th>
-                    <th><?php esc_html_e( 'Wartung', 'patsch9-rental-engine' ); ?></th>
-                    <th><?php esc_html_e( 'Aktionen', 'patsch9-rental-engine' ); ?></th>
+                    <th><?php esc_html_e( 'Maintenance', 'patsch9-rental-engine' ); ?></th>
+                    <th><?php esc_html_e( 'Actions', 'patsch9-rental-engine' ); ?></th>
                 </tr></thead>
                 <tbody>
                 <?php if ( ! $rows ) : ?>

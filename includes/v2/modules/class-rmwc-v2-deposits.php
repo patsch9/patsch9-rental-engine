@@ -366,7 +366,7 @@ final class RMWC_V2_Deposits {
                         return null;
                     }
                     if ( ! in_array( $value, [ 'cash', 'online' ], true ) ) {
-                        return new WP_Error( 'rmwc_invalid_deposit_choice', __( 'Please choose a valid type of deposit deposit.', 'patsch9-rental-engine' ) );
+                        return new WP_Error( 'rmwc_invalid_deposit_choice', __( 'Please choose a valid security deposit method.', 'patsch9-rental-engine' ) );
                     }
                     return null;
                 },
@@ -451,7 +451,7 @@ final class RMWC_V2_Deposits {
         }
         $choice = isset( $_POST['rmwc_v2_deposit_choice'] ) ? sanitize_key( wp_unslash( $_POST['rmwc_v2_deposit_choice'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce verifies woocommerce-process-checkout-nonce before firing woocommerce_checkout_process.
         if ( ! in_array( $choice, [ 'online', 'cash' ], true ) ) {
-            wc_add_notice( __( 'Please choose how to deposit the deposit.', 'patsch9-rental-engine' ), 'error' );
+            wc_add_notice( __( 'Please choose how to provide the security deposit.', 'patsch9-rental-engine' ), 'error' );
         }
     }
 
@@ -745,9 +745,9 @@ final class RMWC_V2_Deposits {
             }
 
             $labels = [
-                'cash'     => __( 'Bar', 'patsch9-rental-engine' ),
+                'cash'     => __( 'Cash', 'patsch9-rental-engine' ),
                 'transfer' => __( 'Separate transfer', 'patsch9-rental-engine' ),
-                'other'    => __( 'Sonstige Hinterlegung', 'patsch9-rental-engine' ),
+                'other'    => __( 'Other deposit method', 'patsch9-rental-engine' ),
             ];
             $snapshot = [
                 'order_number' => $order->get_order_number(),
@@ -852,7 +852,7 @@ final class RMWC_V2_Deposits {
             // refund receipt is created. The return protocol still records the
             // open deposit balance and the order remains refundable later.
             if ( $amount <= 0 && 'pending' === $retention_reason ) {
-                $order->add_order_note( __( 'Rent deposit not yet paid back upon return; repayment of the balance will be made later / separately.', 'patsch9-rental-engine' ) );
+                $order->add_order_note( __( 'Security deposit not fully refunded at return; the remaining amount will be refunded later / separately.', 'patsch9-rental-engine' ) );
                 return 0;
             }
 
@@ -861,7 +861,7 @@ final class RMWC_V2_Deposits {
                 'date'          => wp_date( 'd.m.Y H:i' ),
                 'customer_name' => $order->get_formatted_billing_full_name(),
                 'method'        => 'manual',
-                'method_label'  => __( 'Bar / manuell / separat', 'patsch9-rental-engine' ),
+                'method_label'  => __( 'Cash / manual / separate', 'patsch9-rental-engine' ),
                 'remaining'     => $is_retention ? 0 : $remaining,
                 'retained'      => $retained,
                 'reason'        => $reason_text,
@@ -881,14 +881,14 @@ final class RMWC_V2_Deposits {
             RMWC_V2_Documents::instance()->send_document_email(
                 $order,
                 (int) $document_id,
-                $is_retention ? __( 'Billing your rental deposit', 'patsch9-rental-engine' ) : __( 'Reimbursement of your rental deposit', 'patsch9-rental-engine' ),
-                $is_retention ? __( 'Deposit account', 'patsch9-rental-engine' ) : __( 'Deposit paid back', 'patsch9-rental-engine' ),
+                $is_retention ? __( 'Security deposit statement', 'patsch9-rental-engine' ) : __( 'Refund of your security deposit', 'patsch9-rental-engine' ),
+                $is_retention ? __( 'Security deposit statement', 'patsch9-rental-engine' ) : __( 'Security deposit refunded', 'patsch9-rental-engine' ),
                 $is_retention
                     ? __( 'In the notes you will receive the billing of your rental deposit with the documented repayment and the retention.', 'patsch9-rental-engine' )
                     : __( 'We confirm the repayment of your deposit or partial deposit. You can find the refund receipt in the attachment.', 'patsch9-rental-engine' )
             );
             $note = sprintf(
-                __( 'Rent deposit returned in the return process: %s.', 'patsch9-rental-engine' ),
+                __( 'Security deposit refunded during the return process: %s.', 'patsch9-rental-engine' ),
                 wp_strip_all_tags( wc_price( $amount, [ 'currency' => $order->get_currency() ] ) )
             );
             if ( $is_retention ) {
@@ -1009,7 +1009,7 @@ final class RMWC_V2_Deposits {
             $screens[] = wc_get_page_screen_id( 'shop-order' );
         }
         foreach ( array_unique( $screens ) as $screen ) {
-            add_meta_box( 'rmwc_v2_deposit_box', __( 'Rent deposit', 'patsch9-rental-engine' ), [ $this, 'render_meta_box' ], $screen, 'side', 'high' );
+            add_meta_box( 'rmwc_v2_deposit_box', __( 'Rental security deposit', 'patsch9-rental-engine' ), [ $this, 'render_meta_box' ], $screen, 'side', 'high' );
         }
     }
 
@@ -1045,15 +1045,15 @@ final class RMWC_V2_Deposits {
         }
 
         if ( $missing > 0 ) {
-            echo '<hr><p><strong>' . esc_html__( 'Detection of security deposit separately', 'patsch9-rental-engine' ) . '</strong></p>';
+            echo '<hr><p><strong>' . esc_html__( 'Record security deposit separately', 'patsch9-rental-engine' ) . '</strong></p>';
             $this->admin_post_form(
                 'rmwc_deposit_receive',
                 $order,
                 [
-                    'amount' => [ 'type' => 'number', 'label' => __( 'Betrag', 'patsch9-rental-engine' ), 'value' => $missing, 'step' => '0.01', 'min' => '0.01', 'max' => $missing ],
-                    'method' => [ 'type' => 'select', 'label' => __( 'Received as:', 'patsch9-rental-engine' ), 'options' => [ 'cash' => __( 'Bar', 'patsch9-rental-engine' ), 'transfer' => __( 'Separate transfer', 'patsch9-rental-engine' ), 'other' => __( 'Sonstige Hinterlegung', 'patsch9-rental-engine' ) ] ],
+                    'amount' => [ 'type' => 'number', 'label' => __( 'Amount', 'patsch9-rental-engine' ), 'value' => $missing, 'step' => '0.01', 'min' => '0.01', 'max' => $missing ],
+                    'method' => [ 'type' => 'select', 'label' => __( 'Received as:', 'patsch9-rental-engine' ), 'options' => [ 'cash' => __( 'Cash', 'patsch9-rental-engine' ), 'transfer' => __( 'Separate transfer', 'patsch9-rental-engine' ), 'other' => __( 'Other deposit method', 'patsch9-rental-engine' ) ] ],
                 ],
-                __( 'Deposit as received book', 'patsch9-rental-engine' )
+                __( 'Record security deposit as received', 'patsch9-rental-engine' )
             );
         }
 
@@ -1063,14 +1063,14 @@ final class RMWC_V2_Deposits {
             $options = [ 'manual' => __( 'Bar / manually confirmed', 'patsch9-rental-engine' ) ];
             if ( $online_available > 0 && ! $uncertain ) {
                 /* translators: %s: maximum refundable online deposit amount. */
-                $options = [ 'online' => sprintf( __( 'About original online payment method (max. %s)', 'patsch9-rental-engine' ), wp_strip_all_tags( wc_price( $online_available, [ 'currency' => $order->get_currency() ] ) ) ) ] + $options;
+                $options = [ 'online' => sprintf( __( 'Via the original online payment method (max. %s)', 'patsch9-rental-engine' ), wp_strip_all_tags( wc_price( $online_available, [ 'currency' => $order->get_currency() ] ) ) ) ] + $options;
             }
             $this->admin_post_form(
                 'rmwc_deposit_refund',
                 $order,
                 [
-                    'amount' => [ 'type' => 'number', 'label' => __( 'Betrag', 'patsch9-rental-engine' ), 'value' => $available, 'step' => '0.01', 'min' => '0.01', 'max' => $available ],
-                    'method' => [ 'type' => 'select', 'label' => __( 'Reimbursement', 'patsch9-rental-engine' ), 'options' => $options ],
+                    'amount' => [ 'type' => 'number', 'label' => __( 'Amount', 'patsch9-rental-engine' ), 'value' => $available, 'step' => '0.01', 'min' => '0.01', 'max' => $available ],
+                    'method' => [ 'type' => 'select', 'label' => __( 'Refund', 'patsch9-rental-engine' ), 'options' => $options ],
                     'retention_reason' => [
                         'type' => 'select',
                         'label' => __( 'Reason for remaining retention (optional)', 'patsch9-rental-engine' ),
@@ -1082,7 +1082,7 @@ final class RMWC_V2_Deposits {
                             'other'    => __( 'Other reason', 'patsch9-rental-engine' ),
                         ],
                     ],
-                    'retention_note' => [ 'type' => 'text', 'label' => __( 'Notiz zum Einbehalt (optional)', 'patsch9-rental-engine' ), 'value' => '' ],
+                    'retention_note' => [ 'type' => 'text', 'label' => __( 'Retention note (optional)', 'patsch9-rental-engine' ), 'value' => '' ],
                 ],
                 __( 'Execute/confirm repayment', 'patsch9-rental-engine' )
             );
@@ -1201,9 +1201,9 @@ final class RMWC_V2_Deposits {
                 $notice = 'invalid';
             } else {
                 $labels = [
-                    'cash'     => __( 'Bar', 'patsch9-rental-engine' ),
+                    'cash'     => __( 'Cash', 'patsch9-rental-engine' ),
                     'transfer' => __( 'Separate transfer', 'patsch9-rental-engine' ),
-                    'other'    => __( 'Sonstige Hinterlegung', 'patsch9-rental-engine' ),
+                    'other'    => __( 'Other deposit method', 'patsch9-rental-engine' ),
                 ];
                 $snapshot = [
                     'order_number' => $order->get_order_number(),
@@ -1261,7 +1261,7 @@ final class RMWC_V2_Deposits {
                 if ( $amount <= 0 || ! in_array( $method, [ 'online', 'manual' ], true ) ) {
                     $notice = 'invalid';
                 } else {
-                    $method_label     = __( 'Bar / manuell', 'patsch9-rental-engine' );
+                    $method_label     = __( 'Cash / manual', 'patsch9-rental-engine' );
                     $can_record_refund = true;
                     $gateway_refund_id = 0;
 
@@ -1276,7 +1276,7 @@ final class RMWC_V2_Deposits {
                                 $result = wc_create_refund(
                                     [
                                         'amount'                           => wc_format_decimal( $amount ),
-                                        'reason'                           => __( 'Reimbursement Rent deposit', 'patsch9-rental-engine' ),
+                                        'reason'                           => __( 'Security deposit refund', 'patsch9-rental-engine' ),
                                         'order_id'                         => $order->get_id(),
                                         'refund_payment'                   => true,
                                         'restock_items'                    => false,
@@ -1377,11 +1377,11 @@ final class RMWC_V2_Deposits {
                             RMWC_V2_Documents::instance()->send_document_email(
                                 $order,
                                 (int) $document_id,
-                                __( 'Reimbursement of your rental deposit', 'patsch9-rental-engine' ),
-                                __( 'Deposit paid back', 'patsch9-rental-engine' ),
+                                __( 'Refund of your security deposit', 'patsch9-rental-engine' ),
+                                __( 'Security deposit refunded', 'patsch9-rental-engine' ),
                                 __( 'We confirm the repayment of your deposit or partial deposit. You can find the refund receipt in the attachment.', 'patsch9-rental-engine' )
                             );
-                            $order->add_order_note( sprintf( __( 'Rent deposit repaid: %s (%s).', 'patsch9-rental-engine' ), wp_strip_all_tags( wc_price( $amount, [ 'currency' => $order->get_currency() ] ) ), $method_label ) );
+                            $order->add_order_note( sprintf( __( 'Security deposit refunded: %s (%s).', 'patsch9-rental-engine' ), wp_strip_all_tags( wc_price( $amount, [ 'currency' => $order->get_currency() ] ) ), $method_label ) );
                             $notice = 'refunded';
                         }
                     }
@@ -1417,7 +1417,7 @@ final class RMWC_V2_Deposits {
         <h2><?php esc_html_e( 'Deposit & Payment methods', 'patsch9-rental-engine' ); ?></h2>
         <table class="form-table"><tbody><tr>
             <th><label for="rmwc_v2_offline_gateway_ids"><?php esc_html_e( 'Offline payment methods', 'patsch9-rental-engine' ); ?></label></th>
-            <td><input class="regular-text" type="text" id="rmwc_v2_offline_gateway_ids" name="rmwc_v2_offline_gateway_ids" value="<?php echo esc_attr( $ids ); ?>"><p class="description"><?php esc_html_e( 'Commage-separated gateway IDs, where the deposit is not included in the WooCommerce payment amount. Standard: bacs, cheque, cod. Add additional invoice/prepayment plugins here.', 'patsch9-rental-engine' ); ?></p></td>
+            <td><input class="regular-text" type="text" id="rmwc_v2_offline_gateway_ids" name="rmwc_v2_offline_gateway_ids" value="<?php echo esc_attr( $ids ); ?>"><p class="description"><?php esc_html_e( 'Comma-separated gateway IDs for which the security deposit is not included in the WooCommerce payment amount. Default: bacs, cheque, cod. Add additional invoice/prepayment gateways here.', 'patsch9-rental-engine' ); ?></p></td>
         </tr></tbody></table>
         <?php
     }

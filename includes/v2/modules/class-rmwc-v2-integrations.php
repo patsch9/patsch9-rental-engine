@@ -186,13 +186,13 @@ final class RMWC_V2_Integrations {
             if ( 'incl' === $tax_display ) {
                 $label = sprintf(
                     /* translators: %s: tax percentage. */
-                    __( 'inkl. %s %% MwSt.', 'patsch9-rental-engine' ),
+                    __( 'incl. %s %% VAT', 'patsch9-rental-engine' ),
                     $percent
                 );
             } else {
                 $label = sprintf(
                     /* translators: %s: tax percentage. */
-                    __( '%s %% MwSt.', 'patsch9-rental-engine' ),
+                    __( '%s %% VAT', 'patsch9-rental-engine' ),
                     $percent
                 );
             }
@@ -238,8 +238,8 @@ final class RMWC_V2_Integrations {
 
     private function workflow_status_label( $status ) {
         $labels = [
-            'reserved'    => __( 'Reserviert', 'patsch9-rental-engine' ),
-            'handed_over' => __( 'Surrender', 'patsch9-rental-engine' ),
+            'reserved'    => __( 'Reserved', 'patsch9-rental-engine' ),
+            'handed_over' => __( 'Handed over', 'patsch9-rental-engine' ),
             'returned'    => __( 'Returned', 'patsch9-rental-engine' ),
         ];
         $status = sanitize_key( $status );
@@ -347,7 +347,7 @@ final class RMWC_V2_Integrations {
                 $mode = 'return';
             }
             if ( $mode ) {
-                $label = 'handover' === $mode ? __( 'Open commit', 'patsch9-rental-engine' ) : __( 'Open Return', 'patsch9-rental-engine' );
+                $label = 'handover' === $mode ? __( 'Open handover', 'patsch9-rental-engine' ) : __( 'Open return', 'patsch9-rental-engine' );
                 $url   = add_query_arg(
                     [
                         'page'       => 'rmwc-rentals',
@@ -362,12 +362,12 @@ final class RMWC_V2_Integrations {
         }
 
         return [
-            'Vermietung: Zeitraum' => implode( ' | ', array_unique( $periods ) ),
-            'Vermietung: Status'   => implode( ' | ', array_unique( $statuses ) ),
-            'Vermietung: Geräte'    => implode( ' | ', array_unique( $asset_labels ) ),
-            'Vermietung: Transport' => implode( ' | ', array_unique( $transport_labels ) ),
-            'Vermietung: Kaution'   => implode( ' | ', array_unique( $deposit_labels ) ),
-            'Vermietung: Aktion'    => implode( ' | ', array_unique( $action_labels ) ),
+            __( 'Rental: Period', 'patsch9-rental-engine' ) => implode( ' | ', array_unique( $periods ) ),
+            __( 'Rental: Status', 'patsch9-rental-engine' )   => implode( ' | ', array_unique( $statuses ) ),
+            __( 'Rental: Equipment', 'patsch9-rental-engine' )    => implode( ' | ', array_unique( $asset_labels ) ),
+            __( 'Rental: Transport', 'patsch9-rental-engine' ) => implode( ' | ', array_unique( $transport_labels ) ),
+            __( 'Rental: Security deposit', 'patsch9-rental-engine' )   => implode( ' | ', array_unique( $deposit_labels ) ),
+            __( 'Rental: Action', 'patsch9-rental-engine' )    => implode( ' | ', array_unique( $action_labels ) ),
         ];
     }
 
@@ -399,11 +399,11 @@ final class RMWC_V2_Integrations {
         // The mobile apps always expose private order notes. Add the current
         // workflow URL once per state so staff can copy/tap it even if their
         // app version does not render URL custom fields interactively.
-        $action = (string) ( $summary['Vermietung: Aktion'] ?? '' );
+        $action = (string) ( $summary[__( 'Rental: Action', 'patsch9-rental-engine' )] ?? '' );
         if ( '' !== $action ) {
             $signature = hash( 'sha256', $action );
             if ( ! hash_equals( (string) $order->get_meta( '_rmwc_mobile_action_note_signature', true ), $signature ) ) {
-                $order->add_order_note( 'Vermietung – mobile Aktion: ' . $action );
+                $order->add_order_note( sprintf( __( 'Rental – mobile action: %s', 'patsch9-rental-engine' ), $action ) );
                 $order->update_meta_data( '_rmwc_mobile_action_note_signature', $signature );
                 $order->save_meta_data();
             }
@@ -537,7 +537,7 @@ final class RMWC_V2_Integrations {
                 );
                 if ( is_array( $assets ) && $assets ) {
                     $assets_text = implode( ', ', array_map( 'sanitize_text_field', $assets ) );
-                    $this->append_rest_meta( $meta_data, __( 'Rental equipment(s)', 'patsch9-rental-engine' ), $assets_text );
+                    $this->append_rest_meta( $meta_data, __( 'Rental equipment', 'patsch9-rental-engine' ), $assets_text );
                     $asset_labels[] = $product_name . ': ' . $assets_text;
                 }
 
@@ -548,7 +548,7 @@ final class RMWC_V2_Integrations {
                     $mode = 'return';
                 }
                 if ( $mode ) {
-                    $label = 'handover' === $mode ? __( 'Open commit', 'patsch9-rental-engine' ) : __( 'Open Return', 'patsch9-rental-engine' );
+                    $label = 'handover' === $mode ? __( 'Open handover', 'patsch9-rental-engine' ) : __( 'Open return', 'patsch9-rental-engine' );
                     $url   = add_query_arg(
                         [
                             'page'       => 'rmwc-rentals',
@@ -577,11 +577,11 @@ final class RMWC_V2_Integrations {
             }
         }
         $order_fields = [
-            'Vermietung: Zeitraum' => implode( ' | ', array_unique( $periods ) ),
-            'Vermietung: Status'   => implode( ' | ', array_unique( $statuses ) ),
-            'Vermietung: Geräte'   => implode( ' | ', array_unique( $asset_labels ) ),
-            'Vermietung: Kaution'  => implode( ' | ', array_unique( $deposit_labels ) ),
-            'Vermietung: Aktion'   => implode( ' | ', array_unique( $action_labels ) ),
+            __( 'Rental: Period', 'patsch9-rental-engine' ) => implode( ' | ', array_unique( $periods ) ),
+            __( 'Rental: Status', 'patsch9-rental-engine' )   => implode( ' | ', array_unique( $statuses ) ),
+            __( 'Rental: Equipment', 'patsch9-rental-engine' )   => implode( ' | ', array_unique( $asset_labels ) ),
+            __( 'Rental: Security deposit', 'patsch9-rental-engine' )  => implode( ' | ', array_unique( $deposit_labels ) ),
+            __( 'Rental: Action', 'patsch9-rental-engine' )   => implode( ' | ', array_unique( $action_labels ) ),
         ];
         foreach ( $order_fields as $key => $value ) {
             if ( '' !== $value ) {
