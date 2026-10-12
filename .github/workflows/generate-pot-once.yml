@@ -6,7 +6,7 @@ on:
       - fix/wordpress-org-rental-review-2026-10-12
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   pot:
@@ -16,16 +16,22 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          persist-credentials: false
+          persist-credentials: true
       - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
           php-version: '8.2'
           coverage: none
           tools: wp-cli:2.12.0
-      - name: Generate and print current source POT
+      - name: Generate current source POT
+        run: wp i18n make-pot . tools/current-source.pot --domain=patsch9-rental-engine --slug=patsch9-rental-engine --exclude=.github,tools,tests,languages
+      - name: Commit source POT
         shell: bash
         run: |
-          wp i18n make-pot . /tmp/current-source.pot --domain=patsch9-rental-engine --slug=patsch9-rental-engine --exclude=.github,tools,tests,languages
-          echo '---BEGIN-RMWC-POT---'
-          cat /tmp/current-source.pot
-          echo '---END-RMWC-POT---'
+          git add tools/current-source.pot
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: capture rental gettext catalogue"
+          git push
