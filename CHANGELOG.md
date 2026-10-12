@@ -2,6 +2,13 @@
 
 Alle stabilen Releases ab Oktober 2026 verwenden das in [VERSIONING.md](VERSIONING.md) dokumentierte Schema `YYYY.M.PATCH`.
 
+## 2026.10.2 – Noch nicht veröffentlicht
+
+- Kautionsauswahl im Checkout Block wird ohne passende Produkte nicht registriert; die unzulässige Konfiguration hidden=true entfällt.
+- Während einer laufenden Store-API-Anfrage geänderte Kautionswahl oder Zahlungsart wird anschließend zuverlässig nachgesendet.
+- Fehlgeschlagene unveränderte Anfragen lösen keine automatische Wiederholungsschleife aus.
+- Regressionstests für Auswahlwechsel, Zahlungsarten, konkurrierende Anfragen und Fehler ergänzt.
+
 ## 2026.10.1 – Noch nicht veröffentlicht
 
 - WordPress.org-Review-Fixes: technischer `rmwc_`-Namespace statt des historischen Kurzpräfixes.

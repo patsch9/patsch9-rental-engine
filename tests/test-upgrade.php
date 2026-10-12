@@ -37,6 +37,19 @@ $fault = static function ( $pattern, $callback ) {
     }
     return $result;
 };
+// No choice product: WooCommerce must not receive an invalid hidden=true field.
+$incorrect = [];
+$notice = static function( $function, $message ) use ( &$incorrect ) {
+    if ( 'woocommerce_register_additional_checkout_field' === $function ) {
+        $incorrect[] = $message;
+    }
+};
+add_action( 'doing_it_wrong_run', $notice, 10, 2 );
+delete_transient( 'rmwc_v2_deposit_choice_product_ids' );
+RMWC_V2_Deposits::instance()->register_block_checkout_field();
+remove_action( 'doing_it_wrong_run', $notice, 10 );
+$check( [] === $incorrect, 'No invalid hidden=true registration without choice products' );
+
 $old_table = $wpdb->prefix . 'clr_bookings';
 $new_table = $wpdb->prefix . 'rmwc_bookings';
 $wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $new_table ) );

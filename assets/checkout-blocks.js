@@ -5,6 +5,7 @@
   const offline = Array.isArray(settings.offlineGateways) ? settings.offlineGateways : [];
   let lastSyncKey = null;
   let syncing = false;
+  let latestSync = null;
 
   function field() {
     return document.querySelector('select[id*="patsch9-rental-engine"][id*="deposit-choice"], select[name*="patsch9-rental-engine/deposit-choice"]');
@@ -32,6 +33,7 @@
       return;
     }
     const syncKey = choice + '|' + gateway;
+    latestSync = { choice: choice, gateway: gateway, key: syncKey };
     if (syncing || syncKey === lastSyncKey) return;
     syncing = true;
     window.wc.blocksCheckout.extensionCartUpdate({
@@ -45,6 +47,11 @@
       }
     }).finally(function () {
       syncing = false;
+      // Changes made during the request must not be discarded. Only retry a
+      // different state automatically; a failed unchanged request must not loop.
+      if (latestSync && latestSync.key !== syncKey) {
+        updateServer(latestSync.choice, latestSync.gateway);
+      }
     });
   }
 

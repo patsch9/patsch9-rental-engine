@@ -307,38 +307,37 @@ final class RMWC_V2_Deposits {
         }
 
         $product_ids = $this->deposit_choice_product_ids();
-        if ( $product_ids ) {
-            $cart_contains_choice_product = [
-                'cart' => [
-                    'properties' => [
-                        'items' => [
+        if ( ! $product_ids ) {
+            // WooCommerce rejects hidden=true. Without eligible products there
+            // is no deposit choice field to register at all.
+            return;
+        }
+        $cart_contains_choice_product = [
+            'cart' => [
+                'properties' => [
+                    'items' => [
+                        'contains' => [
+                            'enum' => $product_ids,
+                        ],
+                    ],
+                ],
+            ],
+        ];
+        $cart_has_no_choice_product = [
+            'cart' => [
+                'properties' => [
+                    'items' => [
+                        'not' => [
                             'contains' => [
                                 'enum' => $product_ids,
                             ],
                         ],
                     ],
                 ],
-            ];
-            $cart_has_no_choice_product = [
-                'cart' => [
-                    'properties' => [
-                        'items' => [
-                            'not' => [
-                                'contains' => [
-                                    'enum' => $product_ids,
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
-            ];
-            $required = $cart_contains_choice_product;
-            $hidden   = $cart_has_no_choice_product;
-        } else {
-            // No currently configured product can require this field.
-            $required = false;
-            $hidden   = true;
-        }
+            ],
+        ];
+        $required = $cart_contains_choice_product;
+        $hidden   = $cart_has_no_choice_product;
 
         woocommerce_register_additional_checkout_field(
             [
