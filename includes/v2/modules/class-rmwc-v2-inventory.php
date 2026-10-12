@@ -27,12 +27,12 @@ final class RMWC_V2_Inventory {
 
     private function table() {
         global $wpdb;
-        return $wpdb->prefix . 'clr_assets';
+        return $wpdb->prefix . 'rmwc_assets';
     }
 
     private function assignment_table() {
         global $wpdb;
-        return $wpdb->prefix . 'clr_asset_assignments';
+        return $wpdb->prefix . 'rmwc_asset_assignments';
     }
 
     private function statuses() {
@@ -49,10 +49,10 @@ final class RMWC_V2_Inventory {
     public function product_field( $product_id ) {
         woocommerce_wp_checkbox(
             [
-                'id'          => '_clr_asset_tracking',
-                'wrapper_class' => 'clr-rental-field-row',
+                'id'          => '_rmwc_asset_tracking',
+                'wrapper_class' => 'rmwc-rental-field-row',
                 'label'       => __( 'Einzelgeräte verwalten', 'patsch9-rental-engine' ),
-                'value'       => get_post_meta( $product_id, '_clr_asset_tracking', true ),
+                'value'       => get_post_meta( $product_id, '_rmwc_asset_tracking', true ),
                 'description' => __( 'Reservierungen werden automatisch konkreten Geräten mit Inventar-/Seriennummer zugeordnet. Die Stammdaten werden unter WooCommerce → Vermietungen → Geräte gepflegt.', 'patsch9-rental-engine' ),
                 'desc_tip'    => true,
             ]
@@ -63,11 +63,11 @@ final class RMWC_V2_Inventory {
         if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
             return;
         }
-        $nonce = isset( $_POST['clr_product_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_product_nonce'] ) ) : '';
-        if ( ! $nonce || ! wp_verify_nonce( $nonce, 'clr_save_product_' . $post_id ) ) {
+        $nonce = isset( $_POST['rmwc_product_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['rmwc_product_nonce'] ) ) : '';
+        if ( ! $nonce || ! wp_verify_nonce( $nonce, 'rmwc_save_product_' . $post_id ) ) {
             return;
         }
-        update_post_meta( $post_id, '_clr_asset_tracking', isset( $_POST['_clr_asset_tracking'] ) ? 'yes' : 'no' );
+        update_post_meta( $post_id, '_rmwc_asset_tracking', isset( $_POST['_rmwc_asset_tracking'] ) ? 'yes' : 'no' );
     }
 
     private function get_asset( $asset_id ) {
@@ -108,7 +108,7 @@ final class RMWC_V2_Inventory {
         $rows = is_array( $rows ) ? $rows : [];
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only inventory admin navigation/filter parameter; no state change occurs here.
-        $notice = isset( $_GET['clr_asset_notice'] ) ? sanitize_key( wp_unslash( $_GET['clr_asset_notice'] ) ) : '';
+        $notice = isset( $_GET['rmwc_asset_notice'] ) ? sanitize_key( wp_unslash( $_GET['rmwc_asset_notice'] ) ) : '';
         if ( $notice ) {
             $messages = [
                 'saved'              => [ 'success', __( 'Gerät gespeichert.', 'patsch9-rental-engine' ) ],
@@ -127,21 +127,21 @@ final class RMWC_V2_Inventory {
         }
 
         ?>
-        <div class="clr-v2-admin-card">
-            <div class="clr-v2-card-heading">
+        <div class="rmwc-v2-admin-card">
+            <div class="rmwc-v2-card-heading">
                 <div>
                     <h2><?php echo esc_html( $editing ? __( 'Gerät bearbeiten', 'patsch9-rental-engine' ) : __( 'Gerät anlegen', 'patsch9-rental-engine' ) ); ?></h2>
                     <p><?php esc_html_e( 'Inventarnummern bleiben dauerhaft mit der Miet-Historie verknüpft. Bereits verwendete Geräte werden beim Löschen deshalb archiviert statt aus vorhandenen Protokollen entfernt.', 'patsch9-rental-engine' ); ?></p>
                 </div>
                 <?php if ( $editing ) : ?>
-                    <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=clr-rentals&tab=inventory' ) ); ?>"><?php esc_html_e( 'Bearbeitung abbrechen', 'patsch9-rental-engine' ); ?></a>
+                    <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=rmwc-rentals&tab=inventory' ) ); ?>"><?php esc_html_e( 'Bearbeitung abbrechen', 'patsch9-rental-engine' ); ?></a>
                 <?php endif; ?>
             </div>
-            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="clr-v2-asset-form">
+            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="rmwc-v2-asset-form">
                 <input type="hidden" name="action" value="rmwc_asset_save">
                 <input type="hidden" name="asset_id" value="<?php echo esc_attr( $editing['id'] ?? 0 ); ?>">
-                <?php wp_nonce_field( 'rmwc_asset_save', 'clr_v2_asset_nonce' ); ?>
-                <div class="clr-v2-form-grid">
+                <?php wp_nonce_field( 'rmwc_asset_save', 'rmwc_v2_asset_nonce' ); ?>
+                <div class="rmwc-v2-form-grid">
                     <p>
                         <label><strong><?php esc_html_e( 'Mietprodukt', 'patsch9-rental-engine' ); ?></strong><br>
                             <select class="wc-product-search" style="width:100%" name="product_id" data-placeholder="<?php esc_attr_e( 'Mietprodukt suchen…', 'patsch9-rental-engine' ); ?>" data-action="woocommerce_json_search_products_and_variations" required>
@@ -170,7 +170,7 @@ final class RMWC_V2_Inventory {
                     <p><label><strong><?php esc_html_e( 'Kaufdatum', 'patsch9-rental-engine' ); ?></strong><br><input type="date" name="purchase_date" value="<?php echo esc_attr( $editing['purchase_date'] ?? '' ); ?>"></label></p>
                     <p><label><strong><?php esc_html_e( 'Letzte Wartung', 'patsch9-rental-engine' ); ?></strong><br><input type="date" name="last_service_date" value="<?php echo esc_attr( $editing['last_service_date'] ?? '' ); ?>"></label></p>
                 </div>
-                <div class="clr-v2-asset-textareas">
+                <div class="rmwc-v2-asset-textareas">
                     <p>
                         <label><strong><?php esc_html_e( 'Bekannte Beschädigungen / Gebrauchsspuren', 'patsch9-rental-engine' ); ?></strong><br>
                             <textarea name="known_damage" rows="4" maxlength="4000" style="width:100%"><?php echo esc_textarea( $editing['known_damage'] ?? '' ); ?></textarea>
@@ -183,9 +183,9 @@ final class RMWC_V2_Inventory {
             </form>
         </div>
 
-        <div class="clr-v2-admin-card">
+        <div class="rmwc-v2-admin-card">
             <h2><?php esc_html_e( 'Inventar', 'patsch9-rental-engine' ); ?></h2>
-            <table class="widefat striped clr-assets-table">
+            <table class="widefat striped rmwc-assets-table">
                 <thead><tr>
                     <th><?php esc_html_e( 'Produkt', 'patsch9-rental-engine' ); ?></th>
                     <th><?php esc_html_e( 'Inventar', 'patsch9-rental-engine' ); ?></th>
@@ -209,12 +209,12 @@ final class RMWC_V2_Inventory {
                         <td><?php echo esc_html( $this->statuses()[ $row['status'] ] ?? $row['status'] ); ?></td>
                         <td><?php echo esc_html( ! empty( $row['known_damage'] ) ? wp_trim_words( $row['known_damage'], 12, '…' ) : '–' ); ?></td>
                         <td><?php echo esc_html( $row['last_service_date'] ?: '–' ); ?></td>
-                        <td class="clr-row-actions">
-                            <a class="button button-small" href="<?php echo esc_url( admin_url( 'admin.php?page=clr-rentals&tab=inventory&asset_id=' . (int) $row['id'] ) ); ?>"><?php esc_html_e( 'Bearbeiten', 'patsch9-rental-engine' ); ?></a>
+                        <td class="rmwc-row-actions">
+                            <a class="button button-small" href="<?php echo esc_url( admin_url( 'admin.php?page=rmwc-rentals&tab=inventory&asset_id=' . (int) $row['id'] ) ); ?>"><?php esc_html_e( 'Bearbeiten', 'patsch9-rental-engine' ); ?></a>
                             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return confirm('<?php echo esc_js( __( 'Gerät wirklich löschen? Bereits verwendete Geräte werden aus Sicherheitsgründen nur archiviert.', 'patsch9-rental-engine' ) ); ?>');">
                                 <input type="hidden" name="action" value="rmwc_asset_delete">
                                 <input type="hidden" name="asset_id" value="<?php echo esc_attr( $row['id'] ); ?>">
-                                <?php wp_nonce_field( 'rmwc_asset_delete_' . (int) $row['id'], 'clr_v2_asset_delete_nonce' ); ?>
+                                <?php wp_nonce_field( 'rmwc_asset_delete_' . (int) $row['id'], 'rmwc_v2_asset_delete_nonce' ); ?>
                                 <button type="submit" class="button-link-delete"><?php esc_html_e( 'Löschen', 'patsch9-rental-engine' ); ?></button>
                             </form>
                         </td>
@@ -230,14 +230,14 @@ final class RMWC_V2_Inventory {
         if ( ! current_user_can( 'manage_woocommerce' ) ) {
             wp_die( esc_html__( 'Keine Berechtigung.', 'patsch9-rental-engine' ), '', [ 'response' => 403 ] );
         }
-        $nonce = isset( $_POST['clr_v2_asset_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_v2_asset_nonce'] ) ) : '';
+        $nonce = isset( $_POST['rmwc_v2_asset_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['rmwc_v2_asset_nonce'] ) ) : '';
         if ( ! $nonce || ! wp_verify_nonce( $nonce, 'rmwc_asset_save' ) ) {
             wp_die( esc_html__( 'Sicherheitsprüfung fehlgeschlagen.', 'patsch9-rental-engine' ), '', [ 'response' => 403 ] );
         }
 
         $asset_id   = isset( $_POST['asset_id'] ) ? absint( wp_unslash( $_POST['asset_id'] ) ) : 0;
         $product_id = isset( $_POST['product_id'] ) ? absint( wp_unslash( $_POST['product_id'] ) ) : 0;
-        if ( 'yes' !== get_post_meta( $product_id, '_clr_rental_enabled', true ) ) {
+        if ( 'yes' !== get_post_meta( $product_id, '_rmwc_rental_enabled', true ) ) {
             $this->redirect( 'invalid_product' );
         }
 
@@ -322,7 +322,7 @@ final class RMWC_V2_Inventory {
             wp_die( esc_html__( 'Keine Berechtigung.', 'patsch9-rental-engine' ), '', [ 'response' => 403 ] );
         }
         $asset_id = isset( $_POST['asset_id'] ) ? absint( wp_unslash( $_POST['asset_id'] ) ) : 0;
-        $nonce = isset( $_POST['clr_v2_asset_delete_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_v2_asset_delete_nonce'] ) ) : '';
+        $nonce = isset( $_POST['rmwc_v2_asset_delete_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['rmwc_v2_asset_delete_nonce'] ) ) : '';
         if ( ! $asset_id || ! $nonce || ! wp_verify_nonce( $nonce, 'rmwc_asset_delete_' . $asset_id ) ) {
             wp_die( esc_html__( 'Sicherheitsprüfung fehlgeschlagen.', 'patsch9-rental-engine' ), '', [ 'response' => 403 ] );
         }
@@ -372,7 +372,7 @@ final class RMWC_V2_Inventory {
     }
 
     private function redirect( $notice, $asset_id = 0 ) {
-        $args = [ 'page' => 'clr-rentals', 'tab' => 'inventory', 'clr_asset_notice' => sanitize_key( $notice ) ];
+        $args = [ 'page' => 'rmwc-rentals', 'tab' => 'inventory', 'rmwc_asset_notice' => sanitize_key( $notice ) ];
         if ( $asset_id ) {
             $args['asset_id'] = absint( $asset_id );
         }

@@ -2,6 +2,14 @@
 
 Alle stabilen Releases ab Oktober 2026 verwenden das in [VERSIONING.md](VERSIONING.md) dokumentierte Schema `YYYY.M.PATCH`.
 
+## 2026.10.1 – Noch nicht veröffentlicht
+
+- WordPress.org-Review-Fixes: technischer `rmwc_`-Namespace statt des historischen Kurzpräfixes.
+- Sichere Migration bestehender Tabellen, Optionen sowie Post-, Order-Item- und HPOS-Metadaten.
+- `Requires at least` auf Major/Minor korrigiert.
+- Accounting-Bridge-Integration auf `patsacbr_payment_terms_addition` aktualisiert.
+- Internationalisierung auf englische Originaltexte mit vollständigem deutschem `de_DE`-Katalog umgestellt.
+
 ## Noch nicht veröffentlicht
 
 Keine Änderungen.

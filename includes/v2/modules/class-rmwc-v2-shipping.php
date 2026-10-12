@@ -33,16 +33,16 @@ final class RMWC_V2_Shipping {
         $product_id = $product->get_id();
         if ( $product->is_type( 'variation' ) ) {
             $parent_id = $product->get_parent_id();
-            if ( 'yes' === get_post_meta( $parent_id, '_clr_rental_enabled', true ) ) {
+            if ( 'yes' === get_post_meta( $parent_id, '_rmwc_rental_enabled', true ) ) {
                 return false;
             }
         }
 
-        if ( 'yes' === get_post_meta( $product_id, '_clr_rental_enabled', true ) ) {
+        if ( 'yes' === get_post_meta( $product_id, '_rmwc_rental_enabled', true ) ) {
             return false;
         }
 
-        if ( 'yes' === get_post_meta( $product_id, '_clr_accessory_only', true ) ) {
+        if ( 'yes' === get_post_meta( $product_id, '_rmwc_accessory_only', true ) ) {
             return false;
         }
 

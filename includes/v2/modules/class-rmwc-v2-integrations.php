@@ -80,10 +80,10 @@ final class RMWC_V2_Integrations {
             return $matches_type;
         }
 
-        if ( in_array( 'rmwc', $types, true ) && 'yes' === get_post_meta( $config_id, '_clr_rental_enabled', true ) ) {
+        if ( in_array( 'rmwc', $types, true ) && 'yes' === get_post_meta( $config_id, '_rmwc_rental_enabled', true ) ) {
             return true;
         }
-        if ( in_array( 'rmwc_accessory', $types, true ) && 'yes' === get_post_meta( $config_id, '_clr_accessory_only', true ) ) {
+        if ( in_array( 'rmwc_accessory', $types, true ) && 'yes' === get_post_meta( $config_id, '_rmwc_accessory_only', true ) ) {
             return true;
         }
         return $matches_type;
@@ -94,7 +94,7 @@ final class RMWC_V2_Integrations {
             if ( ! $item instanceof WC_Order_Item_Product ) {
                 continue;
             }
-            if ( is_array( $item->get_meta( '_clr_rental_data', true ) ) || 'yes' === $item->get_meta( '_clr_rental_accessory', true ) ) {
+            if ( is_array( $item->get_meta( '_rmwc_rental_data', true ) ) || 'yes' === $item->get_meta( '_rmwc_rental_accessory', true ) ) {
                 return true;
             }
         }
@@ -196,7 +196,7 @@ final class RMWC_V2_Integrations {
                     $percent
                 );
             }
-            $tax_rows[ 'clr_tax_' . sanitize_title( (string) $rate['percent'] ) ] = [
+            $tax_rows[ 'rmwc_tax_' . sanitize_title( (string) $rate['percent'] ) ] = [
                 'type'  => 'tax',
                 'label' => $label . ':',
                 'value' => wc_price( $rate['amount'], [ 'currency' => $order->get_currency() ] ),
@@ -212,7 +212,7 @@ final class RMWC_V2_Integrations {
         if ( ! $item instanceof WC_Order_Item_Product || ! is_object( $meta ) || 'Kautionshinterlegung' !== (string) ( $meta->key ?? '' ) ) {
             return $display_value;
         }
-        $rental = $item->get_meta( '_clr_rental_data', true );
+        $rental = $item->get_meta( '_rmwc_rental_data', true );
         if ( ! is_array( $rental ) || (float) ( $rental['deposit'] ?? 0 ) <= 0 ) {
             return $display_value;
         }
@@ -223,17 +223,17 @@ final class RMWC_V2_Integrations {
 
     private function booking_table() {
         global $wpdb;
-        return $wpdb->prefix . 'clr_bookings';
+        return $wpdb->prefix . 'rmwc_bookings';
     }
 
     private function assignment_table() {
         global $wpdb;
-        return $wpdb->prefix . 'clr_asset_assignments';
+        return $wpdb->prefix . 'rmwc_asset_assignments';
     }
 
     private function asset_table() {
         global $wpdb;
-        return $wpdb->prefix . 'clr_assets';
+        return $wpdb->prefix . 'rmwc_assets';
     }
 
     private function workflow_status_label( $status ) {
@@ -273,7 +273,7 @@ final class RMWC_V2_Integrations {
             if ( ! $item instanceof WC_Order_Item_Product ) {
                 continue;
             }
-            $rental = $item->get_meta( '_clr_rental_data', true );
+            $rental = $item->get_meta( '_rmwc_rental_data', true );
             if ( ! is_array( $rental ) ) {
                 continue;
             }
@@ -350,7 +350,7 @@ final class RMWC_V2_Integrations {
                 $label = 'handover' === $mode ? __( 'Übergabe öffnen', 'patsch9-rental-engine' ) : __( 'Rückgabe öffnen', 'patsch9-rental-engine' );
                 $url   = add_query_arg(
                     [
-                        'page'       => 'clr-rentals',
+                        'page'       => 'rmwc-rentals',
                         'tab'        => 'workflow',
                         'mode'       => $mode,
                         'booking_id' => absint( $booking['id'] ),
@@ -402,9 +402,9 @@ final class RMWC_V2_Integrations {
         $action = (string) ( $summary['Vermietung: Aktion'] ?? '' );
         if ( '' !== $action ) {
             $signature = hash( 'sha256', $action );
-            if ( ! hash_equals( (string) $order->get_meta( '_clr_mobile_action_note_signature', true ), $signature ) ) {
+            if ( ! hash_equals( (string) $order->get_meta( '_rmwc_mobile_action_note_signature', true ), $signature ) ) {
                 $order->add_order_note( 'Vermietung – mobile Aktion: ' . $action );
-                $order->update_meta_data( '_clr_mobile_action_note_signature', $signature );
+                $order->update_meta_data( '_rmwc_mobile_action_note_signature', $signature );
                 $order->save_meta_data();
             }
         }
@@ -474,7 +474,7 @@ final class RMWC_V2_Integrations {
             if ( ! $item instanceof WC_Order_Item_Product ) {
                 continue;
             }
-            $rental = $item->get_meta( '_clr_rental_data', true );
+            $rental = $item->get_meta( '_rmwc_rental_data', true );
             if ( ! is_array( $rental ) ) {
                 continue;
             }
@@ -551,7 +551,7 @@ final class RMWC_V2_Integrations {
                     $label = 'handover' === $mode ? __( 'Übergabe öffnen', 'patsch9-rental-engine' ) : __( 'Rückgabe öffnen', 'patsch9-rental-engine' );
                     $url   = add_query_arg(
                         [
-                            'page'       => 'clr-rentals',
+                            'page'       => 'rmwc-rentals',
                             'tab'        => 'workflow',
                             'mode'       => $mode,
                             'booking_id' => absint( $booking['id'] ),

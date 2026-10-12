@@ -44,12 +44,12 @@ final class RMWC_V2_Documents {
 
     private function table() {
         global $wpdb;
-        return $wpdb->prefix . 'clr_documents';
+        return $wpdb->prefix . 'rmwc_documents';
     }
 
     private function order_has_rental( WC_Order $order ) {
         foreach ( $order->get_items( 'line_item' ) as $item ) {
-            if ( $item->get_meta( '_clr_rental_data', true ) ) {
+            if ( $item->get_meta( '_rmwc_rental_data', true ) ) {
                 return true;
             }
         }
@@ -59,7 +59,7 @@ final class RMWC_V2_Documents {
     public function create_document( WC_Order $order, $type, array $snapshot, $amount = 0.0, $event_key = '' ) {
         $type = sanitize_key( $type );
         if ( ! in_array( $type, [ 'contract', 'contract_revision', 'deposit_received', 'deposit_refund', 'handover_protocol', 'return_protocol' ], true ) ) {
-            return new WP_Error( 'clr_document_type', __( 'Ungültiger Dokumenttyp.', 'patsch9-rental-engine' ) );
+            return new WP_Error( 'rmwc_document_type', __( 'Ungültiger Dokumenttyp.', 'patsch9-rental-engine' ) );
         }
         $event_key = sanitize_key( $event_key );
         if ( '' !== $event_key ) {
@@ -78,10 +78,10 @@ final class RMWC_V2_Documents {
 
         $snapshot_json = wp_json_encode( $snapshot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
         if ( false === $snapshot_json ) {
-            return new WP_Error( 'clr_document_json', __( 'Dokumentdaten konnten nicht verarbeitet werden.', 'patsch9-rental-engine' ) );
+            return new WP_Error( 'rmwc_document_json', __( 'Dokumentdaten konnten nicht verarbeitet werden.', 'patsch9-rental-engine' ) );
         }
         if ( strlen( $snapshot_json ) > 2 * MB_IN_BYTES ) {
-            return new WP_Error( 'clr_document_size', __( 'Die Dokumentdaten sind für eine sichere Verarbeitung zu groß.', 'patsch9-rental-engine' ) );
+            return new WP_Error( 'rmwc_document_size', __( 'Die Dokumentdaten sind für eine sichere Verarbeitung zu groß.', 'patsch9-rental-engine' ) );
         }
         $hash = hash( 'sha256', $snapshot_json );
         $amount = max( 0, (float) wc_format_decimal( $amount ) );
@@ -114,7 +114,7 @@ final class RMWC_V2_Documents {
                     return $existing;
                 }
             }
-            return new WP_Error( 'clr_document_db', __( 'Dokument konnte nicht gespeichert werden.', 'patsch9-rental-engine' ) );
+            return new WP_Error( 'rmwc_document_db', __( 'Dokument konnte nicht gespeichert werden.', 'patsch9-rental-engine' ) );
         }
         $id = (int) $wpdb->insert_id;
         $prefixes = [
@@ -200,9 +200,9 @@ final class RMWC_V2_Documents {
         if ( $existing ) {
             $document = $this->get_document( $existing );
             if ( ! $document ) {
-                if ( 'yes' !== $order->get_meta( '_clr_document_integrity_warning', true ) ) {
+                if ( 'yes' !== $order->get_meta( '_rmwc_document_integrity_warning', true ) ) {
                     $order->add_order_note( __( 'Vermietung: Die Integritätsprüfung eines gespeicherten Mietdokuments ist fehlgeschlagen. Das Dokument wurde aus Sicherheitsgründen nicht ausgeliefert. Bitte technisch prüfen.', 'patsch9-rental-engine' ) );
-                    $order->update_meta_data( '_clr_document_integrity_warning', 'yes' );
+                    $order->update_meta_data( '_rmwc_document_integrity_warning', 'yes' );
                     $order->save_meta_data();
                 }
                 return 0;
@@ -244,16 +244,16 @@ final class RMWC_V2_Documents {
         $fees        = [];
         $deposit_required = 0.0;
         foreach ( $order->get_items( 'line_item' ) as $item ) {
-            if ( 'yes' === $item->get_meta( '_clr_rental_accessory', true ) ) {
+            if ( 'yes' === $item->get_meta( '_rmwc_rental_accessory', true ) ) {
                 $accessories[] = [
                     'name'     => sanitize_text_field( $item->get_name() ),
                     'quantity' => max( 1, (int) $item->get_quantity() ),
-                    'group'    => sanitize_text_field( $item->get_meta( '_clr_rental_accessory_group', true ) ),
+                    'group'    => sanitize_text_field( $item->get_meta( '_rmwc_rental_accessory_group', true ) ),
                 ];
                 continue;
             }
 
-            $rental = $item->get_meta( '_clr_rental_data', true );
+            $rental = $item->get_meta( '_rmwc_rental_data', true );
             if ( ! is_array( $rental ) ) {
                 continue;
             }
@@ -273,7 +273,7 @@ final class RMWC_V2_Documents {
             ];
         }
         foreach ( $order->get_items( 'fee' ) as $fee_item ) {
-            $fee_type = sanitize_key( $fee_item->get_meta( '_clr_fee_type', true ) );
+            $fee_type = sanitize_key( $fee_item->get_meta( '_rmwc_fee_type', true ) );
             if ( 'deposit' === $fee_type ) {
                 continue; // Refundable security deposit is documented separately below.
             }
@@ -847,7 +847,7 @@ final class RMWC_V2_Documents {
         return $this->write_temporary_pdf(
             $this->document_filename( $document ),
             $this->render_pdf( $document ),
-            'clr_tempfile',
+            'rmwc_tempfile',
             __( 'Temporäre PDF-Datei konnte nicht angelegt werden.', 'patsch9-rental-engine' )
         );
     }
@@ -931,7 +931,7 @@ final class RMWC_V2_Documents {
             $screens[] = wc_get_page_screen_id( 'shop-order' );
         }
         foreach ( array_unique( $screens ) as $screen ) {
-            add_meta_box( 'clr_v2_documents', __( 'Mietdokumente', 'patsch9-rental-engine' ), [ $this, 'render_order_meta_box' ], $screen, 'side', 'default' );
+            add_meta_box( 'rmwc_v2_documents', __( 'Mietdokumente', 'patsch9-rental-engine' ), [ $this, 'render_order_meta_box' ], $screen, 'side', 'default' );
         }
     }
 
@@ -947,7 +947,7 @@ final class RMWC_V2_Documents {
             echo '<p>' . esc_html__( 'Noch keine Dokumente vorhanden.', 'patsch9-rental-engine' ) . '</p>';
             return;
         }
-        echo '<ul class="clr-v2-document-list">';
+        echo '<ul class="rmwc-v2-document-list">';
         foreach ( $documents as $document ) {
             $url = $this->signed_download_url( $document, $order );
             echo '<li><a href="' . esc_url( $url ) . '"><strong>' . esc_html( $document['document_number'] ) . '</strong></a><br><small>' . esc_html( $this->type_label( $document['type'] ) ) . '</small></li>';
@@ -962,19 +962,19 @@ final class RMWC_V2_Documents {
             }
         }
         if ( $contract_id ) {
-            $mail_status = isset( $_GET['clr_contract_mail'] ) ? sanitize_key( wp_unslash( $_GET['clr_contract_mail'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display notice.
+            $mail_status = isset( $_GET['rmwc_contract_mail'] ) ? sanitize_key( wp_unslash( $_GET['rmwc_contract_mail'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display notice.
             if ( 'sent' === $mail_status ) {
-                echo '<p class="clr-v2-document-mail-notice">' . esc_html__( 'Mietvertrag und Mietbedingungen wurden erneut per E-Mail versendet.', 'patsch9-rental-engine' ) . '</p>';
+                echo '<p class="rmwc-v2-document-mail-notice">' . esc_html__( 'Mietvertrag und Mietbedingungen wurden erneut per E-Mail versendet.', 'patsch9-rental-engine' ) . '</p>';
             } elseif ( 'failed' === $mail_status ) {
-                echo '<p class="clr-v2-document-mail-error">' . esc_html__( 'Die E-Mail konnte nicht versendet werden. Bitte WooCommerce-E-Mail-/SMTP-Konfiguration prüfen.', 'patsch9-rental-engine' ) . '</p>';
+                echo '<p class="rmwc-v2-document-mail-error">' . esc_html__( 'Die E-Mail konnte nicht versendet werden. Bitte WooCommerce-E-Mail-/SMTP-Konfiguration prüfen.', 'patsch9-rental-engine' ) . '</p>';
             }
-            $form_id = 'clr-v2-contract-mail-' . $order->get_id();
+            $form_id = 'rmwc-v2-contract-mail-' . $order->get_id();
             $this->admin_footer_forms[ $form_id ] = [
                 'action'   => 'rmwc_send_contract_email',
                 'order_id' => $order->get_id(),
                 'nonce'    => wp_create_nonce( 'rmwc_send_contract_email_' . $order->get_id() ),
             ];
-            echo '<div class="clr-v2-contract-mail-form">';
+            echo '<div class="rmwc-v2-contract-mail-form">';
             echo '<button form="' . esc_attr( $form_id ) . '" type="submit" class="button button-secondary">' . esc_html__( 'Mietvertrag per E-Mail senden', 'patsch9-rental-engine' ) . '</button>';
             echo '<p class="description">' . esc_html__( 'Sendet den Mietvertrag inklusive der zum Bestellzeitpunkt akzeptierten Mietbedingungen. Die Bedingungen sind im Vertrags-PDF vollständig als Anlage enthalten und werden zusätzlich separat beigefügt.', 'patsch9-rental-engine' ) . '</p>';
             echo '</div>';
@@ -986,10 +986,10 @@ final class RMWC_V2_Documents {
             return;
         }
         foreach ( $this->admin_footer_forms as $form_id => $form ) {
-            echo '<form id="' . esc_attr( $form_id ) . '" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="clr-v2-standalone-admin-form" style="display:none">';
+            echo '<form id="' . esc_attr( $form_id ) . '" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="rmwc-v2-standalone-admin-form" style="display:none">';
             echo '<input type="hidden" name="action" value="' . esc_attr( $form['action'] ) . '">';
             echo '<input type="hidden" name="order_id" value="' . esc_attr( $form['order_id'] ) . '">';
-            echo '<input type="hidden" name="clr_contract_email_nonce" value="' . esc_attr( $form['nonce'] ) . '">';
+            echo '<input type="hidden" name="rmwc_contract_email_nonce" value="' . esc_attr( $form['nonce'] ) . '">';
             echo '</form>';
         }
         $this->admin_footer_forms = [];
@@ -1003,7 +1003,7 @@ final class RMWC_V2_Documents {
         if ( ! $documents ) {
             return;
         }
-        echo '<section class="woocommerce-order-details clr-v2-account-documents"><h2>' . esc_html__( 'Mietdokumente', 'patsch9-rental-engine' ) . '</h2><ul>';
+        echo '<section class="woocommerce-order-details rmwc-v2-account-documents"><h2>' . esc_html__( 'Mietdokumente', 'patsch9-rental-engine' ) . '</h2><ul>';
         foreach ( $documents as $document ) {
             echo '<li><a href="' . esc_url( $this->signed_download_url( $document, $order ) ) . '">' . esc_html( $this->type_label( $document['type'] ) . ' ' . $document['document_number'] ) . '</a></li>';
         }
@@ -1086,7 +1086,7 @@ final class RMWC_V2_Documents {
         return $this->write_temporary_pdf(
             'mietbedingungen-bestellung-' . sanitize_file_name( $order->get_order_number() ) . '.pdf',
             RMWC_PDF::build( 'Akzeptierte Mietbedingungen', $lines ),
-            'clr_terms_temp',
+            'rmwc_terms_temp',
             __( 'Mietbedingungen-PDF konnte nicht angelegt werden.', 'patsch9-rental-engine' )
         );
     }
@@ -1209,7 +1209,7 @@ final class RMWC_V2_Documents {
             return false;
         }
 
-        $already_sent = absint( $order->get_meta( '_clr_contract_email_document_id', true ) );
+        $already_sent = absint( $order->get_meta( '_rmwc_contract_email_document_id', true ) );
         if ( $already_sent ) {
             return true;
         }
@@ -1227,19 +1227,19 @@ final class RMWC_V2_Documents {
             __( 'Vielen Dank für Ihre Mietbestellung. Im Anhang erhalten Sie Ihren Mietvertrag. Die von Ihnen bei der Bestellung akzeptierte Fassung der Mietbedingungen ist im Mietvertrag vollständig als Anlage enthalten und wird zusätzlich als separates PDF beigefügt. Bitte bewahren Sie die Dokumente für den Mietzeitraum auf.', 'patsch9-rental-engine' )
         );
         if ( $sent ) {
-            $order->update_meta_data( '_clr_contract_email_document_id', $contract_id );
-            $order->delete_meta_data( '_clr_contract_email_last_failed_at' );
+            $order->update_meta_data( '_rmwc_contract_email_document_id', $contract_id );
+            $order->delete_meta_data( '_rmwc_contract_email_last_failed_at' );
             $order->save();
             $order->add_order_note( __( 'Vermietung: Mietvertrag und akzeptierte Mietbedingungen wurden automatisch per E-Mail versendet.', 'patsch9-rental-engine' ) );
         } else {
-            $last_failed = (string) $order->get_meta( '_clr_contract_email_last_failed_at', true );
+            $last_failed = (string) $order->get_meta( '_rmwc_contract_email_last_failed_at', true );
             $now         = current_time( 'mysql', true );
             // Avoid filling the order notes when several status hooks run in a
             // short period, but keep a visible diagnostic for failed sends.
             if ( '' === $last_failed || strtotime( $last_failed . ' UTC' ) < time() - HOUR_IN_SECONDS ) {
                 $order->add_order_note( __( 'Vermietung: Der automatische Versand des Mietvertrags ist fehlgeschlagen. Bitte WooCommerce-E-Mail-/SMTP-Konfiguration prüfen oder den Vertrag über „Mietdokumente“ erneut senden.', 'patsch9-rental-engine' ) );
             }
-            $order->update_meta_data( '_clr_contract_email_last_failed_at', $now );
+            $order->update_meta_data( '_rmwc_contract_email_last_failed_at', $now );
             $order->save();
         }
         return (bool) $sent;
@@ -1253,7 +1253,7 @@ final class RMWC_V2_Documents {
             wp_die( esc_html__( 'Keine Berechtigung.', 'patsch9-rental-engine' ), '', [ 'response' => 403 ] );
         }
         $order_id = isset( $_POST['order_id'] ) ? absint( wp_unslash( $_POST['order_id'] ) ) : 0;
-        $nonce    = isset( $_POST['clr_contract_email_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['clr_contract_email_nonce'] ) ) : '';
+        $nonce    = isset( $_POST['rmwc_contract_email_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['rmwc_contract_email_nonce'] ) ) : '';
         if ( ! $order_id || ! $nonce || ! wp_verify_nonce( $nonce, 'rmwc_send_contract_email_' . $order_id ) ) {
             wp_die( esc_html__( 'Sicherheitsprüfung fehlgeschlagen.', 'patsch9-rental-engine' ), '', [ 'response' => 403 ] );
         }
@@ -1274,13 +1274,13 @@ final class RMWC_V2_Documents {
             : false;
 
         if ( $sent ) {
-            $order->update_meta_data( '_clr_contract_email_document_id', $contract_id );
+            $order->update_meta_data( '_rmwc_contract_email_document_id', $contract_id );
             $order->save();
             $order->add_order_note( __( 'Vermietung: Mietvertrag und akzeptierte Mietbedingungen wurden manuell erneut per E-Mail versendet.', 'patsch9-rental-engine' ) );
         }
 
         $redirect = $order->get_edit_order_url();
-        $redirect = add_query_arg( 'clr_contract_mail', $sent ? 'sent' : 'failed', $redirect );
+        $redirect = add_query_arg( 'rmwc_contract_mail', $sent ? 'sent' : 'failed', $redirect );
         wp_safe_redirect( $redirect );
         exit;
     }
@@ -1334,7 +1334,7 @@ final class RMWC_V2_Documents {
                 $data[] = [
                     'group_id'    => 'patsch9-rental-engine-documents',
                     'group_label' => __( 'Mietdokumente', 'patsch9-rental-engine' ),
-                    'item_id'     => 'clr-document-' . (int) $document['id'],
+                    'item_id'     => 'rmwc-document-' . (int) $document['id'],
                     'data'        => [
                         [ 'name' => __( 'Dokumentnummer', 'patsch9-rental-engine' ), 'value' => $document['document_number'] ],
                         [ 'name' => __( 'Dokumenttyp', 'patsch9-rental-engine' ), 'value' => $this->type_label( $document['type'] ) ],
