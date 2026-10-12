@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Patsch9 Rental Engine for WooCommerce
  * Plugin URI: https://github.com/patsch9/patsch9-rental-engine
- * Description: Vermietungs- und Gerätebuchungen für WooCommerce mit Verfügbarkeit, Preisen, Kautionen, Bedingungen, Dokumenten und Übergabe-/Rückgabe-Workflow.
+ * Description: Rental and equipment booking workflows for WooCommerce with availability, pricing, security deposits, terms, documents, and handover/return management.
  * Version: 2026.10.1
  * Author: Patrick Schmidt
  * Author URI: https://github.com/patsch9
@@ -18,7 +18,6 @@
 
 defined( 'ABSPATH' ) || exit;
 
-
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-rmwc-legacy-migration.php';
 
 /**
@@ -30,9 +29,8 @@ function rmwc_load_textdomain() {
 }
 add_action( 'init', 'rmwc_load_textdomain' );
 
-
 define( 'RMWC_VERSION', '2026.10.1' );
-define( 'RMWC_DB_VERSION', '2.0.26' );
+define( 'RMWC_DB_VERSION', '2.0.27' );
 define( 'RMWC_FILE', __FILE__ );
 define( 'RMWC_DIR', plugin_dir_path( __FILE__ ) );
 define( 'RMWC_URL', plugin_dir_url( __FILE__ ) );
@@ -162,7 +160,9 @@ function rmwc_install_database() {
 }
 
 function rmwc_activate() {
-    RMWC_Legacy_Migration::run();
+    if ( ! RMWC_Legacy_Migration::run() ) {
+        return;
+    }
     rmwc_install_database();
     if ( ! wp_next_scheduled( 'rmwc_hourly_reminders' ) ) {
         wp_schedule_event( time() + 300, 'hourly', 'rmwc_hourly_reminders' );
@@ -182,20 +182,22 @@ function rmwc_deactivate() {
 register_deactivation_hook( __FILE__, 'rmwc_deactivate' );
 
 add_action( 'plugins_loaded', function() {
-    RMWC_Legacy_Migration::run();
+    if ( ! RMWC_Legacy_Migration::run() ) {
+        return;
+    }
     if ( get_option( 'rmwc_db_version' ) !== RMWC_DB_VERSION ) {
         rmwc_install_database();
     }
 
     if ( ! class_exists( 'WooCommerce' ) ) {
         add_action( 'admin_notices', function() {
-            echo '<div class="notice notice-error"><p><strong>' . esc_html__( 'Patsch9 Rental Engine for WooCommerce', 'patsch9-rental-engine' ) . '</strong> ' . esc_html__( 'benötigt WooCommerce.', 'patsch9-rental-engine' ) . '</p></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Both fragments escaped above.
+            echo '<div class="notice notice-error"><p><strong>' . esc_html__( 'Patsch9 Rental Engine for WooCommerce', 'patsch9-rental-engine' ) . '</strong> ' . esc_html__( 'requires WooCommerce.', 'patsch9-rental-engine' ) . '</p></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Both fragments escaped above.
         } );
         return;
     }
     if ( ! defined( 'WC_VERSION' ) || version_compare( WC_VERSION, '10.9.4', '<' ) ) {
         add_action( 'admin_notices', function() {
-            echo '<div class="notice notice-error"><p><strong>' . esc_html__( 'Patsch9 Rental Engine for WooCommerce', 'patsch9-rental-engine' ) . '</strong> ' . esc_html__( 'benötigt WooCommerce 10.9.4 oder höher.', 'patsch9-rental-engine' ) . '</p></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Both fragments escaped above.
+            echo '<div class="notice notice-error"><p><strong>' . esc_html__( 'Patsch9 Rental Engine for WooCommerce', 'patsch9-rental-engine' ) . '</strong> ' . esc_html__( 'requires WooCommerce 10.9.4 or newer.', 'patsch9-rental-engine' ) . '</p></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Both fragments escaped above.
         } );
         return;
     }
