@@ -1,0 +1,45 @@
+name: Diagnose Plugin Check once
+
+on:
+  push:
+    branches:
+      - fix/wordpress-org-rental-review-2026-10-12
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true
+      - name: Prepare Plugin Check environment
+        uses: WordPress/plugin-check-action@10857da14b6c2246d15402b3e69f777edcf8c12e # v1
+        with:
+          strict: false
+          exclude-directories: |
+            .github
+          exclude-files: |
+            .distignore
+            VERSIONING.md
+            DOCUMENTATION.md
+            MIGRATION.md
+      - name: Capture raw Plugin Check JSON
+        shell: bash
+        run: |
+          slug="$(basename "$PWD")"
+          wp-env run cli wp plugin check "$slug" --format=json --require=./wp-content/plugins/plugin-check/cli.php > plugin-check-results.json || true
+          test -s plugin-check-results.json
+          cat plugin-check-results.json
+      - name: Commit diagnostics
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add plugin-check-results.json
+          git commit -m "chore: capture plugin check diagnostics"
+          git push
