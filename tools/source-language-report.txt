@@ -1,0 +1,35 @@
+German source-language candidates: 34
+includes/class-rmwc-plugin.php:1798: $value .= ' (' . wc_format_localized_decimal( $r['delivery_distance'] ) . ' km je Fahrt)';
+includes/class-rmwc-plugin.php:2151: $item->add_meta_data( 'Rückgabe', $this->format_datetime_display( $r['end_at'] ), true );
+includes/class-rmwc-plugin.php:2152: $item->add_meta_data( 'Mietdauer', sprintf( __( '%d Rental day(s) – %s', 'patsch9-rental-engine' ), (int) $r['days'], $r['pricing_label'] ), true );
+includes/class-rmwc-plugin.php:2157: $item->add_meta_data( 'Transport / Übergabe', $this->fulfilment_label( $r['fulfilment'] ), true );
+includes/class-rmwc-plugin.php:2164: $item->add_meta_data( 'Lieferentfernung', wc_format_localized_decimal( $r['delivery_distance'] ) . ' km je Fahrt', true );
+includes/class-rmwc-plugin.php:2173: 'cash' === sanitize_key( $r['deposit_method'] ?? 'online' ) ? 'Separat überweisen oder bei Abholung bar hinterlegen' : __( 'Provided online with the order', 'patsch9-rental-engine' ),
+includes/class-rmwc-plugin.php:2184: if ( 0 === strpos( $item->get_name(), __( 'Security deposit – ', 'patsch9-rental-engine' ) ) || 0 === strpos( $item->get_name(), 'Kaution – ' ) ) {
+includes/class-rmwc-plugin.php:2205: } elseif ( 0 === strpos( $item->get_name(), __( 'Delivery – ', 'patsch9-rental-engine' ) ) || 0 === strpos( $item->get_name(), __( 'Transport – ', 'patsch9-rental-engine' ) ) || 0 === strpos( $item->get_name(), 'Lieferung – ' ) || 0 === strpos( $item->get_name(), 'Transport – ' ) ) {
+includes/class-rmwc-plugin.php:2495: $order->update_status( 'cancelled', 'Vermietung: unbezahlte Online-Reservierung nach ' . $this->unpaid_hold_minutes() . ' Minuten automatisch freigegeben.' );
+includes/class-rmwc-plugin.php:2540: if ( 'yes' === $fee->get_meta( '_rmwc_deposit', true ) || 0 === strpos( $fee->get_name(), 'Kaution – ' ) ) {
+includes/class-rmwc-plugin.php:2794: $old_pickup = $item->get_meta( 'Abholung', true );
+includes/class-rmwc-plugin.php:2795: $old_return = $item->get_meta( 'Rückgabe', true );
+includes/class-rmwc-plugin.php:2819: $item->update_meta_data( 'Abholung', $this->format_datetime_display( $interval['start_at'] ) );
+includes/class-rmwc-plugin.php:2820: $item->update_meta_data( 'Rückgabe', $this->format_datetime_display( $interval['end_at'] ) );
+includes/class-rmwc-plugin.php:2838: $item->update_meta_data( 'Abholung', $old_pickup );
+includes/class-rmwc-plugin.php:2839: $item->update_meta_data( 'Rückgabe', $old_return );
+includes/v2/modules/class-rmwc-v2-deposits.php:563: || 0 === strpos( (string) $fee->get_name(), 'Kaution – ' );
+includes/v2/modules/class-rmwc-v2-documents.php:771: $prefix = 'missing_terms_appendix' === sanitize_key( $snapshot['correction']['type'] ?? '' ) ? 'mietvertrag-korrigiert' : __( 'Rental agreement', 'patsch9-rental-engine' );
+includes/v2/modules/class-rmwc-v2-documents.php:1075: $lines[] = __( 'Additional rental terms – ', 'patsch9-rental-engine' ) . sanitize_text_field( $snapshot['product_name'] ?? 'Mietartikel' );
+includes/v2/modules/class-rmwc-v2-documents.php:1087: 'mietbedingungen-bestellung-' . sanitize_file_name( $order->get_order_number() ) . '.pdf',
+includes/v2/modules/class-rmwc-v2-documents.php:1088: RMWC_PDF::build( 'Akzeptierte Mietbedingungen', $lines ),
+includes/v2/modules/class-rmwc-v2-integrations.php:365: 'Vermietung: Zeitraum' => implode( ' | ', array_unique( $periods ) ),
+includes/v2/modules/class-rmwc-v2-integrations.php:366: 'Vermietung: Status'   => implode( ' | ', array_unique( $statuses ) ),
+includes/v2/modules/class-rmwc-v2-integrations.php:367: 'Vermietung: Geräte'    => implode( ' | ', array_unique( $asset_labels ) ),
+includes/v2/modules/class-rmwc-v2-integrations.php:368: 'Vermietung: Transport' => implode( ' | ', array_unique( $transport_labels ) ),
+includes/v2/modules/class-rmwc-v2-integrations.php:369: 'Vermietung: Kaution'   => implode( ' | ', array_unique( $deposit_labels ) ),
+includes/v2/modules/class-rmwc-v2-integrations.php:370: 'Vermietung: Aktion'    => implode( ' | ', array_unique( $action_labels ) ),
+includes/v2/modules/class-rmwc-v2-integrations.php:402: $action = (string) ( $summary['Vermietung: Aktion'] ?? '' );
+includes/v2/modules/class-rmwc-v2-integrations.php:406: $order->add_order_note( 'Vermietung – mobile Aktion: ' . $action );
+includes/v2/modules/class-rmwc-v2-integrations.php:580: 'Vermietung: Zeitraum' => implode( ' | ', array_unique( $periods ) ),
+includes/v2/modules/class-rmwc-v2-integrations.php:581: 'Vermietung: Status'   => implode( ' | ', array_unique( $statuses ) ),
+includes/v2/modules/class-rmwc-v2-integrations.php:582: 'Vermietung: Geräte'   => implode( ' | ', array_unique( $asset_labels ) ),
+includes/v2/modules/class-rmwc-v2-integrations.php:583: 'Vermietung: Kaution'  => implode( ' | ', array_unique( $deposit_labels ) ),
+includes/v2/modules/class-rmwc-v2-integrations.php:584: 'Vermietung: Aktion'   => implode( ' | ', array_unique( $action_labels ) ),
