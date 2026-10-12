@@ -91,7 +91,7 @@ The plugin handles refundable deposits separately from normal rental pricing. Th
 == Changelog ==
 
 = 2026.10.2 =
-* Limit dependency notices to plugin management, verify deposit settings nonce directly, and provide a WordPress.org ZIP without bundled PO/MO translations.
+* Limit dependency notices to plugin management, verify deposit settings nonce directly, and keep bundled German translations in the common GitHub/WordPress.org package.
 * Fix deposit field registration and synchronize the latest checkout selection after pending requests.
 
 = 2026.10.1 =

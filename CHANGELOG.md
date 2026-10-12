@@ -7,7 +7,7 @@ Alle stabilen Releases ab Oktober 2026 verwenden das in [VERSIONING.md](VERSIONI
 - WordPress.org-Vorprüfung: WooCommerce-Abhängigkeitshinweise auf die Pluginverwaltung und berechtigte Benutzer begrenzt.
 - Kautionseinstellungen prüfen den eigenen Nonce zusätzlich direkt im Speicherhandler.
 - Negative Integrationstests für Rechte-/Nonce-Prüfungen der Admin- und Produktaktionen ergänzt.
-- Eigenes WordPress.org-ZIP ohne PO/MO-Sprachdateien; GitHub-ZIP behält die deutsche Übersetzung. Beide Pakete werden geprüft.
+- Deutsche PO/MO-Dateien bleiben im einheitlichen GitHub-/WordPress.org-Paket enthalten, bis ein deutsches WordPress-Sprachpaket verfügbar ist.
 
 - Kautionsauswahl im Checkout Block wird ohne passende Produkte nicht registriert; die unzulässige Konfiguration hidden=true entfällt.
 - Während einer laufenden Store-API-Anfrage geänderte Kautionswahl oder Zahlungsart wird anschließend zuverlässig nachgesendet.

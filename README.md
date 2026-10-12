@@ -55,7 +55,7 @@ Der Website-Betreiber ist für die korrekte Datenschutzinformation und die Einha
 - Der klassische WooCommerce-Checkout bleibt unterstützt.
 - Ab `2026.10.1` werden historische `clr_*`-Tabellen, Optionen und Metadaten kontrolliert auf `rmwc_*` migriert. Bestehende Warenkörbe werden beim Laden übernommen. Fehler und Datenkonflikte sperren den Miet-Checkout bis zur erfolgreichen Wiederaufnahme.
 - Bei gemeinsamer Nutzung zuerst Accounting Bridge `2026.10.5` installieren; siehe [MIGRATION.md](MIGRATION.md).
-- Quelltexte sind Englisch; das GitHub-Paket enthält eine deutsche `de_DE`-Übersetzung. Das WordPress.org-Paket erhält Sprachdateien über translate.wordpress.org.
+- Quelltexte sind Englisch; eine deutsche `de_DE`-Übersetzung ist im Plugin-Paket enthalten. Sie bleibt auch für WordPress.org gebündelt, bis ein deutsches Sprachpaket verfügbar ist.
 
 ## Versionsschema
 
@@ -63,7 +63,7 @@ Ab 2026.10.0 gilt projektweit `YYYY.M.PATCH`. Details stehen in [VERSIONING.md](
 
 ## Releases
 
-Installierbare ZIP-Dateien werden automatisch als [GitHub Releases](https://github.com/patsch9/patsch9-rental-engine/releases) bereitgestellt. Das ZIP ohne Zusatz ist das GitHub-Paket mit deutscher Übersetzung. Das ZIP mit `-wordpress-org` ist für die Einreichung bei WordPress.org und enthält keine PO/MO-Dateien. Ein Release wird nur erzeugt, wenn der entsprechende `v...`-Tag zur Plugin-Version passt und die Paketprüfungen erfolgreich sind.
+Installierbare ZIP-Dateien werden automatisch als [GitHub Releases](https://github.com/patsch9/patsch9-rental-engine/releases) bereitgestellt. Dasselbe installierbare ZIP mit deutscher Übersetzung wird für GitHub und die WordPress.org-Einreichung verwendet. Ein Release wird nur erzeugt, wenn der entsprechende `v...`-Tag zur Plugin-Version passt und die Paketprüfungen erfolgreich sind.
 
 ## Migration
 

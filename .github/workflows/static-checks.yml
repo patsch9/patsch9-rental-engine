@@ -53,8 +53,6 @@ jobs:
           persist-credentials: false
       - name: Plugin Check result gate regressions
         run: python3 tests/test-plugin-check.py
-      - name: WordPress.org package regressions
-        run: python3 tests/test-wordpress-org-package.py
       - name: English source-language policy
         run: python3 tests/check-source-language.py
       - name: Reject short legacy identifiers outside migration layer
