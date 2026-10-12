@@ -14,15 +14,21 @@ ROOT = Path(__file__).resolve().parents[1]
 EXCLUDED = {'.git', '.github', 'languages', 'tools', 'tests', 'node_modules', 'vendor'}
 SUFFIXES = {'.php', '.js'}
 
-# Strong signals first (umlauts and domain-specific German words). Generic words
-# like "die" are intentionally omitted to keep false positives manageable.
+# Strong signals first (umlauts and domain-specific German/UI words). Generic
+# articles such as "die" are intentionally omitted to keep false positives
+# manageable, while short labels used by the rental UI are included explicitly.
 GERMAN = re.compile(
-    r'(?:[äöüÄÖÜß]|\b(?:Vermiet(?:ung|ungen|er|ers)?|Miet(?:e|preis|preise|gerät|geräte|dauer|tag|tage|bedingungen|vertrag|artikel|produkt|zeitraum)|'
+    r'(?:[äöüÄÖÜß]|\b(?:'
+    r'Vermiet(?:ung|ungen|er|ers)?|Miet(?:e|preis|preise|gerät|geräte|dauer|tag|tage|tagen|bedingungen|vertrag|artikel|produkt|zeitraum)|'
     r'Kaution(?:en|sbeleg|shinterlegung)?|Abholung|Rückgabe|Übergabe|Lieferung|Buchung(?:en)?|Sperrtag(?:e)?|Wochentag(?:e)?|'
-    r'Preisstaffel(?:n)?|Vorausbuchung|Verfügbarkeit|verfügbar|Kunde(?:n)?|Gerät(?:e)?|Inventarnummer|Seriennummer|Schäden|'
-    r'Einstellungen|Speichern|gespeichert|Bearbeiten|bearbeiten|Löschen|löschen|Auswählen|auswählen|Bitte|Keine|Kein|Fehler|'
-    r'Erinnerung(?:en)?|Zahlung(?:en)?|Bestellung(?:en)?|Rechnung(?:en)?|Rückerstattung(?:en)?|Transportkosten|Lieferadresse|'
-    r'Montag|Dienstag|Mittwoch|Donnerstag|Freitag|Samstag|Sonntag)\b)',
+    r'Preisstaffel(?:n)?|Paketpreis|Standardpreis|Tagespreis|Vorausbuchung|Verfügbarkeit|verfügbar|Kunde(?:n)?|Gerät(?:e)?|'
+    r'Inventarnummer|Seriennummer|Schäden|Einstellungen|Speichern|gespeichert|Bearbeiten|bearbeiten|Löschen|löschen|'
+    r'Auswählen|auswählen|Bitte|Keine|Kein|Fehler|Erinnerung(?:en)?|Zahlung(?:en)?|Bestellung(?:en)?|Rechnung(?:en)?|'
+    r'Rückerstattung(?:en)?|Transportkosten|Lieferadresse|Gruppe|Gruppenname|Bezeichnung|Berechnung|Auswahlart|Pflichtauswahl|'
+    r'Zusatzoption(?:en)?|Zubehör(?:gruppe|produkt|artikel)?|einmalig|je|pro|bis|ab|von|anzahl|hinweis|aktiv|deaktiviert|'
+    r'Entfernung|Fahrstrecke|Fahrpreis|Hinfahrt|Rückfahrt|Grunddaten|Zeiten|Abrechnung|Quelle|Lager|Bestand|Artikel|'
+    r'Montag|Dienstag|Mittwoch|Donnerstag|Freitag|Samstag|Sonntag|Abbrechen|Zurück|Weiter|Schließen|Öffnen|Speichern'
+    r')\b)',
     re.IGNORECASE,
 )
 
