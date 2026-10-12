@@ -1052,8 +1052,8 @@ msgstr ""
 "konfigurieren."
 
 #: includes/class-rmwc-plugin.php:1891
-msgid "Transport flat-rate"
-msgstr "Transportpauschale"
+msgid "Transport flat rate"
+msgstr "Transport flat-rate"
 
 #: includes/class-rmwc-plugin.php:1915
 msgid ""

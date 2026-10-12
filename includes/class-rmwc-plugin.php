@@ -1888,7 +1888,7 @@ final class RMWC_Plugin {
                 'fulfilment' => $mode,
                 'transport_legs' => $legs,
                 'delivery_fee' => max( 0, (float) get_post_meta( $product_id, '_rmwc_delivery_fee', true ) ) * $legs,
-                'delivery_zone' => __( 'Transport flat-rate', 'patsch9-rental-engine' ),
+                'delivery_zone' => __( 'Transport flat rate', 'patsch9-rental-engine' ),
                 'delivery_zone_index' => '',
                 'delivery_distance' => '',
                 'delivery_address' => $address,
