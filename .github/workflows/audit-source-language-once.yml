@@ -6,15 +6,28 @@ on:
       - fix/wordpress-org-rental-review-2026-10-12
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   audit:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          persist-credentials: false
+          persist-credentials: true
       - name: Report German source candidates
-        run: python3 tools/audit-source-language.py
+        run: python3 tools/audit-source-language.py | tee tools/source-language-report.txt
+      - name: Persist report for review
+        shell: bash
+        run: |
+          if git diff --quiet -- tools/source-language-report.txt; then
+            echo "No report changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/source-language-report.txt
+          git commit -m "chore: update source-language audit report"
+          git push
