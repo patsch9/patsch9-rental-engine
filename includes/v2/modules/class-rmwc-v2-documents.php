@@ -422,7 +422,7 @@ final class RMWC_V2_Documents {
                 }
                 $blocks[] = [
                     'type' => 'bullet',
-                    'text' => sanitize_text_field( $addon['group'] ?? __( 'Zusatzoption', 'patsch9-rental-engine' ) ) . ': ' . sanitize_text_field( $addon['label'] ?? '' ),
+                    'text' => sanitize_text_field( $addon['group'] ?? __( 'Add-on', 'patsch9-rental-engine' ) ) . ': ' . sanitize_text_field( $addon['label'] ?? '' ),
                 ];
             }
             $blocks[] = [ 'type' => 'spacer', 'height' => 5 ];
@@ -728,7 +728,7 @@ final class RMWC_V2_Documents {
             $blocks[] = [ 'type' => 'notice', 'text' => sanitize_textarea_field( $snapshot['notes'] ) ];
         }
         if ( ! empty( $snapshot['staff_name'] ) ) {
-            $blocks[] = [ 'type' => 'row', 'label' => __( 'Bearbeitet von', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $snapshot['staff_name'] ) ];
+            $blocks[] = [ 'type' => 'row', 'label' => __( 'Processed by', 'patsch9-rental-engine' ), 'value' => sanitize_text_field( $snapshot['staff_name'] ) ];
         }
         $blocks[] = [
             'type' => 'notice',
@@ -768,7 +768,7 @@ final class RMWC_V2_Documents {
         $snapshot = is_array( $document['snapshot_data'] ?? null ) ? $document['snapshot_data'] : [];
         $type     = sanitize_key( $document['type'] ?? '' );
         if ( in_array( $type, [ 'contract', 'contract_revision' ], true ) ) {
-            $prefix = 'missing_terms_appendix' === sanitize_key( $snapshot['correction']['type'] ?? '' ) ? 'mietvertrag-korrigiert' : __( 'rental contract', 'patsch9-rental-engine' );
+            $prefix = 'missing_terms_appendix' === sanitize_key( $snapshot['correction']['type'] ?? '' ) ? 'mietvertrag-korrigiert' : __( 'Rental agreement', 'patsch9-rental-engine' );
         } elseif ( 'handover_protocol' === $type ) {
             $prefix = 'uebergabeprotokoll';
         } elseif ( 'return_protocol' === $type ) {
@@ -1072,7 +1072,7 @@ final class RMWC_V2_Documents {
                 continue;
             }
             $lines[] = '';
-            $lines[] = __( 'Additional rental conditions –', 'patsch9-rental-engine' ) . sanitize_text_field( $snapshot['product_name'] ?? 'Mietartikel' );
+            $lines[] = __( 'Additional rental terms – ', 'patsch9-rental-engine' ) . sanitize_text_field( $snapshot['product_name'] ?? 'Mietartikel' );
             if ( ! empty( $snapshot['version'] ) ) {
                 $lines[] = sanitize_text_field( $snapshot['version'] );
             }

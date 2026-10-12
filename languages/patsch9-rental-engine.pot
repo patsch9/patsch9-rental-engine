@@ -9,15 +9,15 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-12T09:11:42+00:00\n"
+"POT-Creation-Date: 2026-10-12T09:16:00+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: patsch9-rental-engine\n"
 
 #. Plugin Name of the plugin
 #: patsch9-rental-engine.php
-#: patsch9-rental-engine.php:194
-#: patsch9-rental-engine.php:200
+#: patsch9-rental-engine.php:186
+#: patsch9-rental-engine.php:192
 msgid "Patsch9 Rental Engine for WooCommerce"
 msgstr ""
 
@@ -51,19 +51,24 @@ msgstr ""
 
 #: includes/class-rmwc-plugin.php:259
 #: includes/class-rmwc-plugin.php:266
-#: includes/class-rmwc-plugin.php:1082
-#: includes/class-rmwc-plugin.php:1090
+#: includes/class-rmwc-plugin.php:1084
+#: includes/class-rmwc-plugin.php:1092
 msgid "Please select a valid rental period."
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:276
 #, php-format
-msgid "At the %s no collection or rental start is possible. Please choose another starting day."
+msgid "Pickup or rental start is not available on %s. Please choose a different start date."
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:276
+#: includes/class-rmwc-plugin.php:282
+msgid "selected weekday"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:282
 #, php-format
-msgid "No return is possible on the %s. Please select another day of return."
+msgid "Return is not available on %s. Please choose a different return date."
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:301
@@ -78,11 +83,11 @@ msgid "Offer this WooCommerce product as a rental item."
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:336
-msgid "Basic Data & Times"
+msgid "Basic data & times"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:341
-msgid "Standard settlement"
+msgid "Default billing"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:342
@@ -106,19 +111,19 @@ msgid "Standard rental price"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:356
-msgid "Number available"
+msgid "Available quantity"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:360
-msgid "How many identical devices of this product can be rented at the same time."
+msgid "How many identical rental units of this product can be rented at the same time."
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:366
-msgid "Pick-up/rental start"
+msgid "Pickup / rental start"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:369
-msgid "Example: 12:00. From this date the booking starts on the selected start date."
+msgid "Example: 12:00. The booking starts at this time on the selected start date."
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:375
@@ -147,7 +152,7 @@ msgid "Buffer after return (hours)"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:406
-msgid "Additional lock time after return, e.g. 2 hours for cleaning and control."
+msgid "Additional buffer time after return, e.g. 2 hours for cleaning and inspection."
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:412
@@ -191,13 +196,13 @@ msgid "Empty = standard rental price"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:463
-msgid "Deposit & handover"
+msgid "Security deposit & handover"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:468
-#: includes/class-rmwc-plugin.php:1011
-#: includes/class-rmwc-plugin.php:1837
-#: includes/class-rmwc-plugin.php:3225
+#: includes/class-rmwc-plugin.php:1013
+#: includes/class-rmwc-plugin.php:1839
+#: includes/class-rmwc-plugin.php:3227
 #: includes/v2/modules/class-rmwc-v2-documents.php:467
 #: includes/v2/modules/class-rmwc-v2-documents.php:664
 #: includes/v2/modules/class-rmwc-v2-workflow.php:639
@@ -205,15 +210,15 @@ msgid "Security deposit"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:471
-msgid "Refundable security per rented device."
+msgid "Refundable security deposit per rental unit."
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:477
-msgid "Note on the deposit"
+msgid "Security deposit note"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:478
-msgid "e.g. will be refunded after checking the return."
+msgid "e.g. refunded after the returned item has been inspected."
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:479
@@ -221,7 +226,7 @@ msgid "Optional free text displayed on the product page at the deposit amount."
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:491
-msgid "Allow collection"
+msgid "Allow pickup"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:496
@@ -233,7 +238,7 @@ msgid "Enabled: delivery by rental operator and return by customer."
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:503
-msgid "Delivery + Allow pick-up"
+msgid "Allow delivery and collection"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:505
@@ -249,43 +254,43 @@ msgid "Only used if no delivery zones are defined. The amount is per journey; at
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:521
-msgid "Flexible price scales"
+msgid "Flexible pricing tiers"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:522
-msgid "Price priority: weekend rate → matching price scale → weekday rates → standard price. Example: from 7 rental days Package price 129 € incl. 7 days, afterwards 15 € per additional rental day."
+msgid "Pricing priority: weekend rate → matching pricing tier → weekday rate → standard price. Example: from 7 rental days, a package price of €129 includes 7 days; each additional rental day costs €15."
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:524
-msgid "Ab Tagen"
+msgid "From day"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:524
-msgid "Days to days"
+msgid "Up to day"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:524
-msgid "Paketpreis"
+msgid "Package price"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:524
-msgid "Days included"
+msgid "Included days"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:524
-msgid "Next day"
+msgid "Additional day"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:527
-msgid "+ Price scale"
+msgid "+ Add pricing tier"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:531
-msgid "Active weekend rate"
+msgid "Enable weekend rate"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:532
-msgid "Only grips with exactly the right start/return weekday and exactly the following duration (e.g. Friday to Monday = 3 rental days)."
+msgid "Applies only when the start and return weekdays match exactly and the resulting duration is exact (e.g. Friday to Monday = 3 rental days)."
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:537
@@ -301,11 +306,11 @@ msgid "Weekend ends"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:557
-msgid "Additional options & rental accessories"
+msgid "Add-ons & rental accessories"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:558
-msgid "For material sizes and priced accessories use rental accessories. Simple additional options are intended for services or surcharges that do not require own storage items."
+msgid "Use rental accessories for material variants and priced accessory items. Simple add-ons are intended for services or surcharges that do not require their own inventory items."
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:561
@@ -313,7 +318,7 @@ msgid "Simple add-ons (without a separate WooCommerce product)"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:564
-msgid "Gruppe"
+msgid "Group"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:564
@@ -325,11 +330,11 @@ msgid "Price"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:564
-msgid "Settlement"
+msgid "Billing"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:567
-msgid "+ Einfache Zusatzoption"
+msgid "+ Add simple option"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:573
@@ -341,11 +346,11 @@ msgid "Zones are evaluated according to the maximum travel distance per simple j
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:576
-msgid "Bezeichnung"
+msgid "Label"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:576
-msgid "Bis km"
+msgid "Up to km"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:576
@@ -353,7 +358,7 @@ msgid "Price per journey"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:579
-msgid "+ delivery zone"
+msgid "+ Add delivery zone"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:587
@@ -395,11 +400,14 @@ msgid "for 20 persons"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:610
-msgid "einmalig"
+#: includes/class-rmwc-plugin.php:778
+msgid "once"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:610
-msgid "per unit of rental"
+#: includes/class-rmwc-plugin.php:779
+#: includes/class-rmwc-plugin.php:1014
+msgid "per rental unit"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:610
@@ -408,24 +416,12 @@ msgid "per rental day"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:619
-msgid "bis 10 km"
+#: includes/class-rmwc-plugin.php:781
+msgid "up to 10 km"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:777
 msgid "for 20 people"
-msgstr ""
-
-#: includes/class-rmwc-plugin.php:778
-msgid "once"
-msgstr ""
-
-#: includes/class-rmwc-plugin.php:779
-#: includes/class-rmwc-plugin.php:1012
-msgid "per rental unit"
-msgstr ""
-
-#: includes/class-rmwc-plugin.php:781
-msgid "up to 10 km"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:782
@@ -454,6 +450,7 @@ msgid "Optional. Empty = use product name."
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:788
+#: includes/v2/modules/class-rmwc-v2-materials.php:212
 msgid "Calculation"
 msgstr ""
 
@@ -467,10 +464,12 @@ msgid "Remove rental accessory from group"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:791
+#: includes/v2/modules/class-rmwc-v2-materials.php:162
 msgid "Group name"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:792
+#: includes/v2/modules/class-rmwc-v2-materials.php:166
 msgid "Selection type"
 msgstr ""
 
@@ -483,6 +482,7 @@ msgid "Multiple selection – multiple options allowed"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:795
+#: includes/v2/modules/class-rmwc-v2-materials.php:173
 msgid "Required selection"
 msgstr ""
 
@@ -565,7 +565,7 @@ msgid "This period cannot be booked, does not meet the permitted rental duration
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:849
-#: includes/class-rmwc-plugin.php:1153
+#: includes/class-rmwc-plugin.php:1155
 msgid "Weekend rate"
 msgstr ""
 
@@ -590,7 +590,7 @@ msgid "Delivery costs could not be calculated."
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:855
-#: includes/class-rmwc-plugin.php:979
+#: includes/class-rmwc-plugin.php:981
 msgid "Calculate transport costs"
 msgstr ""
 
@@ -623,800 +623,947 @@ msgstr ""
 msgid "Please select at least one accessory option."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:914
+#: includes/class-rmwc-plugin.php:863
+msgid "per trip"
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:864
+msgid "total"
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:916
 msgid "Rental period"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:918
-msgid "Pick-up/rental start:"
+#: includes/class-rmwc-plugin.php:920
+msgid "Pickup / rental start:"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:919
+#: includes/class-rmwc-plugin.php:921
 msgid "Return:"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:924
+#: includes/class-rmwc-plugin.php:921
+msgid "on the selected return date"
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:926
 msgid "No pick-up/rental start:"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:929
+#: includes/class-rmwc-plugin.php:931
 msgid "No return:"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:935
+#: includes/class-rmwc-plugin.php:937
 msgid "Booking calendar"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:937
-#: includes/class-rmwc-plugin.php:1784
-#: includes/class-rmwc-plugin.php:3411
+#: includes/class-rmwc-plugin.php:939
+#: includes/class-rmwc-plugin.php:1786
+#: includes/class-rmwc-plugin.php:3413
 #: includes/v2/modules/class-rmwc-v2-documents.php:413
 #: includes/v2/modules/class-rmwc-v2-documents.php:646
 msgid "Start of rental"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:938
-#: includes/class-rmwc-plugin.php:3162
-#: includes/class-rmwc-plugin.php:3192
+#: includes/class-rmwc-plugin.php:940
+#: includes/class-rmwc-plugin.php:3164
+#: includes/class-rmwc-plugin.php:3194
 msgid "Return date"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:945
+#: includes/class-rmwc-plugin.php:947
 msgid "No selection"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:957
-#: includes/class-rmwc-plugin.php:1791
+#: includes/class-rmwc-plugin.php:950
+msgid " / rental unit"
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:950
+msgid " / rental day"
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:959
+#: includes/class-rmwc-plugin.php:1793
 #: includes/v2/modules/class-rmwc-v2-documents.php:415
 #: includes/v2/modules/class-rmwc-v2-documents.php:651
 #: includes/v2/modules/class-rmwc-v2-workflow.php:578
 msgid "Transport / handover"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:959
-#: includes/class-rmwc-plugin.php:1772
+#: includes/class-rmwc-plugin.php:961
+#: includes/class-rmwc-plugin.php:1774
 #: includes/v2/modules/class-rmwc-v2-documents.php:750
 #: includes/v2/modules/class-rmwc-v2-integrations.php:294
 #: includes/v2/modules/class-rmwc-v2-workflow.php:406
 msgid "Pickup and return by customer"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:962
-#: includes/class-rmwc-plugin.php:1773
+#: includes/class-rmwc-plugin.php:964
+#: includes/class-rmwc-plugin.php:1775
 #: includes/v2/modules/class-rmwc-v2-documents.php:751
 #: includes/v2/modules/class-rmwc-v2-integrations.php:295
 #: includes/v2/modules/class-rmwc-v2-workflow.php:407
 msgid "Delivery by rental operator and return by customer"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:965
-#: includes/class-rmwc-plugin.php:1774
+#: includes/class-rmwc-plugin.php:967
+#: includes/class-rmwc-plugin.php:1776
 #: includes/v2/modules/class-rmwc-v2-documents.php:752
 #: includes/v2/modules/class-rmwc-v2-integrations.php:296
 #: includes/v2/modules/class-rmwc-v2-workflow.php:408
 msgid "Delivery and collection by rental operator"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:972
+#: includes/class-rmwc-plugin.php:974
 msgid "Delivery/receipt address (binding for this rental item)"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:973
+#: includes/class-rmwc-plugin.php:975
 msgid "Street, house number, postal code City"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:977
+#: includes/class-rmwc-plugin.php:979
 msgid "Data protection notice: For the automatic calculation of the route, the entered delivery address is transferred to the Google Routes API."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:985
-#: includes/class-rmwc-plugin.php:1801
+#: includes/class-rmwc-plugin.php:987
+#: includes/class-rmwc-plugin.php:1803
 msgid "Delivery zone"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:987
+#: includes/class-rmwc-plugin.php:989
 msgid "Please select"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:995
+#: includes/class-rmwc-plugin.php:997
 msgid "The delivery zone is selected manually; the delivery address is nevertheless stored in the order."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1005
+#: includes/class-rmwc-plugin.php:1000
+msgid "Transport flat fee per trip:"
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:1007
 msgid "Rental price"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1025
+#: includes/class-rmwc-plugin.php:1027
 msgid "Too many availability requests. Please wait a moment."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1030
+#: includes/class-rmwc-plugin.php:1032
 msgid "Invalid rental product."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1036
+#: includes/class-rmwc-plugin.php:1038
 msgid "Invalid calendar period."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1041
+#: includes/class-rmwc-plugin.php:1043
 msgid "The requested calendar period is too large."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1093
+#: includes/class-rmwc-plugin.php:1095
 msgid "The return must be made after collection."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1186
+#: includes/class-rmwc-plugin.php:1188
 msgid "Price scale"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1229
+#: includes/class-rmwc-plugin.php:1231
 msgid "The start of rental must not be in the past."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1240
+#: includes/class-rmwc-plugin.php:1242
 #, php-format
 msgid "The minimum rental period is %d rental day(s)."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1243
+#: includes/class-rmwc-plugin.php:1245
 #, php-format
 msgid "The maximum rental period is %d rental day(s)."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1248
+#: includes/class-rmwc-plugin.php:1250
 msgid "This period is outside the permitted booking window."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1267
+#: includes/class-rmwc-plugin.php:1269
 msgid "There is no longer enough stock available for the chosen period."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1367
+#: includes/class-rmwc-plugin.php:1369
 msgid "The rental stock just could not be locked safely. Please try again."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1371
+#: includes/class-rmwc-plugin.php:1373
 msgid "There is not enough capacity available for this period."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1375
+#: includes/class-rmwc-plugin.php:1377
 msgid "The period could not be saved. Please try again."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1433
+#: includes/class-rmwc-plugin.php:1435
 msgid "This address is outside the configured delivery area."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1438
+#: includes/class-rmwc-plugin.php:1440
 msgid "The automatic distance calculation is not activated."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1444
-#: includes/class-rmwc-plugin.php:1522
-#: includes/class-rmwc-plugin.php:1547
-#: includes/class-rmwc-plugin.php:1561
+#: includes/class-rmwc-plugin.php:1446
+#: includes/class-rmwc-plugin.php:1524
+#: includes/class-rmwc-plugin.php:1549
+#: includes/class-rmwc-plugin.php:1563
 msgid "Please provide a complete delivery address."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1459
+#: includes/class-rmwc-plugin.php:1461
 msgid "The automatic distance calculation is currently fully engaged. Please try again for a short time."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1469
+#: includes/class-rmwc-plugin.php:1471
 msgid "The automatic distance calculation is temporarily fully engaged. Please try again later."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1490
+#: includes/class-rmwc-plugin.php:1492
 msgid "The delivery distance could not be determined at the moment."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1496
+#: includes/class-rmwc-plugin.php:1498
 msgid "The delivery address could not be calculated reliably. Please check address or choose collection."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1500
+#: includes/class-rmwc-plugin.php:1502
 msgid "The determined delivery distance is not plausible."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1511
-#: includes/class-rmwc-plugin.php:1565
+#: includes/class-rmwc-plugin.php:1513
+#: includes/class-rmwc-plugin.php:1567
 msgid "Too many distance queries. Please try again later."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1516
+#: includes/class-rmwc-plugin.php:1518
 msgid "Invalid rental product or delivery not activated."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1519
+#: includes/class-rmwc-plugin.php:1521
 msgid "Automatic distance calculation is not enabled."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1541
+#: includes/class-rmwc-plugin.php:1543
 msgid "No delivery is possible for this product."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1552
+#: includes/class-rmwc-plugin.php:1554
 msgid "Flat rate of delivery"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1580
-#: includes/class-rmwc-plugin.php:1584
+#: includes/class-rmwc-plugin.php:1582
+#: includes/class-rmwc-plugin.php:1586
 msgid "Please select a valid delivery zone."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1609
+#: includes/class-rmwc-plugin.php:1611
 #: includes/v2/modules/class-rmwc-v2-materials.php:431
 #: includes/v2/modules/class-rmwc-v2-terms.php:398
 msgid "The rental data could not be verified. Please reload page."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1627
+#: includes/class-rmwc-plugin.php:1629
 msgid "Please select a valid transport/transfer mode."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1631
+#: includes/class-rmwc-plugin.php:1633
 msgid "Collection and return by the customer is not available for this product."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1636
+#: includes/class-rmwc-plugin.php:1638
 msgid "Delivery by the rental operator is not available for this product."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1640
+#: includes/class-rmwc-plugin.php:1642
 msgid "Delivery and collection by the rental operator is not available for this product."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1785
-#: includes/class-rmwc-plugin.php:3412
+#: includes/class-rmwc-plugin.php:1787
+#: includes/class-rmwc-plugin.php:3414
 #: includes/v2/modules/class-rmwc-v2-documents.php:414
 #: includes/v2/modules/class-rmwc-v2-documents.php:647
 #: includes/v2/modules/class-rmwc-v2-workflow.php:516
 msgid "Return"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1786
+#: includes/class-rmwc-plugin.php:1788
 msgid "Rental duration"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1786
-#: includes/class-rmwc-plugin.php:2150
+#: includes/class-rmwc-plugin.php:1788
+#: includes/class-rmwc-plugin.php:2152
 #, php-format
 msgid "%d Rental day(s) – %s"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1799
+#: includes/class-rmwc-plugin.php:1801
 msgid "– Return journey"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1804
+#: includes/class-rmwc-plugin.php:1806
 #: includes/v2/modules/class-rmwc-v2-documents.php:417
 #: includes/v2/modules/class-rmwc-v2-documents.php:653
 msgid "Delivery/receipt address"
 msgstr ""
 
 #. translators: %s: formatted refundable deposit amount.
-#: includes/class-rmwc-plugin.php:1819
+#: includes/class-rmwc-plugin.php:1821
 #, php-format
 msgid "%s – deposit online with the order"
 msgstr ""
 
 #. translators: %s: formatted refundable deposit amount.
-#: includes/class-rmwc-plugin.php:1825
+#: includes/class-rmwc-plugin.php:1827
 #, php-format
 msgid "%s – separately: bank transfer or cash upon collection"
 msgstr ""
 
 #. translators: %s: formatted refundable deposit amount.
-#: includes/class-rmwc-plugin.php:1831
+#: includes/class-rmwc-plugin.php:1833
 #, php-format
 msgid "%s – Selection in checkout: online or separately (transfer / cash at collection)"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1861
+#: includes/class-rmwc-plugin.php:1863
 msgid "Collection and return by the customer is no longer available for this rental item."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1868
+#: includes/class-rmwc-plugin.php:1870
 msgid "Please select the transport/transfer mode for the rental item again."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1874
+#: includes/class-rmwc-plugin.php:1876
 msgid "Delivery by the rental operator is no longer available for this rental item."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1877
+#: includes/class-rmwc-plugin.php:1879
 msgid "Delivery and collection by the rental operator is no longer available for this rental item."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1883
+#: includes/class-rmwc-plugin.php:1885
 msgid "The delivery/receipt address of the rental item is invalid. Please reconfigure the item."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1891
+#: includes/class-rmwc-plugin.php:1893
 msgid "Transport flat rate"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:1915
+#: includes/class-rmwc-plugin.php:1917
 msgid "The delivery zone of the rental item is no longer valid. Please reconfigure the item."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2081
+#: includes/class-rmwc-plugin.php:2019
+#: includes/class-rmwc-plugin.php:2083
+#: includes/class-rmwc-plugin.php:3328
+msgid "Rental item"
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:2043
+#, php-format
+msgid "Transport – %s"
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:2046
+#, php-format
+msgid "Security deposit – %s"
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:2083
 #, php-format
 msgid "%s: There is not enough stock available for at least one selected period."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2138
+#: includes/class-rmwc-plugin.php:2140
+#: includes/class-rmwc-plugin.php:2141
 msgid "Rental day"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2138
+#: includes/class-rmwc-plugin.php:2140
 msgid "Week"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2138
+#: includes/class-rmwc-plugin.php:2140
 msgid "30 days"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2171
+#: includes/class-rmwc-plugin.php:2141
+msgid "from"
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:2173
 #: includes/v2/modules/class-rmwc-v2-integrations.php:221
 #: includes/v2/modules/class-rmwc-v2-integrations.php:308
 #: includes/v2/modules/class-rmwc-v2-integrations.php:499
 #: includes/v2/modules/class-rmwc-v2-integrations.php:508
-msgid "Filed online with order"
+msgid "Provided online with the order"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2267
+#: includes/class-rmwc-plugin.php:2184
+#: includes/v2/modules/class-rmwc-v2-deposits.php:562
+msgid "Security deposit – "
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:2205
+msgid "Delivery – "
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:2205
+msgid "Transport – "
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:2218
+#: includes/class-rmwc-plugin.php:2231
+#, php-format
+msgid "Rental booking stopped before payment – %s"
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:2245
+#, php-format
+msgid "WARNING rental booking: %1$s Please review order %2$s manually."
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:2269
 msgid "A rental item is no longer validly configured."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2276
+#: includes/class-rmwc-plugin.php:2278
 msgid "A rental period of the order is invalid."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2280
+#: includes/class-rmwc-plugin.php:2282
 msgid "The quantity requested exceeds the available rental stock."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2300
+#: includes/class-rmwc-plugin.php:2302
 msgid "The rental stock just could not be safely reserved. Please try ordering again."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2321
+#: includes/class-rmwc-plugin.php:2323
 msgid "The desired rental period has just been booked elsewhere. Please select a new period."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2355
+#: includes/class-rmwc-plugin.php:2357
 msgid "The rental reservation could not be stored safely. Nothing was charged; please try again."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2370
+#: includes/class-rmwc-plugin.php:2372
 msgid "The rental reservation could not be fully prepared. Please try again."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2574
-msgid "Open"
+#: includes/class-rmwc-plugin.php:2553
+msgid "Rental security deposit"
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:2564
+msgid "This order does not contain a rental security deposit."
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:2574
+msgid "Total security deposit:"
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:2576
+msgid "Open"
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:2576
 #: includes/v2/modules/class-rmwc-v2-documents.php:603
 #: includes/v2/modules/class-rmwc-v2-documents.php:666
 #: includes/v2/modules/class-rmwc-v2-workflow.php:645
 msgid "Received"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2574
+#: includes/class-rmwc-plugin.php:2576
 msgid "Refunded in full"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2574
+#: includes/class-rmwc-plugin.php:2576
 msgid "Partially withheld"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2574
-msgid "Full withholding"
+#: includes/class-rmwc-plugin.php:2576
+msgid "Fully retained"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2574
-msgid "Decrees"
+#: includes/class-rmwc-plugin.php:2576
+msgid "Waived"
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:2580
+msgid "Refunded"
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:2581
+msgid "Retained"
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:2582
+msgid "Reason for retention"
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:2583
 msgid "No retention"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2581
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1078
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1327
+#: includes/class-rmwc-plugin.php:2583
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1079
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1328
 msgid "Damage"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2581
-msgid "Not cleaned correctly / cleaning effort"
+#: includes/class-rmwc-plugin.php:2583
+msgid "Insufficient cleaning / cleaning costs"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2581
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1080
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1329
+#: includes/class-rmwc-plugin.php:2583
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1081
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1330
 msgid "Loss / non-return"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2581
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1081
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1330
+#: includes/class-rmwc-plugin.php:2583
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1082
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1331
 msgid "Other reason"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2632
-#: includes/class-rmwc-plugin.php:3022
+#: includes/class-rmwc-plugin.php:2587
+msgid "Refund/completion date"
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:2588
+msgid "Note / damage"
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:2634
+#: includes/class-rmwc-plugin.php:3024
 msgid "Rentals"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2691
-#: includes/class-rmwc-plugin.php:2859
-#: includes/class-rmwc-plugin.php:2893
+#: includes/class-rmwc-plugin.php:2654
+msgid "Permission denied."
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:2681
+msgid "Rental reminder: %product%"
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:2685
+msgid "Settings saved."
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:2693
+#: includes/class-rmwc-plugin.php:2861
+#: includes/class-rmwc-plugin.php:2895
 #: includes/v2/modules/class-rmwc-v2-workflow.php:755
 msgid "Booking not found."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2694
-msgid "Only active bookings that have not yet been passed can be edited."
+#: includes/class-rmwc-plugin.php:2696
+msgid "Only active bookings that have not yet been handed over can be edited."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2705
+#: includes/class-rmwc-plugin.php:2707
 msgid "The booking could not be locked safely. Please try again."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2713
+#: includes/class-rmwc-plugin.php:2715
 msgid "Please specify a valid blocking period."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2727
+#: includes/class-rmwc-plugin.php:2729
 msgid "There is not enough stock available for the changed period."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2750
+#: includes/class-rmwc-plugin.php:2752
 msgid "Please provide a valid e-mail address."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2758
+#: includes/class-rmwc-plugin.php:2760
 msgid "The equipment allocation could not be adjusted for the new period."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2773
-msgid "The booking change could not be saved. The previous condition was restored."
+#: includes/class-rmwc-plugin.php:2775
+msgid "The booking change could not be saved. The previous state was restored."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2788
-msgid "The WooCommerce order position for the booking was not found. The change was reset."
+#: includes/class-rmwc-plugin.php:2790
+msgid "The WooCommerce order item for the booking was not found. The change was reverted."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2804
-msgid "The rental data of the WooCommerce order position are incomplete. The change has been reset."
+#: includes/class-rmwc-plugin.php:2806
+msgid "The rental data on the WooCommerce order item is incomplete. The change was reverted."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2820
+#: includes/class-rmwc-plugin.php:2822
 #, php-format
-msgid "Rental: Period of booking #%d administratively changed. Financial positions were not automatically recalculated."
+msgid "Rental: The period for booking #%d was changed by an administrator. Financial line items were not recalculated automatically."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2842
-msgid "The order position could not be safely updated. Booking and equipment assignment were reset to the previous level."
+#: includes/class-rmwc-plugin.php:2844
+msgid "The order item could not be updated safely. The booking and equipment assignment were restored to their previous state."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2848
+#: includes/class-rmwc-plugin.php:2850
 msgid "Booking updated."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2862
-msgid "An already handed over, returned or otherwise completed booking cannot be deleted or cancelled for reasons of proof."
+#: includes/class-rmwc-plugin.php:2864
+msgid "A booking that has already been handed over, returned, or otherwise completed cannot be deleted or cancelled because its audit trail must be retained."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2875
+#: includes/class-rmwc-plugin.php:2877
 #, php-format
 msgid "Rental: Booking #%d has been cancelled in the rental management. The order itself has not been automatically cancelled; the rental reservation will not be created again at later status changes."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2878
-msgid "The order booking has been cancelled and remains in the history for reasons of proof."
+#: includes/class-rmwc-plugin.php:2880
+msgid "The order booking was cancelled and remains in the history to preserve its audit trail."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2884
+#: includes/class-rmwc-plugin.php:2886
 msgid "Manual booking/block was deleted."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2896
+#: includes/class-rmwc-plugin.php:2898
 msgid "An already handed over or completed booking can no longer be released."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2901
+#: includes/class-rmwc-plugin.php:2903
 msgid "The booking could not be released."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2904
+#: includes/class-rmwc-plugin.php:2906
 msgid "Booking/block released."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:2950
+#: includes/class-rmwc-plugin.php:2920
+#: includes/class-rmwc-plugin.php:2966
+#: includes/v2/modules/class-rmwc-v2-inventory.php:120
+msgid "Please select a valid rental product."
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:2928
+msgid "Please enter a valid email address."
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:2952
 #: includes/v2/modules/class-rmwc-v2-workflow.php:437
 msgid "The equipment assignment could not be completed."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3025
-msgid "Calendar & Bookings"
+#: includes/class-rmwc-plugin.php:2956
+msgid "Manual booking created."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3026
-msgid "Equipment"
+#: includes/class-rmwc-plugin.php:2971
+msgid "Please enter a valid blocked period."
 msgstr ""
 
 #: includes/class-rmwc-plugin.php:3027
+msgid "Calendar & Bookings"
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:3028
+msgid "Equipment"
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:3029
 #: includes/v2/modules/class-rmwc-v2-workflow.php:78
 msgid "Transfer & Return"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3028
+#: includes/class-rmwc-plugin.php:3030
 msgid "Rental terms"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3029
+#: includes/class-rmwc-plugin.php:3031
 msgid "Settings"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3051
-#: includes/class-rmwc-plugin.php:3318
+#: includes/class-rmwc-plugin.php:3053
+#: includes/class-rmwc-plugin.php:3320
 msgid "Remembrance of your rent: %product%"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3057
+#: includes/class-rmwc-plugin.php:3054
+#: includes/class-rmwc-plugin.php:3321
+msgid ""
+"Hello %name%,\n"
+"\n"
+"This is a reminder of your upcoming rental of %product%.\n"
+"Pickup / rental start: %pickup%\n"
+"Return: %return%\n"
+"\n"
+"Best regards"
+msgstr ""
+
+#: includes/class-rmwc-plugin.php:3059
 msgid "Delivery distance"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3058
+#: includes/class-rmwc-plugin.php:3060
 msgid "If start address and Google Routes API key are set, the plugin calculates the actual route on the server side and automatically assigns the appropriate delivery zone of the product."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3060
+#: includes/class-rmwc-plugin.php:3062
 msgid "Externer Dienst"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3060
+#: includes/class-rmwc-plugin.php:3062
 msgid "Enable Google Routes API explicitly"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3060
+#: includes/class-rmwc-plugin.php:3062
 msgid "Data protection:"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3060
+#: includes/class-rmwc-plugin.php:3062
 msgid "Only when activated, the delivery address entered by the customer together with the start address is transmitted to Google. Without activation, Google route requests are not made."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3061
+#: includes/class-rmwc-plugin.php:3063
 msgid "Startadresse"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3061
+#: includes/class-rmwc-plugin.php:3063
 msgid "z. B. Besenhausen 1, 37133 Friedland"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3062
+#: includes/class-rmwc-plugin.php:3064
 msgid "Google Routes API Key"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3062
+#: includes/class-rmwc-plugin.php:3064
 msgid "API key is provided via wp-config.php."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3062
+#: includes/class-rmwc-plugin.php:3064
 msgid "The key is not saved in the WordPress database and cannot be changed here."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3062
+#: includes/class-rmwc-plugin.php:3064
 msgid "API key saved – leave empty to keep"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3062
+#: includes/class-rmwc-plugin.php:3064
 msgid "For security reasons, the stored key is not written back into the HTML form. Even more secure is the deployment via RMWC_GOOGLE_ROUTES_API_KEY in wp-config.php."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3062
+#: includes/class-rmwc-plugin.php:3064
 msgid "Delete saved API key"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3065
+#: includes/class-rmwc-plugin.php:3067
 msgid "Reminder Mails"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3067
+#: includes/class-rmwc-plugin.php:3069
 #: includes/v2/modules/class-rmwc-v2-terms.php:824
 msgid "Active"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3067
+#: includes/class-rmwc-plugin.php:3069
 msgid "Remind customers before renting"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3068
+#: includes/class-rmwc-plugin.php:3070
 msgid "Preceding in hours"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3069
+#: includes/class-rmwc-plugin.php:3071
 msgid "Betreff"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3070
+#: includes/class-rmwc-plugin.php:3072
 msgid "Text"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3070
+#: includes/class-rmwc-plugin.php:3072
 #, php-format
 msgid "Platzhalter: %name%, %product%, %pickup%, %return%, %order%"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3073
+#: includes/class-rmwc-plugin.php:3075
 msgid "Daten bei Deinstallation"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3074
+#: includes/class-rmwc-plugin.php:3076
 msgid "Reservations"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3075
+#: includes/class-rmwc-plugin.php:3077
 msgid "Unbezahlte Online-Reservierung halten"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3075
+#: includes/class-rmwc-plugin.php:3077
 msgid "Minutes"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3075
+#: includes/class-rmwc-plugin.php:3077
 msgid "Only unpaid pending orders with an online payment method are automatically cancelled after this period and the rental stock is released. Payment methods from the list \"Offline payment methods\" (e.g. invoice/transfer) are excluded and remain reserved until the manual or gateway-side status change. The plugin also protects these rental orders from WooCommerce's own Pending cancellation."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3076
+#: includes/class-rmwc-plugin.php:3078
 msgid "Adjusting"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3076
+#: includes/class-rmwc-plugin.php:3078
 msgid "Definitely remove booking table and plugin settings when deleting the plugin"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3076
+#: includes/class-rmwc-plugin.php:3078
 msgid "By default, booking data is retained, so that business documents are not accidentally deleted by a plugin installation."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3078
+#: includes/class-rmwc-plugin.php:3080
 msgid "Save Settings"
 msgstr ""
 
+#: includes/class-rmwc-plugin.php:3086
+msgid "Search rental products…"
+msgstr ""
+
 #. translators: %d: internal rental booking ID.
-#: includes/class-rmwc-plugin.php:3142
+#: includes/class-rmwc-plugin.php:3144
 #, php-format
 msgid "Edit Booking #%d"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3145
-msgid "Abbrechen"
+#: includes/class-rmwc-plugin.php:3147
+msgid "Cancel"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3148
+#: includes/class-rmwc-plugin.php:3150
 msgid "This rental has already been handed over and can therefore no longer be re-dated afterwards. The history and protocols remain unchanged."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3156
-#: includes/class-rmwc-plugin.php:3206
-msgid "Von"
+#: includes/class-rmwc-plugin.php:3158
+#: includes/class-rmwc-plugin.php:3208
+msgid "From"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3157
-#: includes/class-rmwc-plugin.php:3206
-msgid "Bis"
+#: includes/class-rmwc-plugin.php:3159
+#: includes/class-rmwc-plugin.php:3208
+msgid "To"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3161
-#: includes/class-rmwc-plugin.php:3192
+#: includes/class-rmwc-plugin.php:3163
+#: includes/class-rmwc-plugin.php:3194
 msgid "Pick-up date"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3166
-#: includes/class-rmwc-plugin.php:3193
-#: includes/class-rmwc-plugin.php:3207
-#: includes/class-rmwc-plugin.php:3225
-#: includes/class-rmwc-plugin.php:3413
+#: includes/class-rmwc-plugin.php:3168
+#: includes/class-rmwc-plugin.php:3195
+#: includes/class-rmwc-plugin.php:3209
+#: includes/class-rmwc-plugin.php:3227
+#: includes/class-rmwc-plugin.php:3415
 msgid "Number"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3168
+#: includes/class-rmwc-plugin.php:3170
 msgid "Number:"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3168
-msgid "The amount of a paid order is deliberately not changed here."
+#: includes/class-rmwc-plugin.php:3170
+msgid "The total of an already paid order is intentionally not changed here."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3172
-#: includes/class-rmwc-plugin.php:3194
+#: includes/class-rmwc-plugin.php:3174
+#: includes/class-rmwc-plugin.php:3196
 msgid "Customer name"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3173
-#: includes/class-rmwc-plugin.php:3195
-#: includes/class-rmwc-plugin.php:3415
+#: includes/class-rmwc-plugin.php:3175
+#: includes/class-rmwc-plugin.php:3197
+#: includes/class-rmwc-plugin.php:3417
 msgid "E-Mail"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3176
-#: includes/class-rmwc-plugin.php:3196
-#: includes/class-rmwc-plugin.php:3416
+#: includes/class-rmwc-plugin.php:3178
+#: includes/class-rmwc-plugin.php:3198
+#: includes/class-rmwc-plugin.php:3418
 msgid "Notiz"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3178
+#: includes/class-rmwc-plugin.php:3180
 msgid "A change of date updates the rental data and availability, not automatically the already calculated order price. The change is logged as an order notice."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3180
+#: includes/class-rmwc-plugin.php:3182
 msgid "Save Booking"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3187
+#: includes/class-rmwc-plugin.php:3189
 msgid "Manual booking"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3197
+#: includes/class-rmwc-plugin.php:3199
 msgid "Create a booking"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3201
+#: includes/class-rmwc-plugin.php:3203
 msgid "Lock the period"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3207
+#: includes/class-rmwc-plugin.php:3209
 msgid "0 = total product capacity lock"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3208
+#: includes/class-rmwc-plugin.php:3210
 msgid "Grund/Notiz"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3208
+#: includes/class-rmwc-plugin.php:3210
 msgid "z. B. Wartung, eigene Veranstaltung"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3209
+#: includes/class-rmwc-plugin.php:3211
 msgid "Set Lock"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3224
+#: includes/class-rmwc-plugin.php:3226
 msgid "Last Bookings and Locks"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3225
+#: includes/class-rmwc-plugin.php:3227
 msgid "ID"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3225
+#: includes/class-rmwc-plugin.php:3227
 msgid "Source"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3225
-#: includes/class-rmwc-plugin.php:3410
+#: includes/class-rmwc-plugin.php:3227
+#: includes/class-rmwc-plugin.php:3412
 #: includes/v2/modules/class-rmwc-v2-inventory.php:190
 msgid "Product"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3225
+#: includes/class-rmwc-plugin.php:3227
 #: includes/v2/modules/class-rmwc-v2-workflow.php:576
 msgid "Period"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3225
+#: includes/class-rmwc-plugin.php:3227
 msgid "Customer"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3225
-#: includes/class-rmwc-plugin.php:3417
+#: includes/class-rmwc-plugin.php:3227
+#: includes/class-rmwc-plugin.php:3419
 #: includes/v2/modules/class-rmwc-v2-documents.php:352
 #: includes/v2/modules/class-rmwc-v2-documents.php:598
 #: includes/v2/modules/class-rmwc-v2-documents.php:640
@@ -1424,7 +1571,7 @@ msgstr ""
 msgid "Order"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3225
+#: includes/class-rmwc-plugin.php:3227
 #: includes/v2/modules/class-rmwc-v2-inventory.php:162
 #: includes/v2/modules/class-rmwc-v2-inventory.php:193
 #: includes/v2/modules/class-rmwc-v2-terms.php:817
@@ -1432,71 +1579,71 @@ msgstr ""
 msgid "Status"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3226
+#: includes/class-rmwc-plugin.php:3228
 msgid "No bookings yet."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3244
+#: includes/class-rmwc-plugin.php:3246
 #: includes/v2/modules/class-rmwc-v2-inventory.php:213
 msgid "Edit"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3245
+#: includes/class-rmwc-plugin.php:3247
 msgid "Do you really cancel this order booking? The WooCommerce order itself remains valid."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3245
+#: includes/class-rmwc-plugin.php:3247
 msgid "Really delete this entry permanently?"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3249
+#: includes/class-rmwc-plugin.php:3251
 msgid "Stornieren"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3249
+#: includes/class-rmwc-plugin.php:3251
 #: includes/v2/modules/class-rmwc-v2-inventory.php:218
 msgid "Delete"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3384
-#: includes/class-rmwc-plugin.php:3426
+#: includes/class-rmwc-plugin.php:3386
+#: includes/class-rmwc-plugin.php:3428
 msgid "– rental bookings"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3407
+#: includes/class-rmwc-plugin.php:3409
 msgid "Rental bookings"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3414
+#: includes/class-rmwc-plugin.php:3416
 #: includes/v2/modules/class-rmwc-v2-documents.php:601
 msgid "Name"
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3487
+#: includes/class-rmwc-plugin.php:3489
 msgid "Personal data of active or future rentals have been retained for the time being, so that the rental can be fulfilled."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3502
+#: includes/class-rmwc-plugin.php:3504
 msgid "This plugin stores product, rental period, number as well as for bookings name and e-mail address additionally in its own booking table for rental bookings. These data are used for availability check, administration and optional reminder before rental starts."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3503
+#: includes/class-rmwc-plugin.php:3505
 msgid "Version 2 also stores the respective accepted version of the rental terms as an order snapshot, as well as rental contracts and deposit receipts as unchangeable business documents. Document snapshots may contain customer data, rental items, rental period, deposit transactions and accepted rental terms. Physical devices can be managed with inventory and serial numbers and rented."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3504
+#: includes/class-rmwc-plugin.php:3506
 msgid "WooCommerce products marked as rental accessories are hidden from the public shop and only used in connection with a configured rental item. Here, the normal WooCommerce data on the price, tax and inventory of the accessory product continue to apply."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3505
+#: includes/class-rmwc-plugin.php:3507
 msgid "If the optional automatic delivery distance is explicitly activated, the start address and the delivery address entered by the customer are transferred to the Google Routes API for route calculation. Without this activation, the plugin does not send any delivery addresses to Google."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3506
+#: includes/class-rmwc-plugin.php:3508
 msgid "To protect public availability and removal queries from misuse, the plugin uses short-lived rate limit entries. For this purpose, the IP address is not stored in plain text, but only a short-lived hash formed with the WordPress Salt."
 msgstr ""
 
-#: includes/class-rmwc-plugin.php:3507
+#: includes/class-rmwc-plugin.php:3509
 msgid "Rental Manager for WooCommerce"
 msgstr ""
 
@@ -1533,19 +1680,19 @@ msgid "This rental accessory can only be selected together with the correspondin
 msgstr ""
 
 #: includes/v2/modules/class-rmwc-v2-deposits.php:84
-msgid "Deposit deposit"
+msgid "Security deposit handling"
 msgstr ""
 
 #: includes/v2/modules/class-rmwc-v2-deposits.php:87
-msgid "When making online payment let customer choose"
+msgid "Let the customer choose at checkout"
 msgstr ""
 
 #: includes/v2/modules/class-rmwc-v2-deposits.php:88
-msgid "Always directly with the online payment"
+msgid "Always collect with the online payment"
 msgstr ""
 
 #: includes/v2/modules/class-rmwc-v2-deposits.php:89
-msgid "Always separately / bar at handover"
+msgid "Always separately / cash at handover"
 msgstr ""
 
 #: includes/v2/modules/class-rmwc-v2-deposits.php:91
@@ -1605,264 +1752,264 @@ msgid "Please choose how to deposit the deposit."
 msgstr ""
 
 #. translators: %s: formatted refundable deposit amount already collected online.
-#: includes/v2/modules/class-rmwc-v2-deposits.php:620
+#: includes/v2/modules/class-rmwc-v2-deposits.php:621
 #, php-format
 msgid "The deposit of %s has already been deposited with the online payment and is not part of the invoice amount. The QR code of this invoice contains only the invoice amount. The refund is made according to rental conditions."
 msgstr ""
 
 #. translators: 1: total refundable deposit, 2: amount collected online, 3: amount still to be deposited separately.
-#: includes/v2/modules/class-rmwc-v2-deposits.php:631
+#: includes/v2/modules/class-rmwc-v2-deposits.php:632
 #, php-format
 msgid "The deposit is %1$s. %2$s has already been deposited online; %3$s must be transferred separately or deposited in cash upon collection. The QR code of this invoice contains only the invoice amount. The refund is made according to rental conditions."
 msgstr ""
 
 #. translators: %s: formatted refundable deposit amount to be deposited separately.
-#: includes/v2/modules/class-rmwc-v2-deposits.php:642
+#: includes/v2/modules/class-rmwc-v2-deposits.php:643
 #, php-format
 msgid "In accordance with rental conditions, a security deposit of %s is required. It can be transferred separately or deposited in cash upon collection. The QR code of this invoice contains only the invoice amount; the security deposit is not included in it. Refunds are made according to rental conditions."
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:730
+#: includes/v2/modules/class-rmwc-v2-deposits.php:731
 msgid "Invalid type of deposit."
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:735
-#: includes/v2/modules/class-rmwc-v2-deposits.php:804
+#: includes/v2/modules/class-rmwc-v2-deposits.php:736
+#: includes/v2/modules/class-rmwc-v2-deposits.php:805
 msgid "The deposit is being processed in another process. Please try again."
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:743
+#: includes/v2/modules/class-rmwc-v2-deposits.php:744
 msgid "There is no open deposit or the amount is invalid."
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:747
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1053
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1203
+#: includes/v2/modules/class-rmwc-v2-deposits.php:748
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1054
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1204
 msgid "Bar"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:748
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1053
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1204
+#: includes/v2/modules/class-rmwc-v2-deposits.php:749
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1054
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1205
 msgid "Separate transfer"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:749
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1053
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1205
+#: includes/v2/modules/class-rmwc-v2-deposits.php:750
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1054
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1206
 #: includes/v2/modules/class-rmwc-v2-workflow.php:669
 msgid "Sonstige Hinterlegung"
-msgstr ""
-
-#: includes/v2/modules/class-rmwc-v2-deposits.php:774
-#: includes/v2/modules/class-rmwc-v2-deposits.php:994
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1224
-msgid "Deposit receipt for your rental"
 msgstr ""
 
 #: includes/v2/modules/class-rmwc-v2-deposits.php:775
 #: includes/v2/modules/class-rmwc-v2-deposits.php:995
 #: includes/v2/modules/class-rmwc-v2-deposits.php:1225
-msgid "Deposit received"
+msgid "Deposit receipt for your rental"
 msgstr ""
 
 #: includes/v2/modules/class-rmwc-v2-deposits.php:776
+#: includes/v2/modules/class-rmwc-v2-deposits.php:996
 #: includes/v2/modules/class-rmwc-v2-deposits.php:1226
+msgid "Deposit received"
+msgstr ""
+
+#: includes/v2/modules/class-rmwc-v2-deposits.php:777
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1227
 msgid "We confirm receipt of your deposit. You will find the receipt in the appendix."
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:780
+#: includes/v2/modules/class-rmwc-v2-deposits.php:781
 #, php-format
 msgid "Deposit received during the handover process: %s (%s)."
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:811
+#: includes/v2/modules/class-rmwc-v2-deposits.php:812
 msgid "There is no deposit left."
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:819
+#: includes/v2/modules/class-rmwc-v2-deposits.php:820
 msgid "Invalid reason for the remaining deposit amount."
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:822
+#: includes/v2/modules/class-rmwc-v2-deposits.php:823
 msgid "In the case of a partial refund, it must be stated what happens to the remaining deposit amount."
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:830
+#: includes/v2/modules/class-rmwc-v2-deposits.php:831
 #: includes/v2/modules/class-rmwc-v2-workflow.php:695
 msgid "Repayment of the balance is made later / separately"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:831
+#: includes/v2/modules/class-rmwc-v2-deposits.php:832
 #: includes/v2/modules/class-rmwc-v2-workflow.php:696
 msgid "Retention due to damage"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:832
+#: includes/v2/modules/class-rmwc-v2-deposits.php:833
 #: includes/v2/modules/class-rmwc-v2-workflow.php:697
 msgid "Retention due to cleaning / pollution"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:833
+#: includes/v2/modules/class-rmwc-v2-deposits.php:834
 #: includes/v2/modules/class-rmwc-v2-workflow.php:698
 msgid "Retention due to loss / non-return"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:834
+#: includes/v2/modules/class-rmwc-v2-deposits.php:835
 #: includes/v2/modules/class-rmwc-v2-workflow.php:699
 msgid "Other withholding"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:854
+#: includes/v2/modules/class-rmwc-v2-deposits.php:855
 msgid "Rent deposit not yet paid back upon return; repayment of the balance will be made later / separately."
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:863
+#: includes/v2/modules/class-rmwc-v2-deposits.php:864
 msgid "Bar / manuell / separat"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:883
-msgid "Billing your rental deposit"
-msgstr ""
-
-#: includes/v2/modules/class-rmwc-v2-deposits.php:883
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1379
-msgid "Reimbursement of your rental deposit"
-msgstr ""
-
 #: includes/v2/modules/class-rmwc-v2-deposits.php:884
-#: includes/v2/modules/class-rmwc-v2-documents.php:588
-msgid "Deposit account"
+msgid "Billing your rental deposit"
 msgstr ""
 
 #: includes/v2/modules/class-rmwc-v2-deposits.php:884
 #: includes/v2/modules/class-rmwc-v2-deposits.php:1380
+msgid "Reimbursement of your rental deposit"
+msgstr ""
+
+#: includes/v2/modules/class-rmwc-v2-deposits.php:885
+#: includes/v2/modules/class-rmwc-v2-documents.php:588
+msgid "Deposit account"
+msgstr ""
+
+#: includes/v2/modules/class-rmwc-v2-deposits.php:885
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1381
 msgid "Deposit paid back"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:886
+#: includes/v2/modules/class-rmwc-v2-deposits.php:887
 msgid "In the notes you will receive the billing of your rental deposit with the documented repayment and the retention."
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:887
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1381
+#: includes/v2/modules/class-rmwc-v2-deposits.php:888
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1382
 msgid "We confirm the repayment of your deposit or partial deposit. You can find the refund receipt in the attachment."
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:890
+#: includes/v2/modules/class-rmwc-v2-deposits.php:891
 #, php-format
 msgid "Rent deposit returned in the return process: %s."
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:896
+#: includes/v2/modules/class-rmwc-v2-deposits.php:897
 msgid "Still open:"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:983
+#: includes/v2/modules/class-rmwc-v2-deposits.php:984
 msgid "Online payment"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:996
+#: includes/v2/modules/class-rmwc-v2-deposits.php:997
 msgid "Thank you very much. The deposit deposited with the online payment has been recorded. You can find your deposit receipt in the attachment."
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1011
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1012
 msgid "Rent deposit"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1022
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1023
 msgid "This order does not contain a rental deposit."
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1034
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1035
 msgid "Deposit required:"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1035
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1036
 msgid "Received:"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1035
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1036
 msgid "Repaid:"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1037
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1038
 msgid "Retention:"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1039
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1040
 msgid "Currently stored / open:"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1042
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1043
 msgid "Online refund unclear."
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1042
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1043
 msgid "The payment provider did not report any clear success. Please check the payment provider before a new online refund."
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1043
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1044
 msgid "Unlock after testing"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1047
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1048
 msgid "Detection of security deposit separately"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1052
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1071
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1053
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1072
 msgid "Betrag"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1053
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1054
 msgid "Received as:"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1055
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1056
 msgid "Deposit as received book"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1060
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1061
 msgid "Repayment of deposit"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1062
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1063
 msgid "Bar / manually confirmed"
 msgstr ""
 
 #. translators: %s: maximum refundable online deposit amount.
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1065
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1066
 #, php-format
 msgid "About original online payment method (max. %s)"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1072
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1073
 msgid "Reimbursement"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1075
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1076
 msgid "Reason for remaining retention (optional)"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1077
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1078
 msgid "No retention / further partial repayment follows"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1079
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1328
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1080
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1329
 msgid "Cleaning / not properly cleaned"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1084
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1085
 msgid "Notiz zum Einbehalt (optional)"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1086
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1087
 msgid "Execute/confirm repayment"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1142
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1143
 #: includes/v2/modules/class-rmwc-v2-documents.php:1253
 #: includes/v2/modules/class-rmwc-v2-inventory.php:85
 #: includes/v2/modules/class-rmwc-v2-inventory.php:231
@@ -1874,7 +2021,7 @@ msgstr ""
 msgid "No permission."
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1146
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1147
 #: includes/v2/modules/class-rmwc-v2-documents.php:1258
 #: includes/v2/modules/class-rmwc-v2-inventory.php:235
 #: includes/v2/modules/class-rmwc-v2-inventory.php:327
@@ -1883,42 +2030,46 @@ msgstr ""
 msgid "Security check failed."
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1151
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1152
 #: includes/v2/modules/class-rmwc-v2-workflow.php:759
 msgid "Order not found."
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1228
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1229
 #, php-format
 msgid "Deposit received: %s (%s)."
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1263
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1264
 msgid "Bar / manuell"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1278
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1279
 msgid "Reimbursement Rent deposit"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1307
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1308
 msgid "Original online payment method"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1383
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1384
 #, php-format
 msgid "Rent deposit repaid: %s (%s)."
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1416
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1406
+msgid "Rental security deposit: The block for an unclear online refund was cleared after manual review."
+msgstr ""
+
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1417
 msgid "Deposit & Payment methods"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1418
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1419
 msgid "Offline payment methods"
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-deposits.php:1419
+#: includes/v2/modules/class-rmwc-v2-deposits.php:1420
 msgid "Commage-separated gateway IDs, where the deposit is not included in the WooCommerce payment amount. Standard: bacs, cheque, cod. Add additional invoice/prepayment plugins here."
 msgstr ""
 
@@ -1957,6 +2108,7 @@ msgid "Change in rental contract"
 msgstr ""
 
 #: includes/v2/modules/class-rmwc-v2-documents.php:349
+#: includes/v2/modules/class-rmwc-v2-documents.php:771
 #: includes/v2/modules/class-rmwc-v2-documents.php:1015
 msgid "Rental agreement"
 msgstr ""
@@ -1998,7 +2150,7 @@ msgid "Rental and rental period"
 msgstr ""
 
 #: includes/v2/modules/class-rmwc-v2-documents.php:425
-msgid "Zusatzoption"
+msgid "Add-on"
 msgstr ""
 
 #: includes/v2/modules/class-rmwc-v2-documents.php:432
@@ -2276,7 +2428,7 @@ msgid "Notes / newly identified abnormalities"
 msgstr ""
 
 #: includes/v2/modules/class-rmwc-v2-documents.php:731
-msgid "Bearbeitet von"
+msgid "Processed by"
 msgstr ""
 
 #: includes/v2/modules/class-rmwc-v2-documents.php:736
@@ -2285,10 +2437,6 @@ msgstr ""
 
 #: includes/v2/modules/class-rmwc-v2-documents.php:737
 msgid "The handover was completed with the information documented above."
-msgstr ""
-
-#: includes/v2/modules/class-rmwc-v2-documents.php:771
-msgid "rental contract"
 msgstr ""
 
 #: includes/v2/modules/class-rmwc-v2-documents.php:851
@@ -2340,7 +2488,7 @@ msgid "General rental terms"
 msgstr ""
 
 #: includes/v2/modules/class-rmwc-v2-documents.php:1075
-msgid "Additional rental conditions –"
+msgid "Additional rental terms – "
 msgstr ""
 
 #: includes/v2/modules/class-rmwc-v2-documents.php:1090
@@ -2513,10 +2661,6 @@ msgstr ""
 msgid "This inventory number is already assigned."
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-inventory.php:120
-msgid "Please select a valid rental product."
-msgstr ""
-
 #: includes/v2/modules/class-rmwc-v2-inventory.php:121
 msgid "Please specify an inventory number."
 msgstr ""
@@ -2539,7 +2683,7 @@ msgid "Inventory numbers remain permanently linked to the rental history. Alread
 msgstr ""
 
 #: includes/v2/modules/class-rmwc-v2-inventory.php:137
-msgid "Bearbeitung abbrechen"
+msgid "Cancel editing"
 msgstr ""
 
 #: includes/v2/modules/class-rmwc-v2-inventory.php:146
@@ -2625,24 +2769,12 @@ msgstr ""
 msgid "No accessory set yet."
 msgstr ""
 
-#: includes/v2/modules/class-rmwc-v2-materials.php:162
-msgid "Gruppenname"
-msgstr ""
-
-#: includes/v2/modules/class-rmwc-v2-materials.php:166
-msgid "Auswahlart"
-msgstr ""
-
 #: includes/v2/modules/class-rmwc-v2-materials.php:168
 msgid "Einfachauswahl – maximal eine Option"
 msgstr ""
 
 #: includes/v2/modules/class-rmwc-v2-materials.php:169
 msgid "Multiple selection – multiple options possible"
-msgstr ""
-
-#: includes/v2/modules/class-rmwc-v2-materials.php:173
-msgid "Pflichtauswahl"
 msgstr ""
 
 #: includes/v2/modules/class-rmwc-v2-materials.php:181
@@ -2678,10 +2810,6 @@ msgstr ""
 
 #: includes/v2/modules/class-rmwc-v2-materials.php:209
 msgid "Optional. Leer = Produktname verwenden."
-msgstr ""
-
-#: includes/v2/modules/class-rmwc-v2-materials.php:212
-msgid "Berechnung"
 msgstr ""
 
 #: includes/v2/modules/class-rmwc-v2-materials.php:215
@@ -3260,11 +3388,11 @@ msgstr ""
 msgid "No rental booking in this order."
 msgstr ""
 
-#: patsch9-rental-engine.php:194
+#: patsch9-rental-engine.php:186
 msgid "requires WooCommerce."
 msgstr ""
 
-#: patsch9-rental-engine.php:200
+#: patsch9-rental-engine.php:192
 msgid "requires WooCommerce 10.9.4 or newer."
 msgstr ""
 

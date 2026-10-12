@@ -316,7 +316,7 @@ jQuery(function($){
           $('#rmwc_delivery_distance').val(r.data.distance);
           const mode=box.find('input[name="rmwc_fulfilment"]:checked').val()||'delivery';
           const legs=mode==='delivery_return'?2:1;
-          $('#rmwc_delivery_result').text(`${r.data.distance} km je Fahrt – ${r.data.zone.label}: ${currency(deliveryFee)} je Fahrt${legs===2?' / '+currency(deliveryFee*2)+' gesamt':''} · Google Maps`);
+          $('#rmwc_delivery_result').text(`${r.data.distance} km ${t('perTrip','per trip')} – ${r.data.zone.label}: ${currency(deliveryFee)} ${t('perTrip','per trip')}${legs===2?' / '+currency(deliveryFee*2)+' '+t('total','total'):''} · Google Maps`);
           updatePrice();
         } else {
           $('#rmwc_delivery_result').addClass('is-error').text((r&&r.data&&r.data.message)||t('deliveryQuoteFailed','Delivery costs could not be calculated.'));

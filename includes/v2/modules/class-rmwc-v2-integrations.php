@@ -218,7 +218,7 @@ final class RMWC_V2_Integrations {
         }
         return 'cash' === sanitize_key( $rental['deposit_method'] ?? 'online' )
             ? __( 'Transfer separately or deposit cash at collection', 'patsch9-rental-engine' )
-            : __( 'Filed online with order', 'patsch9-rental-engine' );
+            : __( 'Provided online with the order', 'patsch9-rental-engine' );
     }
 
     private function booking_table() {
@@ -305,7 +305,7 @@ final class RMWC_V2_Integrations {
                     $product_name,
                     'cash' === sanitize_key( $rental['deposit_method'] ?? 'online' )
                         ? __( 'Transfer separately or deposit cash at collection', 'patsch9-rental-engine' )
-                        : __( 'Filed online with order', 'patsch9-rental-engine' )
+                        : __( 'Provided online with the order', 'patsch9-rental-engine' )
                 );
             }
 
@@ -496,7 +496,7 @@ final class RMWC_V2_Integrations {
                     $product_name,
                     'cash' === sanitize_key( $rental['deposit_method'] ?? 'online' )
                         ? __( 'Transfer separately or deposit cash at collection', 'patsch9-rental-engine' )
-                        : __( 'Filed online with order', 'patsch9-rental-engine' )
+                        : __( 'Provided online with the order', 'patsch9-rental-engine' )
                 );
             }
 
@@ -505,7 +505,7 @@ final class RMWC_V2_Integrations {
                 if ( is_array( $meta_row ) && 'Kautionshinterlegung' === (string) ( $meta_row['key'] ?? '' ) && (float) ( $rental['deposit'] ?? 0 ) > 0 ) {
                     $meta_row['value'] = 'cash' === sanitize_key( $rental['deposit_method'] ?? 'online' )
                         ? __( 'Transfer separately or deposit cash at collection', 'patsch9-rental-engine' )
-                        : __( 'Filed online with order', 'patsch9-rental-engine' );
+                        : __( 'Provided online with the order', 'patsch9-rental-engine' );
                 }
             }
             unset( $meta_row );

@@ -159,18 +159,18 @@ final class RMWC_V2_Materials {
             <div class="rmwc-v2-material-group-head">
                 <div class="rmwc-v2-material-group-settings">
                     <div class="rmwc-v2-field rmwc-v2-group-name">
-                        <label><?php esc_html_e( 'Gruppenname', 'patsch9-rental-engine' ); ?></label>
+                        <label><?php esc_html_e( 'Group name', 'patsch9-rental-engine' ); ?></label>
                         <input type="text" name="rmwc_v2_accessory_groups[<?php echo esc_attr( $group_index ); ?>][label]" value="<?php echo esc_attr( $group['label'] ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Material', 'patsch9-rental-engine' ); ?>" maxlength="100" required>
                     </div>
                     <div class="rmwc-v2-field rmwc-v2-group-selection">
-                        <label><?php esc_html_e( 'Auswahlart', 'patsch9-rental-engine' ); ?></label>
+                        <label><?php esc_html_e( 'Selection type', 'patsch9-rental-engine' ); ?></label>
                         <select name="rmwc_v2_accessory_groups[<?php echo esc_attr( $group_index ); ?>][selection]">
                             <option value="single" <?php selected( $selection, 'single' ); ?>><?php esc_html_e( 'Einfachauswahl – maximal eine Option', 'patsch9-rental-engine' ); ?></option>
                             <option value="multiple" <?php selected( $selection, 'multiple' ); ?>><?php esc_html_e( 'Multiple selection – multiple options possible', 'patsch9-rental-engine' ); ?></option>
                         </select>
                     </div>
                     <div class="rmwc-v2-field rmwc-v2-group-required">
-                        <span class="rmwc-v2-label"><?php esc_html_e( 'Pflichtauswahl', 'patsch9-rental-engine' ); ?></span>
+                        <span class="rmwc-v2-label"><?php esc_html_e( 'Required selection', 'patsch9-rental-engine' ); ?></span>
                         <label class="rmwc-v2-checkbox">
                             <input type="checkbox" name="rmwc_v2_accessory_groups[<?php echo esc_attr( $group_index ); ?>][required]" value="1" <?php checked( ! empty( $group['required'] ) ); ?>>
                             <span><?php esc_html_e( 'At least one option must be selected', 'patsch9-rental-engine' ); ?></span>
@@ -209,7 +209,7 @@ final class RMWC_V2_Materials {
                 <p class="description"><?php esc_html_e( 'Optional. Leer = Produktname verwenden.', 'patsch9-rental-engine' ); ?></p>
             </div>
             <div class="rmwc-v2-field rmwc-v2-field-mode">
-                <label><?php esc_html_e( 'Berechnung', 'patsch9-rental-engine' ); ?></label>
+                <label><?php esc_html_e( 'Calculation', 'patsch9-rental-engine' ); ?></label>
                 <select name="rmwc_v2_accessory_groups[<?php echo esc_attr( $group_index ); ?>][options][<?php echo esc_attr( $option_index ); ?>][mode]">
                     <option value="once" <?php selected( $row['mode'] ?? 'once', 'once' ); ?>><?php esc_html_e( '1× per booking', 'patsch9-rental-engine' ); ?></option>
                     <option value="per_device" <?php selected( $row['mode'] ?? 'once', 'per_device' ); ?>><?php esc_html_e( 'Per rented unit', 'patsch9-rental-engine' ); ?></option>

@@ -134,7 +134,7 @@ final class RMWC_V2_Inventory {
                     <p><?php esc_html_e( 'Inventory numbers remain permanently linked to the rental history. Already used devices are therefore archived instead of removed from existing protocols when deleted.', 'patsch9-rental-engine' ); ?></p>
                 </div>
                 <?php if ( $editing ) : ?>
-                    <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=rmwc-rentals&tab=inventory' ) ); ?>"><?php esc_html_e( 'Bearbeitung abbrechen', 'patsch9-rental-engine' ); ?></a>
+                    <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=rmwc-rentals&tab=inventory' ) ); ?>"><?php esc_html_e( 'Cancel editing', 'patsch9-rental-engine' ); ?></a>
                 <?php endif; ?>
             </div>
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="rmwc-v2-asset-form">

@@ -81,12 +81,12 @@ final class RMWC_V2_Deposits {
             [
                 'id'          => '_rmwc_deposit_mode',
                 'wrapper_class' => 'rmwc-rental-field-row',
-                'label'       => __( 'Deposit deposit', 'patsch9-rental-engine' ),
+                'label'       => __( 'Security deposit handling', 'patsch9-rental-engine' ),
                 'value'       => $mode,
                 'options'     => [
-                    'choice' => __( 'When making online payment let customer choose', 'patsch9-rental-engine' ),
-                    'online' => __( 'Always directly with the online payment', 'patsch9-rental-engine' ),
-                    'cash'   => __( 'Always separately / bar at handover', 'patsch9-rental-engine' ),
+                    'choice' => __( 'Let the customer choose at checkout', 'patsch9-rental-engine' ),
+                    'online' => __( 'Always collect with the online payment', 'patsch9-rental-engine' ),
+                    'cash'   => __( 'Always separately / cash at handover', 'patsch9-rental-engine' ),
                 ],
                 'description' => __( 'For payment methods classified as offline, the deposit will not be included in the WooCommerce payment amount.', 'patsch9-rental-engine' ),
                 'desc_tip'    => true,
@@ -559,6 +559,7 @@ final class RMWC_V2_Deposits {
         foreach ( $order->get_items( 'fee' ) as $fee ) {
             $is_deposit = 'yes' === $fee->get_meta( '_rmwc_deposit', true )
                 || 'deposit' === sanitize_key( (string) $fee->get_meta( '_rmwc_fee_type', true ) )
+                || 0 === strpos( (string) $fee->get_name(), __( 'Security deposit – ', 'patsch9-rental-engine' ) )
                 || 0 === strpos( (string) $fee->get_name(), 'Kaution – ' );
             if ( $is_deposit ) {
                 $total += max( 0, (float) $fee->get_total() );
@@ -1402,7 +1403,7 @@ final class RMWC_V2_Deposits {
         try {
             $order = wc_get_order( $order->get_id() ) ?: $order;
             $order->delete_meta_data( '_rmwc_deposit_refund_uncertain' );
-            $order->add_order_note( 'Mietkaution: Sperre für unklare Online-Rückzahlung wurde nach manueller Prüfung aufgehoben.' );
+            $order->add_order_note( __( 'Rental security deposit: The block for an unclear online refund was cleared after manual review.', 'patsch9-rental-engine' ) );
             $order->save();
         } finally {
             $this->release_order_lock( $lock );
