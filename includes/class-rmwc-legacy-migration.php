@@ -96,12 +96,10 @@ final class RMWC_Legacy_Migration {
             // Only an empty table is safe to replace automatically.
             // These collision checks must observe the database directly. Caching a
             // one-time schema migration decision could cause the wrong table to win.
-            // phpcs:disable WordPress.DB.DirectDatabaseQuery.NoCaching
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- One-time migration of plugin-owned tables.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time migration of plugin-owned tables; fresh counts are required for conflict safety.
             $legacy_count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $legacy_table ) );
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- One-time migration of plugin-owned tables.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time migration of plugin-owned tables; fresh counts are required for conflict safety.
             $current_count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $current_table ) );
-            // phpcs:enable WordPress.DB.DirectDatabaseQuery.NoCaching
 
             if ( 0 === $legacy_count ) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Empty obsolete plugin table.

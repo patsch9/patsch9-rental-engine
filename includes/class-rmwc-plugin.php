@@ -3086,8 +3086,10 @@ final class RMWC_Plugin {
                 <tr><th><?php esc_html_e( 'Active', 'patsch9-rental-engine' ); ?></th><td><label><input type="checkbox" name="rmwc_reminder_enabled" value="1" <?php checked( $enabled ); ?>> <?php esc_html_e( 'Remind customers before renting', 'patsch9-rental-engine' ); ?></label></td></tr>
                 <tr><th><label for="rmwc_reminder_hours"><?php esc_html_e( 'Lead time in hours', 'patsch9-rental-engine' ); ?></label></th><td><input type="number" min="1" step="1" id="rmwc_reminder_hours" name="rmwc_reminder_hours" value="<?php echo esc_attr( $hours ); ?>"></td></tr>
                 <tr><th><label for="rmwc_reminder_subject"><?php esc_html_e( 'Subject', 'patsch9-rental-engine' ); ?></label></th><td><input class="large-text" type="text" id="rmwc_reminder_subject" name="rmwc_reminder_subject" value="<?php echo esc_attr( $subject ); ?>"></td></tr>
-                /* translators: Literal reminder-template tokens. Keep the tokens unchanged. */
-                <tr><th><label for="rmwc_reminder_body"><?php esc_html_e( 'Text', 'patsch9-rental-engine' ); ?></label></th><td><textarea class="large-text" rows="8" id="rmwc_reminder_body" name="rmwc_reminder_body"><?php echo esc_textarea( $body ); ?></textarea><p class="description"><?php esc_html_e( 'Placeholders: %name%, %product%, %pickup%, %return%, %order%', 'patsch9-rental-engine' ); ?></p></td></tr>
+                <tr><th><label for="rmwc_reminder_body"><?php esc_html_e( 'Text', 'patsch9-rental-engine' ); ?></label></th><td><textarea class="large-text" rows="8" id="rmwc_reminder_body" name="rmwc_reminder_body"><?php echo esc_textarea( $body ); ?></textarea><p class="description"><?php
+      /* translators: Literal reminder-template tokens. Keep %name%, %product%, %pickup%, %return% and %order% unchanged. */
+      esc_html_e( 'Placeholders: %name%, %product%, %pickup%, %return%, %order%', 'patsch9-rental-engine' );
+      ?></p></td></tr>
             </tbody></table>
 
             <h2><?php esc_html_e( 'Data on uninstall', 'patsch9-rental-engine' ); ?></h2>
