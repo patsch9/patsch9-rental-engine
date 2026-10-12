@@ -7,6 +7,7 @@
  * Author: Patrick Schmidt
  * Author URI: https://github.com/patsch9
  * Text Domain: patsch9-rental-engine
+ * Domain Path: /languages
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Requires Plugins: woocommerce
@@ -19,15 +20,6 @@
 defined( 'ABSPATH' ) || exit;
 
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-rmwc-legacy-migration.php';
-
-/**
- * Load bundled translations for direct/GitHub installs. WordPress.org language
- * packs can override these files through the normal translation update system.
- */
-function rmwc_load_textdomain() {
-    load_plugin_textdomain( 'patsch9-rental-engine', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
-}
-add_action( 'init', 'rmwc_load_textdomain' );
 
 define( 'RMWC_VERSION', '2026.10.1' );
 define( 'RMWC_DB_VERSION', '2.0.27' );
