@@ -32,32 +32,75 @@ jobs:
         run: |
           cp languages/patsch9-rental-engine-de_DE.po /tmp/old-de_DE.po
           python3 tools/final-language-polish.py rewrite-source
-      - name: Rebuild language catalogues
+      - name: Rebuild and diagnose language catalogues
+        id: language
         shell: bash
         run: |
+          set +e
+          report=/tmp/final-language-report.txt
+          : > "$report"
+
           php /tmp/wp-cli.phar i18n make-pot . languages/patsch9-rental-engine.pot \
             --domain=patsch9-rental-engine \
-            --exclude=.git,.github,tools,tests,languages
-          python3 tools/final-language-polish.py rebuild-po --old-po /tmp/old-de_DE.po
-          python3 tools/final-language-polish.py audit-pot
-          python3 tests/check-translations.py
+            --exclude=.git,.github,tools,tests,languages >>"$report" 2>&1
+          pot_status=$?
+
+          rebuild_status=1
+          audit_status=1
+          check_status=1
+          if [ "$pot_status" -eq 0 ]; then
+            python3 tools/final-language-polish.py rebuild-po --old-po /tmp/old-de_DE.po >>"$report" 2>&1
+            rebuild_status=$?
+          fi
+          if [ "$rebuild_status" -eq 0 ]; then
+            python3 tools/final-language-polish.py audit-pot >>"$report" 2>&1
+            audit_status=$?
+            python3 tests/check-translations.py >>"$report" 2>&1
+            check_status=$?
+          fi
+
+          {
+            echo
+            echo "pot_status=$pot_status"
+            echo "rebuild_status=$rebuild_status"
+            echo "audit_status=$audit_status"
+            echo "check_status=$check_status"
+          } >> "$report"
+          cat "$report"
+          cp "$report" /tmp/final-language-report.saved
+
+          if [ "$pot_status" -eq 0 ] && [ "$rebuild_status" -eq 0 ] && [ "$audit_status" -eq 0 ] && [ "$check_status" -eq 0 ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+          exit 0
       - name: Syntax checks
+        if: steps.language.outputs.ready == 'true'
         shell: bash
         run: |
           find . -type f -name '*.php' -not -path './tools/*' -print0 | xargs -0 -n1 php -l
           find assets -type f -name '*.js' -print0 | while IFS= read -r -d '' file; do
             node --check "$file"
           done
-      - name: Remove one-off helper and commit
+      - name: Commit successful polish or diagnostics
         shell: bash
         run: |
-          git rm .github/workflows/final-language-polish-once.yml tools/final-language-polish.py
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add includes patsch9-rental-engine.php languages tests
-          if git diff --cached --quiet; then
-            echo "No changes to commit."
+          if [ "${{ steps.language.outputs.ready }}" != "true" ]; then
+            git reset --hard HEAD
+            cp /tmp/final-language-report.saved tools/final-language-report.txt
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add tools/final-language-report.txt
+            git commit -m "chore: capture final language diagnostics"
+            git push
             exit 0
           fi
+
+          git rm .github/workflows/final-language-polish-once.yml tools/final-language-polish.py
+          rm -f tools/final-language-report.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add includes patsch9-rental-engine.php languages tests tools
           git commit -m "fix: finalize English source strings and German translation"
           git push
