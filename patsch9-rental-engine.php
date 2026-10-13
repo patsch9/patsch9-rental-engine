@@ -3,7 +3,7 @@
  * Plugin Name: Patsch9 Rental Engine for WooCommerce
  * Plugin URI: https://github.com/patsch9/patsch9-rental-engine
  * Description: Rental and equipment booking workflows for WooCommerce with availability, pricing, security deposits, terms, documents, and handover/return management.
- * Version: 2026.10.1
+ * Version: 2026.10.2
  * Author: Patrick Schmidt
  * Author URI: https://github.com/patsch9
  * Text Domain: patsch9-rental-engine
@@ -21,7 +21,7 @@ defined( 'ABSPATH' ) || exit;
 
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-rmwc-legacy-migration.php';
 
-define( 'RMWC_VERSION', '2026.10.1' );
+define( 'RMWC_VERSION', '2026.10.2' );
 define( 'RMWC_DB_VERSION', '2.0.27' );
 define( 'RMWC_FILE', __FILE__ );
 define( 'RMWC_DIR', plugin_dir_path( __FILE__ ) );
@@ -191,6 +191,15 @@ function rmwc_deactivate() {
 }
 register_deactivation_hook( __FILE__, 'rmwc_deactivate' );
 
+/** Dependency errors belong to plugin management, not unrelated admin screens. */
+function rmwc_dependency_notice_allowed() {
+    if ( ! current_user_can( 'activate_plugins' ) || ! function_exists( 'get_current_screen' ) ) {
+        return false;
+    }
+    $screen = get_current_screen();
+    return $screen && 'plugins' === $screen->id;
+}
+
 add_action( 'plugins_loaded', function() {
     if ( ! RMWC_Legacy_Migration::run() ) {
         RMWC_Legacy_Migration::register_checkout_guards();
@@ -206,12 +215,18 @@ add_action( 'plugins_loaded', function() {
 
     if ( ! class_exists( 'WooCommerce' ) ) {
         add_action( 'admin_notices', function() {
+            if ( ! rmwc_dependency_notice_allowed() ) {
+                return;
+            }
             echo '<div class="notice notice-error"><p><strong>' . esc_html__( 'Patsch9 Rental Engine for WooCommerce', 'patsch9-rental-engine' ) . '</strong> ' . esc_html__( 'requires WooCommerce.', 'patsch9-rental-engine' ) . '</p></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Both fragments escaped above.
         } );
         return;
     }
     if ( ! defined( 'WC_VERSION' ) || version_compare( WC_VERSION, '10.9.4', '<' ) ) {
         add_action( 'admin_notices', function() {
+            if ( ! rmwc_dependency_notice_allowed() ) {
+                return;
+            }
             echo '<div class="notice notice-error"><p><strong>' . esc_html__( 'Patsch9 Rental Engine for WooCommerce', 'patsch9-rental-engine' ) . '</strong> ' . esc_html__( 'requires WooCommerce 10.9.4 or newer.', 'patsch9-rental-engine' ) . '</p></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Both fragments escaped above.
         } );
         return;

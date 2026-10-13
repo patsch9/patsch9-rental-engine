@@ -307,38 +307,37 @@ final class RMWC_V2_Deposits {
         }
 
         $product_ids = $this->deposit_choice_product_ids();
-        if ( $product_ids ) {
-            $cart_contains_choice_product = [
-                'cart' => [
-                    'properties' => [
-                        'items' => [
+        if ( ! $product_ids ) {
+            // WooCommerce rejects hidden=true. Without eligible products there
+            // is no deposit choice field to register at all.
+            return;
+        }
+        $cart_contains_choice_product = [
+            'cart' => [
+                'properties' => [
+                    'items' => [
+                        'contains' => [
+                            'enum' => $product_ids,
+                        ],
+                    ],
+                ],
+            ],
+        ];
+        $cart_has_no_choice_product = [
+            'cart' => [
+                'properties' => [
+                    'items' => [
+                        'not' => [
                             'contains' => [
                                 'enum' => $product_ids,
                             ],
                         ],
                     ],
                 ],
-            ];
-            $cart_has_no_choice_product = [
-                'cart' => [
-                    'properties' => [
-                        'items' => [
-                            'not' => [
-                                'contains' => [
-                                    'enum' => $product_ids,
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
-            ];
-            $required = $cart_contains_choice_product;
-            $hidden   = $cart_has_no_choice_product;
-        } else {
-            // No currently configured product can require this field.
-            $required = false;
-            $hidden   = true;
-        }
+            ],
+        ];
+        $required = $cart_contains_choice_product;
+        $hidden   = $cart_has_no_choice_product;
 
         woocommerce_register_additional_checkout_field(
             [
@@ -1430,7 +1429,10 @@ final class RMWC_V2_Deposits {
         if ( ! current_user_can( 'manage_woocommerce' ) ) {
             return;
         }
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The core settings handler verifies rmwc_admin_action before firing rmwc_save_v2_settings.
+        $nonce = isset( $_POST['rmwc_admin_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['rmwc_admin_nonce'] ) ) : '';
+        if ( ! $nonce || ! wp_verify_nonce( $nonce, 'rmwc_admin_action' ) ) {
+            return;
+        }
         $raw = isset( $_POST['rmwc_v2_offline_gateway_ids'] ) ? sanitize_text_field( wp_unslash( $_POST['rmwc_v2_offline_gateway_ids'] ) ) : 'bacs,cheque,cod';
         $ids = array_values( array_unique( array_filter( array_map( 'sanitize_key', preg_split( '/[\s,;]+/', $raw ) ?: [] ) ) ) );
         update_option( 'rmwc_v2_offline_gateway_ids', implode( ',', array_slice( $ids, 0, 50 ) ), false );

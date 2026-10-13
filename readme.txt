@@ -4,7 +4,7 @@ Tags: woocommerce, rental, booking, deposits, inventory
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 2026.10.1
+Stable tag: 2026.10.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -89,6 +89,10 @@ No. Accessories configured as rental-bound items are offered only in connection 
 The plugin handles refundable deposits separately from normal rental pricing. The legal and tax treatment remains the responsibility of the site operator.
 
 == Changelog ==
+
+= 2026.10.2 =
+* Limit dependency notices to plugin management, verify deposit settings nonce directly, and keep bundled German translations in the common GitHub/WordPress.org package.
+* Fix deposit field registration and synchronize the latest checkout selection after pending requests.
 
 = 2026.10.1 =
 * Preserve legacy carts and deposit choices; verify upgrades and block rental checkout while a migration is incomplete.
