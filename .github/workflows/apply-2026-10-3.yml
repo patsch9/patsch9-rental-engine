@@ -24,7 +24,9 @@ jobs:
           coverage: none
           tools: wp-cli:2.12.0
       - name: Apply exact reviewed patch
-        run: python3 tests/apply-2026-10-3.py
+        run: |
+          python3 tests/repair-2026-10-3-patcher.py
+          python3 tests/apply-2026-10-3.py
       - name: Syntax and source-language checks
         shell: bash
         run: |
@@ -44,7 +46,7 @@ jobs:
       - name: Commit production patch and remove helpers
         shell: bash
         run: |
-          rm -f tests/apply-2026-10-3.py tests/refresh-2026-10-3-translations.py .github/workflows/apply-2026-10-3.yml
+          rm -f tests/apply-2026-10-3.py tests/repair-2026-10-3-patcher.py tests/refresh-2026-10-3-translations.py .github/workflows/apply-2026-10-3.yml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
