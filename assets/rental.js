@@ -306,7 +306,7 @@ jQuery(function($){
   box.on('click','.rmwc-quote-delivery',function(){
     const btn=$(this), address=$('#rmwc_delivery_address').val().trim();
     if(!address){ alert(t('enterDeliveryAddress','Please enter the delivery address first.')); return; }
-    btn.prop('disabled',true).text('Berechne …');
+    btn.prop('disabled',true).text(t('calculating','Calculating …'));
     $('#rmwc_delivery_result').removeClass('is-error').text('');
     $.post(RMWCData.ajaxUrl,{action:'rmwc_delivery_quote',nonce:RMWCData.nonce,product_id:RMWCData.productId,address})
       .done(r=>{

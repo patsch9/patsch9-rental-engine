@@ -84,6 +84,45 @@ $check( 'cheque' === get_option( 'rmwc_v2_offline_gateway_ids' ), 'Authorized se
 
 require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
 require_once ABSPATH . 'wp-admin/includes/screen.php';
+$plugin = RMWC_Plugin::instance();
+$delivery_allowed = new ReflectionMethod( $plugin, 'delivery_allowed' );
+$delivery_allowed->setAccessible( true );
+update_post_meta( $product_id, '_rmwc_allow_delivery', 'no' );
+update_post_meta( $product_id, '_rmwc_allow_delivery_return', 'yes' );
+$check( true === $delivery_allowed->invoke( $plugin, $product_id ), 'Delivery/collection-only configuration is accepted by server-side delivery paths' );
+update_post_meta( $product_id, '_rmwc_allow_delivery_return', 'no' );
+$check( false === $delivery_allowed->invoke( $plugin, $product_id ), 'Delivery remains disabled when neither transport mode is enabled' );
+
+$request_rate = new ReflectionMethod( $plugin, 'request_rate_allowed' );
+$request_rate->setAccessible( true );
+$rate_bucket = 'review_client_' . strtolower( wp_generate_password( 8, false, false ) );
+$ip_one = static function() { return '203.0.113.10'; };
+$ip_two = static function() { return '203.0.113.11'; };
+add_filter( 'rmwc_client_ip', $ip_one );
+$check( true === $request_rate->invoke( $plugin, $rate_bucket, 1, MINUTE_IN_SECONDS ), 'Filtered client IP receives its own rate-limit budget' );
+remove_filter( 'rmwc_client_ip', $ip_one );
+add_filter( 'rmwc_client_ip', $ip_two );
+$check( true === $request_rate->invoke( $plugin, $rate_bucket, 1, MINUTE_IN_SECONDS ), 'A second validated filtered client IP receives a separate budget' );
+remove_filter( 'rmwc_client_ip', $ip_two );
+
+$public_rate = new ReflectionMethod( $plugin, 'public_request_rate_allowed' );
+$public_rate->setAccessible( true );
+$global_bucket = 'review_global_' . strtolower( wp_generate_password( 8, false, false ) );
+$global_ip = '203.0.113.12';
+$global_ip_filter = static function() use ( $global_ip ) { return $global_ip; };
+add_filter( 'rmwc_client_ip', $global_ip_filter );
+$fingerprint = hash_hmac( 'sha256', $global_ip, wp_salt( 'nonce' ) );
+$client_key = 'rmwc_rate_' . sanitize_key( $global_bucket ) . '_' . substr( $fingerprint, 0, 32 );
+delete_transient( $client_key );
+set_transient( 'rmwc_global_rate_' . sanitize_key( $global_bucket ), 1, MINUTE_IN_SECONDS );
+$check(
+    false === $public_rate->invoke( $plugin, $global_bucket, 1, 1, MINUTE_IN_SECONDS ) && false === get_transient( $client_key ),
+    'Exhausted global budget short-circuits before creating a per-client transient'
+);
+remove_filter( 'rmwc_client_ip', $global_ip_filter );
+delete_transient( 'rmwc_global_rate_' . sanitize_key( $global_bucket ) );
+delete_transient( $client_key );
+
 set_current_screen( 'dashboard' );
 $check( ! rmwc_dependency_notice_allowed(), 'Dependency notice hidden on dashboard' );
 set_current_screen( 'edit-post' );
