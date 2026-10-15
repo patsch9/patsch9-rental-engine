@@ -2,7 +2,7 @@
 
 Alle stabilen Releases ab Oktober 2026 verwenden das in [VERSIONING.md](VERSIONING.md) dokumentierte Schema `YYYY.M.PATCH`.
 
-## 2026.10.3 – Noch nicht veröffentlicht
+## 2026.10.3 – 2026-10-15
 
 - Produkte mit ausschließlich aktivierter Lieferung und späterer Abholung durch den Vermieter werden in Distanzberechnung und Warenkorbserverlogik korrekt akzeptiert.
 - Öffentliche Rate-Limits prüfen zuerst das globale Budget; der optionale, weiterhin validierte Filter `rmwc_client_ip` unterstützt vertrauenswürdige Reverse-Proxy-Integrationen ohne Roh-IP-Speicherung.
@@ -11,7 +11,7 @@ Alle stabilen Releases ab Oktober 2026 verwenden das in [VERSIONING.md](VERSIONI
 - Der Source-Language-Check erfasst nun auch JavaScript und zusätzliche deutsche Wortstämme; historische interne Statuswerte bleiben explizit als Kompatibilitätsdaten erlaubt.
 - Regressionstests für Delivery-Return-Konfiguration und die Rate-Limit-/Client-IP-Härtung ergänzt.
 
-## 2026.10.2 – Noch nicht veröffentlicht
+## 2026.10.2 – 2026-10-13
 
 - WordPress.org-Vorprüfung: WooCommerce-Abhängigkeitshinweise auf die Pluginverwaltung und berechtigte Benutzer begrenzt.
 - Kautionseinstellungen prüfen den eigenen Nonce zusätzlich direkt im Speicherhandler.
@@ -23,7 +23,7 @@ Alle stabilen Releases ab Oktober 2026 verwenden das in [VERSIONING.md](VERSIONI
 - Fehlgeschlagene unveränderte Anfragen lösen keine automatische Wiederholungsschleife aus.
 - Regressionstests für Auswahlwechsel, Zahlungsarten, konkurrierende Anfragen und Fehler ergänzt.
 
-## 2026.10.1 – Noch nicht veröffentlicht
+## 2026.10.1 – 2026-10-12
 
 - WordPress.org-Review-Fixes: technischer `rmwc_`-Namespace statt des historischen Kurzpräfixes.
 - Wiederaufnehmbare, gesperrte Migration bestehender Tabellen, Optionen sowie Post-, Order-Item- und HPOS-Metadaten mit geprüften Datenbankfehlern, Konflikterhalt und gezielter Cache-Invalidierung.
