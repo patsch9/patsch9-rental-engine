@@ -90,6 +90,12 @@ The plugin handles refundable deposits separately from normal rental pricing. Th
 
 == Changelog ==
 
+= 2026.10.3 =
+* Allow return-delivery-only rental products in delivery distance calculation and server-side cart validation.
+* Harden public request rate limiting by checking the global budget first and support a validated `rmwc_client_ip` filter for trusted reverse proxies without storing raw IP addresses.
+* Use the WordPress timezone consistently for weekend pricing.
+* Complete source localization across administration, reminders, PDF documents, and JavaScript, and extend language and security regression coverage.
+
 = 2026.10.2 =
 * Limit dependency notices to plugin management, verify deposit settings nonce directly, and keep bundled German translations in the common GitHub/WordPress.org package.
 * Fix deposit field registration and synchronize the latest checkout selection after pending requests.
