@@ -3,7 +3,7 @@
  * Plugin Name: Patsch9 Rental Engine for WooCommerce
  * Plugin URI: https://github.com/patsch9/patsch9-rental-engine
  * Description: Rental and equipment booking workflows for WooCommerce with availability, pricing, security deposits, terms, documents, and handover/return management.
- * Version: 2026.10.2
+ * Version: 2026.10.3
  * Author: Patrick Schmidt
  * Author URI: https://github.com/patsch9
  * Text Domain: patsch9-rental-engine
@@ -21,7 +21,7 @@ defined( 'ABSPATH' ) || exit;
 
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-rmwc-legacy-migration.php';
 
-define( 'RMWC_VERSION', '2026.10.2' );
+define( 'RMWC_VERSION', '2026.10.3' );
 define( 'RMWC_DB_VERSION', '2.0.27' );
 define( 'RMWC_FILE', __FILE__ );
 define( 'RMWC_DIR', plugin_dir_path( __FILE__ ) );

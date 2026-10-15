@@ -1,6 +1,6 @@
 # Patsch9 Rental Engine for WooCommerce
 
-Entwicklungsstand: **2026.10.2**
+Entwicklungsstand: **2026.10.3**
 
 Patsch9 Rental Engine erweitert WooCommerce um Vermietungs- und Gerätebuchungsprozesse mit Verfügbarkeit, zeitabhängigen Preisen, Kautionen, Mietbedingungen, Dokumenten sowie Übergabe- und Rückgabeabläufen.
 

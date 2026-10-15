@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reject German UI literals in production PHP source.
+"""Reject German UI literals in production PHP and JavaScript source.
 
 The WordPress.org-facing source language is English. Historic German labels from
 prerelease builds are allowed only as explicit compatibility fallbacks so old
@@ -14,12 +14,14 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE_ROOTS = [ROOT / "includes", ROOT / "patsch9-rental-engine.php"]
+SOURCE_ROOTS = [ROOT / "includes", ROOT / "assets", ROOT / "patsch9-rental-engine.php"]
 
 GERMAN_CUES = re.compile(
     r"(?:[äöüÄÖÜß]|\b(?:Miet\w*|Kaution\w*|Abholung\w*|Rückgabe\w*|Lieferzone\w*|"
     r"Lieferung\w*|Einbehalt\w*|Vermietung\w*|Wartung\w*|Hinterlegung\w*|"
-    r"Vertrags\w*|Prüf\w*|Buchung\w*|Gerät\w*|Übergabe\w*|Rückzahl\w*|MwSt\w*)\b)",
+    r"Vertrags\w*|Prüf\w*|Buchung\w*|Gerät\w*|Übergabe\w*|Rückzahl\w*|MwSt\w*|"
+    r"Mindest\w*|Wochentag\w*|Standardtarif\w*|Sperrzeit\w*|Produkt\b|"
+    r"Akzeptiert\b|Dokumentationsunterschrift\w*|Seite\b|Guten\s+Tag|Berechne\w*)\b)",
     re.IGNORECASE,
 )
 
@@ -33,6 +35,7 @@ LEGACY_ALLOWED = {
     "Rückgabe",
     # Internal prerelease status enum retained to avoid rewriting historic orders.
     "einbehalten",
+    "offen",
     # Historic order-item label recognized alongside the current translated key.
     "Kautionshinterlegung",
     # Compatibility parser for Germanized/WooCommerce tax labels; not UI output.
@@ -45,7 +48,8 @@ def iter_php_files():
         if root.is_file():
             yield root
         else:
-            yield from sorted(root.rglob("*.php"))
+            for pattern in ("*.php", "*.js"):
+                yield from sorted(root.rglob(pattern))
 
 
 def php_string_literals(text: str):

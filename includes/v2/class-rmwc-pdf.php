@@ -79,12 +79,14 @@ final class RMWC_PDF {
                 $scale = min( $available_width / max( 1, (float) $signature['width'] ), 90.0 / max( 1, (float) $signature['height'] ) );
                 $draw_w = max( 1.0, $signature['width'] * $scale );
                 $draw_h = max( 1.0, $signature['height'] * $scale );
-                $stream .= "BT /F1 8 Tf 50 170 Td (Dokumentationsunterschrift:) Tj ET\n";
+                $signature_label = __( 'Documentation signature', 'patsch9-rental-engine' ) . ':';
+                $stream .= 'BT /F1 8 Tf 50 170 Td (' . self::pdf_escape( self::encode( $signature_label ) ) . ") Tj ET\n";
                 $stream .= sprintf( "q %.2F 0 0 %.2F 50 70 cm /Sig Do Q\n", $draw_w, $draw_h );
                 $resource_xobject = ' /XObject << /Sig ' . $signature_object_id . ' 0 R >>';
             }
 
-            $stream .= "BT /F1 8 Tf 50 28 Td (Seite " . ( $page_index + 1 ) . ' / ' . count( $pages ) . ") Tj ET\n";
+            $page_label = __( 'Page', 'patsch9-rental-engine' ) . ' ' . ( $page_index + 1 ) . ' / ' . count( $pages );
+            $stream .= 'BT /F1 8 Tf 50 28 Td (' . self::pdf_escape( self::encode( $page_label ) ) . ") Tj ET\n";
 
             $content_id = $add_object( '<< /Length ' . strlen( $stream ) . ">>\nstream\n" . $stream . "endstream" );
             $page_id = $add_object(
@@ -315,7 +317,7 @@ final class RMWC_PDF {
 
         if ( $signature ) {
             $ensure_space( 126 );
-            $page .= $text_command( 'Dokumentationsunterschrift', 'F2', 9.2, 58, $y );
+            $page .= $text_command( __( 'Documentation signature', 'patsch9-rental-engine' ), 'F2', 9.2, 58, $y );
             $y -= 12;
             $available_width = 220.0;
             $scale = min( $available_width / max( 1, (float) $signature['width'] ), 85.0 / max( 1, (float) $signature['height'] ) );
@@ -334,7 +336,7 @@ final class RMWC_PDF {
             if ( '' !== $footer_text ) {
                 $stream .= $text_command( $footer_text, 'F1', 7.8, 50, 30 );
             }
-            $stream .= $text_command( 'Seite ' . ( $page_index + 1 ) . ' / ' . $page_count, 'F1', 7.8, 485, 30 );
+            $stream .= $text_command( __( 'Page', 'patsch9-rental-engine' ) . ' ' . ( $page_index + 1 ) . ' / ' . $page_count, 'F1', 7.8, 485, 30 );
             $stream .= "0.88 G 0.4 w 50 43 m 545 43 l S\n";
 
             $resource_xobject = $signature ? ' /XObject << /Sig ' . $signature_object_id . ' 0 R >>' : '';

@@ -1060,7 +1060,7 @@ final class RMWC_V2_Documents {
             foreach ( $snapshots as $snapshot ) {
                 $lines[] = 'Version ' . sanitize_text_field( $snapshot['version'] ?? '' );
                 if ( ! empty( $snapshot['accepted_at'] ) ) {
-                    $lines[] = 'Akzeptiert am ' . $this->display_datetime( $snapshot['accepted_at'] );
+                    $lines[] = __( 'Accepted on', 'patsch9-rental-engine' ) . ' ' . $this->display_datetime( $snapshot['accepted_at'] );
                 }
                 $lines[] = '';
                 $lines = array_merge( $lines, RMWC_PDF::html_to_lines( $snapshot['content'] ?? '' ) );
@@ -1077,7 +1077,7 @@ final class RMWC_V2_Documents {
                 $lines[] = sanitize_text_field( $snapshot['version'] );
             }
             if ( ! empty( $snapshot['accepted_at'] ) ) {
-                $lines[] = 'Akzeptiert am ' . $this->display_datetime( $snapshot['accepted_at'] );
+                $lines[] = __( 'Accepted on', 'patsch9-rental-engine' ) . ' ' . $this->display_datetime( $snapshot['accepted_at'] );
             }
             $lines[] = '';
             $lines = array_merge( $lines, RMWC_PDF::html_to_lines( $snapshot['content'] ?? '' ) );

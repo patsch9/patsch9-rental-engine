@@ -2,6 +2,15 @@
 
 Alle stabilen Releases ab Oktober 2026 verwenden das in [VERSIONING.md](VERSIONING.md) dokumentierte Schema `YYYY.M.PATCH`.
 
+## 2026.10.3 – Noch nicht veröffentlicht
+
+- Produkte mit ausschließlich aktivierter Lieferung und späterer Abholung durch den Vermieter werden in Distanzberechnung und Warenkorbserverlogik korrekt akzeptiert.
+- Öffentliche Rate-Limits prüfen zuerst das globale Budget; der optionale, weiterhin validierte Filter `rmwc_client_ip` unterstützt vertrauenswürdige Reverse-Proxy-Integrationen ohne Roh-IP-Speicherung.
+- Die Wochenendpreisberechnung verwendet konsistent die WordPress-Zeitzone.
+- Verbliebene deutsche UI-Literale in Administration, Erinnerungen, PDF-Dokumenten und JavaScript wurden auf englische Gettext-Quelltexte umgestellt.
+- Der Source-Language-Check erfasst nun auch JavaScript und zusätzliche deutsche Wortstämme; historische interne Statuswerte bleiben explizit als Kompatibilitätsdaten erlaubt.
+- Regressionstests für Delivery-Return-Konfiguration und die Rate-Limit-/Client-IP-Härtung ergänzt.
+
 ## 2026.10.2 – Noch nicht veröffentlicht
 
 - WordPress.org-Vorprüfung: WooCommerce-Abhängigkeitshinweise auf die Pluginverwaltung und berechtigte Benutzer begrenzt.
