@@ -1,0 +1,210 @@
+name: Deploy to WordPress.org
+
+on:
+  workflow_run:
+    workflows:
+      - Build and publish release
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing stable GitHub release tag to deploy (vYYYY.M.PATCH)
+        required: true
+        type: string
+
+concurrency:
+  group: wordpress-org-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository &&
+       startsWith(github.event.workflow_run.head_branch, 'v'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Resolve stable release tag
+        id: release
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          MANUAL_TAG: ${{ inputs.tag }}
+          WORKFLOW_TAG: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            tag="$MANUAL_TAG"
+          else
+            tag="$WORKFLOW_TAG"
+          fi
+
+          if [[ ! "$tag" =~ ^v[0-9]{4}\.([1-9]|1[0-2])\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::Only stable CalVer release tags may be deployed to WordPress.org."
+            exit 1
+          fi
+
+          version="${tag#v}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.release.outputs.tag }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate release provenance and metadata
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          VERSION: ${{ steps.release.outputs.version }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          git fetch origin main:refs/remotes/origin/main --no-tags
+          tag_commit="$(git rev-list -n1 "$TAG")"
+          if ! git merge-base --is-ancestor "$tag_commit" origin/main; then
+            echo "::error::The release tag must point to a commit contained in main."
+            exit 1
+          fi
+
+          release_json="$(gh release view "$TAG" --repo "$GH_REPO" --json tagName,isDraft,isPrerelease)"
+          if [[ "$(jq -r '.tagName' <<< "$release_json")" != "$TAG" ]]; then
+            echo "::error::GitHub release tag mismatch."
+            exit 1
+          fi
+          if [[ "$(jq -r '.isDraft' <<< "$release_json")" != "false" || "$(jq -r '.isPrerelease' <<< "$release_json")" != "false" ]]; then
+            echo "::error::Drafts and prereleases are not deployed to WordPress.org."
+            exit 1
+          fi
+
+          python3 <<'PY'
+          import os
+          import re
+          import sys
+          from pathlib import Path
+
+          version = os.environ['VERSION']
+          plugin = Path('patsch9-rental-engine.php').read_text(encoding='utf-8')
+          readme = Path('readme.txt').read_text(encoding='utf-8')
+
+          def required(pattern, text, label):
+              match = re.search(pattern, text, re.MULTILINE)
+              if not match:
+                  print(f'::error::Could not read {label}.')
+                  sys.exit(1)
+              return match.group(1).strip()
+
+          header_version = required(r'^\s*\*\s*Version:\s*([^\s]+)', plugin, 'plugin header version')
+          constant_version = required(r"define\(\s*'RMWC_VERSION'\s*,\s*'([^']+)'\s*\)", plugin, 'RMWC_VERSION')
+          stable_tag = required(r'^Stable tag:\s*([^\s]+)\s*$', readme, 'readme Stable tag')
+
+          if len({version, header_version, constant_version, stable_tag}) != 1:
+              print(
+                  '::error::WordPress.org deployment metadata differs: '
+                  f'version={version}, header={header_version}, constant={constant_version}, stable_tag={stable_tag}'
+              )
+              sys.exit(1)
+          PY
+
+      - name: Download and verify GitHub release package
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ steps.release.outputs.tag }}
+          VERSION: ${{ steps.release.outputs.version }}
+          SLUG: patsch9-rental-engine
+        run: |
+          set -euo pipefail
+
+          zip_name="${SLUG}-${VERSION}.zip"
+          rm -rf .wporg-package .wporg-build
+          mkdir -p .wporg-package .wporg-build
+
+          gh release download "$TAG" \
+            --repo "$GH_REPO" \
+            --pattern "$zip_name" \
+            --pattern "$zip_name.sha256" \
+            --dir .wporg-package
+
+          (
+            cd .wporg-package
+            sha256sum -c "$zip_name.sha256"
+          )
+
+          unzip -q ".wporg-package/$zip_name" -d .wporg-build
+          test -f ".wporg-build/$SLUG/patsch9-rental-engine.php"
+          test -f ".wporg-build/$SLUG/readme.txt"
+          test -f ".wporg-build/$SLUG/LICENSE"
+
+      - name: Load and validate current WordPress.org assets when present
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # WordPress.org assets are global directory assets rather than versioned
+          # plugin code. Load them from the current main branch even when an older
+          # already-published release tag is being deployed for the first time.
+          git fetch origin main:refs/remotes/origin/main --no-tags
+          rm -rf .wordpress-org
+
+          if git cat-file -e refs/remotes/origin/main:.wordpress-org 2>/dev/null; then
+            git restore --source=refs/remotes/origin/main -- .wordpress-org
+
+            python3 <<'PY'
+            import struct
+            import sys
+            from pathlib import Path
+
+            expected = {
+                '.wordpress-org/icon-128x128.png': (128, 128),
+                '.wordpress-org/icon-256x256.png': (256, 256),
+                '.wordpress-org/banner-772x250.png': (772, 250),
+                '.wordpress-org/banner-1544x500.png': (1544, 500),
+            }
+
+            for filename, dimensions in expected.items():
+                path = Path(filename)
+                if not path.is_file():
+                    print(f'::error::Missing WordPress.org asset: {filename}')
+                    sys.exit(1)
+
+                data = path.read_bytes()
+                if len(data) < 24 or data[:8] != b'\x89PNG\r\n\x1a\n' or data[12:16] != b'IHDR':
+                    print(f'::error::{filename} is not a valid PNG file.')
+                    sys.exit(1)
+
+                width, height = struct.unpack('>II', data[16:24])
+                if (width, height) != dimensions:
+                    print(
+                        f'::error::{filename} has {width}x{height}; '
+                        f'expected {dimensions[0]}x{dimensions[1]}.'
+                    )
+                    sys.exit(1)
+            PY
+          else
+            echo "::notice::No .wordpress-org directory on main; deploying plugin code without directory assets."
+          fi
+
+      - name: Deploy verified package to WordPress.org SVN
+        uses: 10up/action-wordpress-plugin-deploy@54bd289b8525fd23a5c365ec369185f2966529c2 # 2.3.0
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SLUG: patsch9-rental-engine
+          VERSION: ${{ steps.release.outputs.version }}
+          BUILD_DIR: .wporg-build/patsch9-rental-engine
