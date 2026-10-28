@@ -115,7 +115,7 @@ function rmwc_install_database() {
         KEY document_number (document_number),
         KEY created_at (created_at)
     ) {$charset};";
-    dbDelta( $terms_sql );
+    dbDelta( $documents_sql );
     if ( '' !== $wpdb->last_error ) {
         return false;
     }
