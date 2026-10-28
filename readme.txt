@@ -91,7 +91,7 @@ The plugin handles refundable deposits separately from normal rental pricing. Th
 == Changelog ==
 
 = 2026.10.4 =
-* Rental products in product loops now open their product page with an "Select" action instead of attempting an invalid direct add-to-cart request.
+* Rental products in product loops now open their product page with a "Select" action instead of attempting an invalid direct add-to-cart request.
 * Required accessory groups remain enforced after the rental has entered the cart. The last valid item of a required group cannot be removed through the classic cart UI, and server-side cart/checkout validation blocks manipulated or Store API carts that no longer satisfy the requirement.
 * Added regression coverage for required accessory removal and checkout integrity.
 
