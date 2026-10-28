@@ -2,6 +2,15 @@
 
 Alle stabilen Releases ab Oktober 2026 verwenden das in [VERSIONING.md](VERSIONING.md) dokumentierte Schema `YYYY.M.PATCH`.
 
+## 2026.10.4 – 2026-10-28
+
+- Mietartikel verwenden in Produktübersichten keinen direkten WooCommerce-„In den Warenkorb“-Request mehr. Die Aktion „Auswählen“ öffnet stattdessen die Produktdetailseite, auf der Mietzeitraum und Optionen vollständig erfasst werden.
+- `ajax_add_to_cart` wird für Mietartikel deaktiviert; die bestehende Nonce- und Mietdatenvalidierung bleibt unverändert aktiv.
+- Pflicht-Zubehörgruppen werden nach dem Hinzufügen zum Warenkorb weiterhin serverseitig geprüft. Fehlt später der letzte gültige Artikel einer Pflichtgruppe, wird der Warenkorb als ungültig markiert und der Checkout blockiert.
+- Im klassischen Warenkorb wird die Entfernen-Aktion für den letzten gültigen Artikel einer Pflichtgruppe ausgeblendet. Bei Mehrfachauswahl bleiben einzelne Artikel entfernbar, solange mindestens eine gültige Auswahl bestehen bleibt.
+- Die Pflicht-Zubehörprüfung greift auch bei Cart/Checkout Blocks und manipulierten Warenkorb-Requests über `woocommerce_check_cart_items`.
+- Integrationstests für Pflicht-Zubehör, Entfernen im Warenkorb und Checkout-Integrität ergänzt.
+
 ## 2026.10.3 – 2026-10-15
 
 - Produkte mit ausschließlich aktivierter Lieferung und späterer Abholung durch den Vermieter werden in Distanzberechnung und Warenkorbserverlogik korrekt akzeptiert.
