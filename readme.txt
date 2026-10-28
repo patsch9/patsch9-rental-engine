@@ -4,7 +4,7 @@ Tags: woocommerce, rental, booking, deposits, inventory
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 2026.10.3
+Stable tag: 2026.10.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -90,6 +90,11 @@ The plugin handles refundable deposits separately from normal rental pricing. Th
 
 == Changelog ==
 
+= 2026.10.4 =
+* Rental products in product loops now open their product page with a "Select" action instead of attempting an invalid direct add-to-cart request.
+* Required accessory groups remain enforced after the rental has entered the cart. The last valid item of a required group cannot be removed through the classic cart UI, and server-side cart/checkout validation blocks manipulated or Store API carts that no longer satisfy the requirement.
+* Added regression coverage for required accessory removal and checkout integrity.
+
 = 2026.10.3 =
 * Allow return-delivery-only rental products in delivery distance calculation and server-side cart validation.
 * Harden public request rate limiting by checking the global budget first and support a validated `rmwc_client_ip` filter for trusted reverse proxies without storing raw IP addresses.
@@ -115,6 +120,9 @@ The plugin handles refundable deposits separately from normal rental pricing. Th
 * Revalidated Checkout Blocks integration, HPOS paths, protected document downloads, pricing and availability checks, and the optional routes integration.
 
 == Upgrade Notice ==
+
+= 2026.10.4 =
+Required rental accessories are now revalidated throughout the cart and checkout lifecycle. Existing carts that no longer contain a required accessory must be corrected before checkout.
 
 = 2026.10.1 =
 Migrates historic internal identifiers to the canonical `rmwc_` namespace. Back up before updating from prerelease builds.

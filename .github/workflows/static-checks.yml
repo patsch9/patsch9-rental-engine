@@ -109,6 +109,8 @@ jobs:
           wp-env run cli wp plugin activate patsch9-rental-engine
       - name: Upgrade and checkout regressions (real WordPress/WooCommerce/database)
         run: wp-env run cli env RMWC_RUN_UPGRADE_TESTS=1 wp eval-file wp-content/plugins/patsch9-rental-engine/tests/test-upgrade.php
+      - name: Required accessory cart regressions
+        run: wp-env run cli env RMWC_RUN_UPGRADE_TESTS=1 wp eval-file wp-content/plugins/patsch9-rental-engine/tests/test-required-accessories.php
       - name: Review authorization and notice regressions
         run: wp-env run cli env RMWC_RUN_UPGRADE_TESTS=1 wp eval-file wp-content/plugins/patsch9-rental-engine/tests/test-review-security.php
       - name: WordPress Plugin Check (strict)
