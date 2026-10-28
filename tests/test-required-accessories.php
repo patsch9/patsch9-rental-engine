@@ -61,50 +61,52 @@ update_post_meta(
     ]
 );
 
-$parent_key = 'rmwc-required-parent';
+$parent_key  = 'rmwc-required-parent';
 $child_a_key = 'rmwc-required-a';
 $child_b_key = 'rmwc-required-b';
 $parent = [
-    'product_id' => $rental_id,
+    'product_id'   => $rental_id,
     'variation_id' => 0,
-    'quantity' => 1,
-    'data' => wc_get_product( $rental_id ),
-    'rmwc_rental' => [
+    'quantity'     => 1,
+    'data'         => wc_get_product( $rental_id ),
+    'rmwc_rental'  => [
         'start' => gmdate( 'Y-m-d', time() + 7 * DAY_IN_SECONDS ),
-        'end' => gmdate( 'Y-m-d', time() + 8 * DAY_IN_SECONDS ),
+        'end'   => gmdate( 'Y-m-d', time() + 8 * DAY_IN_SECONDS ),
     ],
 ];
 $child_a = [
-    'product_id' => $accessory_a_id,
-    'variation_id' => 0,
-    'quantity' => 1,
-    'data' => wc_get_product( $accessory_a_id ),
-    'rmwc_rental_accessory' => 'yes',
-    'rmwc_rental_accessory_source_id' => $accessory_a_id,
-    'rmwc_rental_accessory_parent' => $parent_key,
-    'rmwc_rental_accessory_parent_product' => $rental_id,
-    'rmwc_rental_accessory_group' => 'Required material',
+    'product_id'                            => $accessory_a_id,
+    'variation_id'                          => 0,
+    'quantity'                              => 1,
+    'data'                                  => wc_get_product( $accessory_a_id ),
+    'rmwc_rental_accessory'                 => 'yes',
+    'rmwc_rental_accessory_source_id'       => $accessory_a_id,
+    'rmwc_rental_accessory_parent'          => $parent_key,
+    'rmwc_rental_accessory_parent_product'  => $rental_id,
+    'rmwc_rental_accessory_group'           => 'Required material',
 ];
 $child_b = [
-    'product_id' => $accessory_b_id,
-    'variation_id' => 0,
-    'quantity' => 1,
-    'data' => wc_get_product( $accessory_b_id ),
-    'rmwc_rental_accessory' => 'yes',
-    'rmwc_rental_accessory_source_id' => $accessory_b_id,
-    'rmwc_rental_accessory_parent' => $parent_key,
-    'rmwc_rental_accessory_parent_product' => $rental_id,
-    'rmwc_rental_accessory_group' => 'Required material',
+    'product_id'                            => $accessory_b_id,
+    'variation_id'                          => 0,
+    'quantity'                              => 1,
+    'data'                                  => wc_get_product( $accessory_b_id ),
+    'rmwc_rental_accessory'                 => 'yes',
+    'rmwc_rental_accessory_source_id'       => $accessory_b_id,
+    'rmwc_rental_accessory_parent'          => $parent_key,
+    'rmwc_rental_accessory_parent_product'  => $rental_id,
+    'rmwc_rental_accessory_group'           => 'Required material',
 ];
 
 WC()->cart->cart_contents = [
-    $parent_key => $parent,
+    $parent_key  => $parent,
     $child_a_key => $child_a,
     $child_b_key => $child_b,
 ];
 
+$check( false !== has_action( 'woocommerce_check_cart_items', [ RMWC_Required_Accessories::class, 'validate_cart' ] ), 'Required accessory validation is registered on WooCommerce cart checks' );
+
 wc_clear_notices();
-do_action( 'woocommerce_check_cart_items' );
+RMWC_Required_Accessories::validate_cart();
 $check( 0 === wc_notice_count( 'error' ), 'Required group is valid while at least one linked accessory is present' );
 
 $two_item_link = apply_filters( 'woocommerce_cart_item_remove_link', 'REMOVE', $child_a_key );
@@ -121,15 +123,15 @@ WC()->cart->remove_cart_item( $child_b_key );
 $check( wc_notice_count( 'error' ) > 0, 'Removing the last required accessory immediately reports an error' );
 
 wc_clear_notices();
-do_action( 'woocommerce_check_cart_items' );
-$check( wc_notice_count( 'error' ) > 0, 'Missing required accessory blocks cart and checkout validation' );
+RMWC_Required_Accessories::validate_cart();
+$check( wc_notice_count( 'error' ) > 0, 'Missing required accessory blocks server-side cart and checkout validation' );
 
 wc_clear_notices();
 WC()->cart->cart_contents = [
-    $parent_key => $parent,
+    $parent_key  => $parent,
     $child_a_key => $child_a,
 ];
-do_action( 'woocommerce_check_cart_items' );
+RMWC_Required_Accessories::validate_cart();
 $check( 0 === wc_notice_count( 'error' ), 'Restoring a valid required accessory clears the integrity failure' );
 
 WC()->cart->empty_cart( true );
