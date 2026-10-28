@@ -279,9 +279,12 @@ final class RMWC_Required_Accessories {
             return;
         }
 
-        /* translators: %s: accessory option group label. */
         wc_add_notice(
-            sprintf( __( 'Please select at least one option for "%s".', 'patsch9-rental-engine' ), $context['group']['label'] ),
+            sprintf(
+                /* translators: %s: accessory option group label. */
+                __( 'Please select at least one option for "%s".', 'patsch9-rental-engine' ),
+                $context['group']['label']
+            ),
             'error'
         );
     }
@@ -312,9 +315,12 @@ final class RMWC_Required_Accessories {
                     continue;
                 }
 
-                /* translators: %s: accessory option group label. */
                 wc_add_notice(
-                    sprintf( __( 'Please select at least one option for "%s".', 'patsch9-rental-engine' ), $group['label'] ),
+                    sprintf(
+                        /* translators: %s: accessory option group label. */
+                        __( 'Please select at least one option for "%s".', 'patsch9-rental-engine' ),
+                        $group['label']
+                    ),
                     'error'
                 );
             }
