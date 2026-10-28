@@ -20,6 +20,7 @@
 defined( 'ABSPATH' ) || exit;
 
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-rmwc-legacy-migration.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-rmwc-catalog-button.php';
 
 define( 'RMWC_VERSION', '2026.10.3' );
 define( 'RMWC_DB_VERSION', '2.0.27' );
@@ -114,7 +115,7 @@ function rmwc_install_database() {
         KEY document_number (document_number),
         KEY created_at (created_at)
     ) {$charset};";
-    dbDelta( $documents_sql );
+    dbDelta( $terms_sql );
     if ( '' !== $wpdb->last_error ) {
         return false;
     }
@@ -231,6 +232,8 @@ add_action( 'plugins_loaded', function() {
         } );
         return;
     }
+
+    RMWC_Catalog_Button::init();
 
     require_once RMWC_DIR . 'includes/class-rmwc-plugin.php';
     if ( ! RMWC_Plugin::instance()->is_ready() ) {
