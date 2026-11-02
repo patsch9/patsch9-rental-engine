@@ -107,7 +107,7 @@ jobs:
           EOF
       - name: Start WordPress test environment
         shell: bash
-        run: wp-env start --update
+        run: wp-env start
       - name: Install Plugin Check and WooCommerce
         shell: bash
         run: |
