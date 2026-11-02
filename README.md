@@ -1,7 +1,5 @@
 # Patsch9 Rental Engine for WooCommerce
 
-Entwicklungsstand: **2026.10.4**
-
 Patsch9 Rental Engine erweitert WooCommerce um Vermietungs- und Gerätebuchungsprozesse mit Verfügbarkeit, zeitabhängigen Preisen, Kautionen, Mietbedingungen, Dokumenten sowie Übergabe- und Rückgabeabläufen.
 
 ## Funktionsumfang
@@ -59,11 +57,11 @@ Der Website-Betreiber ist für die korrekte Datenschutzinformation und die Einha
 
 ## Versionsschema
 
-Ab 2026.10.0 gilt projektweit `YYYY.M.PATCH`. Details stehen in [VERSIONING.md](VERSIONING.md).
+Neue Releases verwenden `YYYY.MM.N`. Vorabversionen verwenden `YYYY.MM.N-alphaN` oder `YYYY.MM.N-betaN`. Der Release-Tag ist die autoritative Versionsquelle; Details stehen in [VERSIONING.md](VERSIONING.md).
 
 ## Releases
 
-Installierbare ZIP-Dateien werden automatisch als [GitHub Releases](https://github.com/patsch9/patsch9-rental-engine/releases) bereitgestellt. Dasselbe installierbare ZIP mit deutscher Übersetzung wird für GitHub und die WordPress.org-Einreichung verwendet. Ein Release wird nur erzeugt, wenn der entsprechende `v...`-Tag zur Plugin-Version passt und die Paketprüfungen erfolgreich sind.
+Installierbare ZIP-Dateien werden automatisch als [GitHub Releases](https://github.com/patsch9/patsch9-rental-engine/releases) bereitgestellt. Die Release-Action übernimmt die Versionsnummer direkt aus dem Tag und setzt die versionsbezogenen Paketmetadaten automatisch. Stable-Releases werden zusätzlich nach WordPress.org übertragen; Alpha- und Beta-Releases bleiben GitHub-Prereleases.
 
 ## Migration
 
