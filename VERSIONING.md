@@ -1,56 +1,81 @@
-# Versionierung
+# Versionierung und Releases
 
-Beide Patsch9-WooCommerce-Plugins verwenden ab dem ersten stabilen öffentlichen Release dasselbe CalVer-Schema.
+Für neue Releases gilt der Git-Tag als einzige autoritative Release-Version. Versionsfelder im Quellstand müssen deshalb vor einem Release nicht mehr manuell auf die neue Nummer gesetzt werden.
 
 ## Schema
 
-`YYYY.M.PATCH`
+Erlaubt sind ausschließlich:
 
-- `YYYY`: Jahr des stabilen Releases.
-- `M`: Monat des stabilen Releases ohne führende Null.
-- `PATCH`: fortlaufende Release-Nummer innerhalb desselben Monats, beginnend bei `0`.
+- Stable/Hauptrelease: `YYYY.MM.N`, z. B. `2026.11.1`
+- Alpha: `YYYY.MM.N-alphaN`, z. B. `2026.11.2-alpha1`
+- Beta: `YYYY.MM.N-betaN`, z. B. `2026.11.2-beta1`
 
-Beispiel: `2026.10.0` ist das erste stabile Release im Oktober 2026. Ein weiteres stabiles Release im selben Monat wäre `2026.10.1`. Das erste stabile Release im November 2026 wäre `2026.11.0`.
+Regeln:
 
-## Vorabversionen
+- `YYYY` ist das vierstellige Jahr.
+- `MM` ist der zweistellige Monat von `01` bis `12`.
+- `N` ist die fortlaufende positive Release-Nummer und beginnt bei `1`.
+- Alpha-/Beta-Zähler sind ebenfalls positiv und beginnen bei `1`.
+- Neue Tags haben **kein** führendes `v`.
+- `rc`, `-alpha.1`, `-beta.1` und andere Suffixe werden nicht akzeptiert.
 
-Vorabversionen werden nur außerhalb des stabilen WordPress.org-Kanals verwendet:
+Historische Releases und Tags bleiben unverändert; die neue Tag-Regel gilt für neue Veröffentlichungen.
 
-- `2026.11.0-alpha.1`
-- `2026.11.0-beta.1`
-- `2026.11.0-rc.1`
+## Tag als Versionsquelle
 
-Auf WordPress.org wird als `Stable tag` ausschließlich eine stabile numerische Version ohne Suffix verwendet.
+`.github/workflows/release.yml` übernimmt die Release-Version direkt aus dem Tag. Der Workflow schreibt die Version ausschließlich in die temporäre Release-Arbeitskopie und verändert `main` nicht.
 
-## Release-Artefakte
-
-Für ein stabiles Release müssen diese Angaben übereinstimmen:
+Für jedes Release werden im gebauten Paket automatisch gesetzt:
 
 1. `Version` im Plugin-Header.
-2. öffentliche Versionskonstante des Plugins.
-3. `Stable tag` in `readme.txt`.
-4. Versionsnummer im aktuellen Eintrag von `CHANGELOG.md`.
-5. Git-Tag `vYYYY.M.PATCH`.
-6. Versionsnummer im ZIP-Dateinamen.
+2. `RMWC_VERSION`.
+3. Versionsnummer im ZIP-Dateinamen und in der SHA-256-Datei.
+4. Titel und Versionsnummer des GitHub Releases.
 
-## Automatisierte GitHub-Releases
+Bei einem Stable-Release wird zusätzlich `Stable tag` in `readme.txt` auf exakt dieselbe Version gesetzt.
 
-GitHub Releases werden durch `.github/workflows/release.yml` automatisch aus Git-Tags erzeugt.
+Bei Alpha- und Beta-Releases bleibt `Stable tag` auf dem letzten stabilen Release. Das ist beabsichtigt, weil Vorabversionen nicht nach WordPress.org veröffentlicht werden.
 
-1. Release-fertigen Code zuerst nach `main` mergen.
-2. Einen Tag wie `v2026.10.0` auf den gewünschten `main`-Commit setzen und pushen.
-3. Der Workflow prüft, dass der Tag auf `main` liegt und mit Plugin-Header sowie Versionskonstante übereinstimmt.
-4. Bei stabilen Releases werden zusätzlich `Stable tag` und der Changelog-Eintrag geprüft.
-5. Aus `.distignore` wird ein bereinigtes WordPress-Paket gebaut.
-6. PHP-/JavaScript-Syntax und WordPress Plugin Check laufen auf dem tatsächlichen Paketinhalt.
-7. Erst nach erfolgreichen Prüfungen werden ZIP und SHA-256-Prüfsumme als GitHub Release veröffentlicht.
+Changelog-Inhalte bleiben redaktionelle Projektdokumentation und werden nicht als Versionsquelle für den Release-Build verwendet.
 
-Tags mit `-alpha.N`, `-beta.N` oder `-rc.N` werden automatisch als GitHub-Pre-Release markiert. Bei Vorabversionen bleibt der WordPress.org-`Stable tag` auf der letzten stabilen Version.
+## Release-Ablauf
+
+1. Release-fertigen Code über einen geprüften Pull Request nach `main` mergen.
+2. Den gewünschten `main`-Commit taggen, z. B. `2026.11.1`, `2026.11.2-alpha1` oder `2026.11.2-beta1`.
+3. Der Release-Workflow validiert das Tag-Schema und prüft, dass der Tag-Commit in `main` enthalten ist.
+4. Aus `.distignore` wird eine saubere Release-Arbeitskopie erstellt.
+5. Die Action injiziert die Tag-Version in Plugin-Header und `RMWC_VERSION`; bei Stable-Releases zusätzlich in `Stable tag`.
+6. PHP-/JavaScript-Syntax und WordPress Plugin Check laufen auf genau diesem erzeugten Paket.
+7. Erst nach erfolgreicher Prüfung werden ZIP und SHA-256-Prüfsumme als GitHub Release veröffentlicht.
+8. Alpha/Beta werden als GitHub Pre-release markiert und nicht als neuestes stabiles Release gesetzt.
+
+Ein fehlgeschlagener Release-Tag wird nicht nachträglich auf einen anderen Commit verschoben. Nach einer Codekorrektur wird eine neue Release-Version verwendet.
+
+## WordPress.org
+
+Nur Stable-Tags im Format `YYYY.MM.N` dürfen nach WordPress.org veröffentlicht werden.
+
+Der Workflow `.github/workflows/wordpress-org-deploy.yml` startet nach einem erfolgreichen Stable-Release automatisch oder kann für ein bestehendes Stable-Release manuell gestartet werden. Alpha- und Beta-Releases werden nicht deployt.
+
+Vor dem SVN-Deploy wird geprüft:
+
+1. Der Tag entspricht exakt `YYYY.MM.N` ohne Suffix.
+2. Der Tag-Commit ist in `main` enthalten.
+3. Das GitHub Release ist veröffentlicht, kein Draft und kein Pre-release.
+4. ZIP und SHA-256-Datei werden direkt aus dem GitHub Release geladen und die Prüfsumme wird verifiziert.
+5. **Die Versionsmetadaten werden im verifizierten Release-ZIP geprüft**, nicht im Git-Quellstand: Tag, Plugin-Header, `RMWC_VERSION` und `Stable tag` müssen identisch sein.
+6. Genau dieses verifizierte Paket wird nach WordPress.org übertragen.
+
+Damit kann ein Quellstand auf `main` weiterhin die zuletzt verwendete Entwicklungs-/Stable-Version enthalten; die tatsächlich veröffentlichte Version entsteht reproduzierbar aus dem Release-Tag.
 
 ## Interne Schema-Versionen
 
-Datenbank- oder Speicherschema-Versionen sind ausdrücklich von der öffentlichen Plugin-Version getrennt. Sie werden nur erhöht, wenn sich das persistierte Schema tatsächlich ändert. Eine reine Code-, Dokumentations- oder Sicherheitskorrektur erhöht daher nicht automatisch die interne Datenbankversion.
+Datenbank- oder Speicherschema-Versionen sind von der öffentlichen Plugin-Version getrennt. Sie werden nur erhöht, wenn sich das persistierte Schema tatsächlich ändert.
 
-## Frühere Entwicklungsstände
+## Sicherheit
 
-Alle Versionsnummern vor `2026.10.0` gehören zur internen Vorabphase. Sie bleiben aus Gründen der Nachvollziehbarkeit in Git-Historie, Migrationen und technischen Kommentaren erhalten, sind aber nicht Teil des neuen öffentlichen Release-Schemas.
+- Actions bleiben auf Commit-SHAs gepinnt.
+- Release-Tags müssen auf `main` zeigen.
+- Das veröffentlichte Paket wird vor Veröffentlichung geprüft.
+- WordPress.org erhält nur verifizierte Stable-Pakete.
+- Vorabversionen können den WordPress.org-Stable-Kanal nicht auslösen.
