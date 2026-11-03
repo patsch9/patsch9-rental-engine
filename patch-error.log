@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/tmp/apply-google-review-fixes.py", line 76, in <module>
+    replace_once(
+    ~~~~~~~~~~~~^
+        'includes/class-rmwc-plugin.php',
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<19 lines>...
+    """
+    ^^^
+    )
+    ^
+  File "/tmp/apply-google-review-fixes.py", line 9, in replace_once
+    raise RuntimeError(f'{path}: expected one match, got {count}')
+RuntimeError: includes/class-rmwc-plugin.php: expected one match, got 0
