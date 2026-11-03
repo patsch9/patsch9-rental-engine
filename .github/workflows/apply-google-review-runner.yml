@@ -19,10 +19,12 @@ jobs:
       - name: Apply patch and run syntax checks
         shell: bash
         run: |
+          cp .github/workflows/static-checks.yml /tmp/static-checks.yml
           : > patch-error.log
           status=0
           echo '== patch ==' >> patch-error.log
           python3 tools/apply-google-review-fixes.py >> patch-error.log 2>&1 || status=$?
+          cp /tmp/static-checks.yml .github/workflows/static-checks.yml
           if [ "$status" -eq 0 ]; then
             echo '== php lint ==' >> patch-error.log
             find . -type f -name '*.php' -print0 | xargs -0 -n1 php -l >> patch-error.log 2>&1 || status=$?
