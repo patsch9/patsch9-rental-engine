@@ -120,6 +120,8 @@ jobs:
         run: wp-env run cli env RMWC_RUN_UPGRADE_TESTS=1 wp eval-file wp-content/plugins/patsch9-rental-engine/tests/test-required-accessories.php
       - name: Review authorization and notice regressions
         run: wp-env run cli env RMWC_RUN_UPGRADE_TESTS=1 wp eval-file wp-content/plugins/patsch9-rental-engine/tests/test-review-security.php
+      - name: Google review regressions
+        run: wp-env run cli env RMWC_RUN_UPGRADE_TESTS=1 wp eval-file wp-content/plugins/patsch9-rental-engine/tests/test-google-review-regressions.php
       - name: WordPress Plugin Check (strict)
         uses: ./.github/actions/plugin-check
         with:

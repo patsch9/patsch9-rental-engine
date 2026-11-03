@@ -124,14 +124,19 @@ jQuery(function($){
 // 2.0.13: return workflow always exposes the deposit settlement and requires
 // an explicit disposition when less than the available deposit is repaid.
 jQuery(function($){
-  function money(v){return (Math.max(0,v)||0).toFixed(2).replace('.',',')+' €';}
+  function money(v,$box){
+    const amount=Math.max(0,Number(v)||0);
+    const currency=String($box.data('currency')||'EUR').toUpperCase();
+    const locale=String($box.data('locale')||document.documentElement.lang||'en-US').replace('_','-');
+    try{return new Intl.NumberFormat(locale,{style:'currency',currency}).format(amount);}catch(e){return amount.toFixed(2)+' '+currency;}
+  }
   function syncDepositSettlement($box){
     const available=parseFloat(String($box.data('available')||'0').replace(',','.'))||0;
     const $amount=$box.find('input[name="rmwc_workflow_deposit_refund_amount"]');
     const amount=Math.min(available,Math.max(0,parseFloat(String($amount.val()||'0').replace(',','.'))||0));
     const remaining=Math.max(0,available-amount);
     const $reason=$box.find('select[name="rmwc_workflow_deposit_retention_reason"]');
-    $box.find('.rmwc-workflow-deposit-retained-preview span').text(money(remaining));
+    $box.find('.rmwc-workflow-deposit-retained-preview span').text(money(remaining,$box));
     $box.toggleClass('has-remainder',remaining>0.0001);
     $reason.prop('required',remaining>0.0001);
     if(remaining<=0.0001){$reason.val('none');}

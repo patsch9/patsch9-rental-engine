@@ -119,6 +119,10 @@ $rmwc_order_meta_keys = [
     '_rmwc_deposit_refund_method',
     '_rmwc_terms_snapshots',
     '_rmwc_product_terms_snapshots',
+    '_rmwc_document_integrity_warning',
+    '_rmwc_contract_email_document_id',
+    '_rmwc_contract_email_last_failed_at',
+    '_rmwc_mobile_action_note_signature',
 ];
 foreach ( $rmwc_order_meta_keys as $rmwc_meta_key ) {
     delete_post_meta_by_key( $rmwc_meta_key );
@@ -133,7 +137,7 @@ if ( $rmwc_table_exists === $rmwc_hpos_meta_table ) {
 }
 
 $rmwc_order_item_meta_table = $wpdb->prefix . 'woocommerce_order_itemmeta';
-foreach ( [ '_rmwc_booking_admin_cancelled', '_rmwc_rental_data', '_rmwc_fee_type', '_rmwc_deposit', '_rmwc_terms_version_id', '_rmwc_terms_version', '_rmwc_terms_hash', '_rmwc_terms_accepted_at', '_rmwc_product_terms_snapshot', '_rmwc_rental_accessory', '_rmwc_rental_parent_product', '_rmwc_rental_accessory_group', '_rmwc_rental_accessory_label', '_rmwc_rental_accessory_mode' ] as $rmwc_meta_key ) {
+foreach ( [ '_rmwc_booking_admin_cancelled', '_rmwc_rental_data', '_rmwc_fee_type', '_rmwc_deposit', '_rmwc_terms_version_id', '_rmwc_terms_version', '_rmwc_terms_hash', '_rmwc_terms_accepted_at', '_rmwc_product_terms_snapshot', '_rmwc_rental_accessory', '_rmwc_rental_parent_product', '_rmwc_rental_accessory_group', '_rmwc_rental_accessory_label', '_rmwc_rental_accessory_mode', '_rmwc_rental_accessory_customer_qty' ] as $rmwc_meta_key ) {
     $wpdb->delete( $rmwc_order_item_meta_table, [ 'meta_key' => $rmwc_meta_key ], [ '%s' ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Explicit opt-in uninstall cleanup; cache is irrelevant and the meta-key scan runs only during destructive uninstall.
 }
 
@@ -142,6 +146,8 @@ $rmwc_patterns = [
     '_transient_timeout_rmwc_route_%',
     '_transient_rmwc_rate_%',
     '_transient_timeout_rmwc_rate_%',
+    '_transient_rmwc_global_rate_%',
+    '_transient_timeout_rmwc_global_rate_%',
     '_transient_rmwc_v2_deposit_choice_product_ids',
     '_transient_timeout_rmwc_v2_deposit_choice_product_ids',
 ];

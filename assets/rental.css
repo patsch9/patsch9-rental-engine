@@ -22,6 +22,9 @@
 .rmwc-rental-box h3{margin-top:0;color:inherit}
 .rmwc-time-info{padding:10px 12px;background:var(--rmwc-rental-subtle);border:1px solid var(--rmwc-rental-border);border-radius:6px;color:inherit}
 .rmwc-calendar{margin:14px 0}
+.rmwc-rental-feedback{margin:8px 0 12px;font-weight:600;line-height:1.45}
+.rmwc-rental-feedback:empty{display:none}
+.rmwc-rental-feedback.is-error{color:#b32d2e}
 .rmwc-cal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
 .rmwc-cal-head button{min-width:42px;color:inherit}
 .rmwc-cal-legend{font-size:.85em;opacity:.8;text-align:center}

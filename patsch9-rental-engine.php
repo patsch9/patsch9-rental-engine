@@ -22,6 +22,7 @@ defined( 'ABSPATH' ) || exit;
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-rmwc-legacy-migration.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-rmwc-catalog-button.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-rmwc-required-accessories.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-rmwc-product-context.php';
 
 define( 'RMWC_VERSION', '2026.10.4' );
 define( 'RMWC_DB_VERSION', '2.0.27' );

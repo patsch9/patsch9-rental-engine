@@ -498,11 +498,12 @@ final class RMWC_V2_Materials {
     }
 
     public function validate_selection( $passed, $product_id, $quantity, $variation_id = 0, $variations = [] ) {
-        unset( $variation_id, $variations );
-        if ( 'yes' !== get_post_meta( $product_id, '_rmwc_rental_enabled', true ) ) {
+        unset( $variations );
+        $config_product_id = RMWC_Product_Context::rental_config_id( $product_id, $variation_id );
+        if ( ! $config_product_id ) {
             return $passed;
         }
-        $selected = $this->requested_selections( $product_id );
+        $selected = $this->requested_selections( $config_product_id );
         if ( is_wp_error( $selected ) ) {
             wc_add_notice( $selected->get_error_message(), 'error' );
             return false;
