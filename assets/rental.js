@@ -13,6 +13,12 @@ jQuery(function($){
   let rules = {capacity:1,minDays:1,maxDays:0,advanceDays:0,pickupTime:'12:00',returnTime:'10:00',blockedPickupDays:(RMWCData.blockedPickupDays||[]),blockedReturnDays:(RMWCData.blockedReturnDays||[])};
   let start = null, end = null;
   let deliveryFee = 0;
+  let feedback = box.find('.rmwc-rental-feedback');
+  if(!feedback.length){
+    feedback=$('<p class="rmwc-rental-feedback" role="alert" aria-live="polite"></p>').insertAfter(cal);
+  }
+  const showFeedback = message => feedback.addClass('is-error').text(message);
+  const clearFeedback = () => feedback.removeClass('is-error').text('');
 
   const pad = n => String(n).padStart(2,'0');
   const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -166,17 +172,18 @@ jQuery(function($){
   cal.on('click','.rmwc-next',()=>{ view=new Date(view.getFullYear(),view.getMonth()+1,1); fetchAvailability(); });
   cal.on('click','.rmwc-cal-day',function(){
     const d=parseDate($(this).data('date')); if(!d) return;
+    clearFeedback();
     if(!start || end || d<start){
       if(!allowedStart(d)) return;
       start=d; end=null;
     }
     else {
       if(dayBlocked(rules.blockedReturnDays,d)){
-        alert(t('returnNotPossible','Returns are not possible on this weekday.'));
+        showFeedback(t('returnNotPossible','Returns are not possible on this weekday.'));
         return;
       }
       if(!allowedReturn(d,start)){
-        alert(t('periodNotBookable','This period cannot be booked, does not meet the permitted rental duration, or there is not enough stock available.'));
+        showFeedback(t('periodNotBookable','This period cannot be booked, does not meet the permitted rental duration, or there is not enough stock available.'));
         return;
       }
       end=d;
@@ -305,7 +312,7 @@ jQuery(function($){
 
   box.on('click','.rmwc-quote-delivery',function(){
     const btn=$(this), address=$('#rmwc_delivery_address').val().trim();
-    if(!address){ alert(t('enterDeliveryAddress','Please enter the delivery address first.')); return; }
+    if(!address){ $('#rmwc_delivery_result').addClass('is-error').text(t('enterDeliveryAddress','Please enter the delivery address first.')); $('#rmwc_delivery_address').trigger('focus'); return; }
     btn.prop('disabled',true).text(t('calculating','Calculating …'));
     $('#rmwc_delivery_result').removeClass('is-error').text('');
     $.post(RMWCData.ajaxUrl,{action:'rmwc_delivery_quote',nonce:RMWCData.nonce,product_id:RMWCData.productId,address})

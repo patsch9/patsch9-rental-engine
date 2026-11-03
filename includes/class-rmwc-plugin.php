@@ -206,19 +206,7 @@ final class RMWC_Plugin {
     }
 
     private function config_product_id( $product_id, $variation_id = 0 ) {
-        if ( $variation_id && $this->is_rental( $variation_id ) ) {
-            return $variation_id;
-        }
-        if ( $this->is_rental( $product_id ) ) {
-            return $product_id;
-        }
-        if ( $variation_id ) {
-            $variation = wc_get_product( $variation_id );
-            if ( $variation && $variation->is_type( 'variation' ) && $this->is_rental( $variation->get_parent_id() ) ) {
-                return $variation->get_parent_id();
-            }
-        }
-        return 0;
+        return RMWC_Product_Context::rental_config_id( $product_id, $variation_id );
     }
 
     private function pickup_time( $product_id ) {
@@ -843,6 +831,7 @@ final class RMWC_Plugin {
             wp_enqueue_style( 'patsch9-rental-engine-admin', RMWC_URL . 'assets/admin.css', [], RMWC_VERSION );
             wp_enqueue_script( 'wc-enhanced-select' );
             wp_enqueue_style( 'woocommerce_admin_styles' );
+            wp_enqueue_script( 'patsch9-rental-engine-admin-product', RMWC_URL . 'assets/admin.js', [ 'jquery', 'wc-enhanced-select' ], RMWC_VERSION, true );
         }
     }
 
@@ -2846,8 +2835,28 @@ final class RMWC_Plugin {
                     }
 
                     $old_rental = $item->get_meta( '_rmwc_rental_data', true );
-                    $old_pickup = $item->get_meta( 'Abholung', true );
-                    $old_return = $item->get_meta( 'Rückgabe', true );
+                    $pickup_key = __( 'Rental start', 'patsch9-rental-engine' );
+                    $return_key = __( 'Return', 'patsch9-rental-engine' );
+                    $pickup_meta_keys = array_values( array_unique( [
+                        $pickup_key,
+                        'Rental start',
+                        __( 'Pickup / rental start', 'patsch9-rental-engine' ),
+                        'Pickup / rental start',
+                        'Abholung',
+                    ] ) );
+                    $return_meta_keys = array_values( array_unique( [ $return_key, 'Return', 'Rückgabe' ] ) );
+                    $old_pickup_meta = [];
+                    $old_return_meta = [];
+                    foreach ( $pickup_meta_keys as $meta_key ) {
+                        if ( $item->meta_exists( $meta_key ) ) {
+                            $old_pickup_meta[ $meta_key ] = $item->get_meta( $meta_key, true );
+                        }
+                    }
+                    foreach ( $return_meta_keys as $meta_key ) {
+                        if ( $item->meta_exists( $meta_key ) ) {
+                            $old_return_meta[ $meta_key ] = $item->get_meta( $meta_key, true );
+                        }
+                    }
                     if ( ! is_array( $old_rental ) ) {
                         $restore = [];
                         $restore_formats = [];
@@ -2871,8 +2880,18 @@ final class RMWC_Plugin {
                             $rental['days'] = max( 1, absint( $interval['days'] ) );
                         }
                         $item->update_meta_data( '_rmwc_rental_data', $rental );
-                        $item->update_meta_data( __( 'Pickup / rental start', 'patsch9-rental-engine' ), $this->format_datetime_display( $interval['start_at'] ) );
-                        $item->update_meta_data( __( 'Return', 'patsch9-rental-engine' ), $this->format_datetime_display( $interval['end_at'] ) );
+                        foreach ( $pickup_meta_keys as $meta_key ) {
+                            if ( $pickup_key !== $meta_key ) {
+                                $item->delete_meta_data( $meta_key );
+                            }
+                        }
+                        foreach ( $return_meta_keys as $meta_key ) {
+                            if ( $return_key !== $meta_key ) {
+                                $item->delete_meta_data( $meta_key );
+                            }
+                        }
+                        $item->update_meta_data( $pickup_key, $this->format_datetime_display( $interval['start_at'] ) );
+                        $item->update_meta_data( $return_key, $this->format_datetime_display( $interval['end_at'] ) );
                         $item->save();
                         /* translators: %d: Rental booking ID. */
                         $order->add_order_note( sprintf( __( 'Rental: The period for booking #%d was changed by an administrator. Financial line items were not recalculated automatically.', 'patsch9-rental-engine' ), $booking_id ) );
@@ -2891,8 +2910,15 @@ final class RMWC_Plugin {
                         // Best-effort restoration of order-item metadata if a persistence error happened mid-update.
                         try {
                             $item->update_meta_data( '_rmwc_rental_data', $old_rental );
-                            $item->update_meta_data( __( 'Pickup / rental start', 'patsch9-rental-engine' ), $old_pickup );
-                            $item->update_meta_data( __( 'Return', 'patsch9-rental-engine' ), $old_return );
+                            foreach ( array_unique( array_merge( $pickup_meta_keys, $return_meta_keys ) ) as $meta_key ) {
+                                $item->delete_meta_data( $meta_key );
+                            }
+                            foreach ( $old_pickup_meta as $meta_key => $meta_value ) {
+                                $item->update_meta_data( $meta_key, $meta_value );
+                            }
+                            foreach ( $old_return_meta as $meta_key => $meta_value ) {
+                                $item->update_meta_data( $meta_key, $meta_value );
+                            }
                             $item->save();
                         } catch ( Throwable $restore_error ) {
                             // Do not expose internal exception details to the administrator or logs by default.
@@ -2976,7 +3002,7 @@ final class RMWC_Plugin {
             if ( ! $this->is_rental( $product_id ) ) {
                 return '<div class="notice notice-error"><p>' . esc_html__( 'Please select a valid rental product.', 'patsch9-rental-engine' ) . '</p></div>';
             }
-            $interval = $this->build_interval( $product_id, $start_date, $end_date );
+            $interval = $this->validate_interval_for_product( $product_id, $start_date, $end_date, $qty );
             if ( is_wp_error( $interval ) ) {
                 return '<div class="notice notice-error"><p>' . esc_html( $interval->get_error_message() ) . '</p></div>';
             }
@@ -3132,9 +3158,9 @@ final class RMWC_Plugin {
       ?></p></td></tr>
             </tbody></table>
 
-            <h2><?php esc_html_e( 'Data on uninstall', 'patsch9-rental-engine' ); ?></h2>
             <h2><?php esc_html_e( 'Reservations', 'patsch9-rental-engine' ); ?></h2>
             <table class="form-table"><tbody><tr><th><label for="rmwc_unpaid_hold_minutes"><?php esc_html_e( 'Hold unpaid online reservation', 'patsch9-rental-engine' ); ?></label></th><td><input type="number" min="5" max="1440" step="1" id="rmwc_unpaid_hold_minutes" name="rmwc_unpaid_hold_minutes" value="<?php echo esc_attr( max( 5, min( 1440, (int) get_option( 'rmwc_unpaid_hold_minutes', 60 ) ) ) ); ?>"> <?php esc_html_e( 'Minutes', 'patsch9-rental-engine' ); ?><p class="description"><?php esc_html_e( 'Only unpaid pending orders with an online payment method are automatically cancelled after this period and the rental stock is released. Payment methods from the list "Offline payment methods" (e.g. invoice/transfer) are excluded and remain reserved until the manual or gateway-side status change. The plugin also protects these rental orders from WooCommerce\'s own Pending cancellation.', 'patsch9-rental-engine' ); ?></p></td></tr></tbody></table>
+            <h2><?php esc_html_e( 'Data on uninstall', 'patsch9-rental-engine' ); ?></h2>
             <table class="form-table"><tbody><tr><th><?php esc_html_e( 'Cleanup', 'patsch9-rental-engine' ); ?></th><td><label><input type="checkbox" name="rmwc_delete_data_on_uninstall" value="1" <?php checked( 'yes' === get_option( 'rmwc_delete_data_on_uninstall', 'no' ) ); ?>> <?php esc_html_e( 'Permanently remove booking tables and plugin settings when deleting the plugin', 'patsch9-rental-engine' ); ?></label><p class="description"><?php esc_html_e( 'By default, booking data is retained so that uninstalling the plugin does not accidentally delete business records.', 'patsch9-rental-engine' ); ?></p></td></tr></tbody></table>
             <?php do_action( 'rmwc_render_admin_tab_settings_after' ); ?>
             <?php submit_button( __( 'Save Settings', 'patsch9-rental-engine' ) ); ?>

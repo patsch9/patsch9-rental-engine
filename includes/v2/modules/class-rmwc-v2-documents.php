@@ -589,7 +589,7 @@ final class RMWC_V2_Documents {
         $currency      = sanitize_text_field( $document['currency'] ?? 'EUR' );
         $plain_price   = static function( $amount ) use ( $currency ) {
             $value = html_entity_decode( wp_strip_all_tags( wc_price( (float) $amount, [ 'currency' => $currency ] ) ), ENT_QUOTES | ENT_HTML5, get_bloginfo( 'charset' ) ?: 'UTF-8' );
-            return trim( str_replace( "Â ", ' ', $value ) );
+            return trim( str_replace( "\xc2\xa0", ' ', $value ) );
         };
 
         $blocks = [

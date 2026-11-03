@@ -392,9 +392,22 @@ final class RMWC_V2_Workflow {
     }
 
     private function rental_data_for_booking( array $booking, WC_Order $order ) {
+        $order_item_id = absint( $booking['order_item_id'] ?? 0 );
+        $product_id    = absint( $booking['product_id'] ?? 0 );
+        if ( $order_item_id ) {
+            $item = $order->get_item( $order_item_id );
+            if ( ! $item instanceof WC_Order_Item_Product ) {
+                return [];
+            }
+            $candidate = $item->get_meta( '_rmwc_rental_data', true );
+            return is_array( $candidate ) && absint( $candidate['product_id'] ?? 0 ) === $product_id ? $candidate : [];
+        }
+
+        // Legacy rows may predate order_item_id. Only those rows use the
+        // product-ID fallback because identical products can carry different data.
         foreach ( $order->get_items( 'line_item' ) as $item ) {
             $candidate = $item->get_meta( '_rmwc_rental_data', true );
-            if ( is_array( $candidate ) && (int) ( $candidate['product_id'] ?? 0 ) === (int) ( $booking['product_id'] ?? 0 ) ) {
+            if ( is_array( $candidate ) && absint( $candidate['product_id'] ?? 0 ) === $product_id ) {
                 return $candidate;
             }
         }
@@ -681,7 +694,7 @@ final class RMWC_V2_Workflow {
                                     <p><a class="button" href="<?php echo esc_url( $order->get_edit_order_url() ); ?>"><?php esc_html_e( 'Open deposit box in order', 'patsch9-rental-engine' ); ?></a></p>
                                 </div>
                             <?php endif; ?>
-                            <div class="rmwc-workflow-deposit-settlement" data-available="<?php echo esc_attr( wc_format_decimal( $deposit_state['available'] ) ); ?>">
+                            <div class="rmwc-workflow-deposit-settlement" data-available="<?php echo esc_attr( wc_format_decimal( $deposit_state['available'] ) ); ?>" data-currency="<?php echo esc_attr( $order->get_currency() ); ?>" data-locale="<?php echo esc_attr( str_replace( '_', '-', get_locale() ) ); ?>">
                                 <h4><?php esc_html_e( 'Deposit statement on return', 'patsch9-rental-engine' ); ?></h4>
                                 <p class="description"><?php esc_html_e( 'Specify how much deposit has actually been paid back to the customer during this return. If the amount is lower than the deposit currently deposited, the reason for the remaining amount must be documented.', 'patsch9-rental-engine' ); ?></p>
                                 <p class="rmwc-workflow-field"><label><strong><?php esc_html_e( 'Refunded at this return', 'patsch9-rental-engine' ); ?></strong><br>

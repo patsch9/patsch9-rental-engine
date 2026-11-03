@@ -237,7 +237,8 @@ final class RMWC_V2_Inventory {
 
         $asset_id   = isset( $_POST['asset_id'] ) ? absint( wp_unslash( $_POST['asset_id'] ) ) : 0;
         $product_id = isset( $_POST['product_id'] ) ? absint( wp_unslash( $_POST['product_id'] ) ) : 0;
-        if ( 'yes' !== get_post_meta( $product_id, '_rmwc_rental_enabled', true ) ) {
+        $product_id = RMWC_Product_Context::rental_config_id( $product_id, $product_id );
+        if ( ! $product_id ) {
             $this->redirect( 'invalid_product' );
         }
 
