@@ -19,24 +19,34 @@ jobs:
       - name: Apply patch and run syntax checks
         shell: bash
         run: |
-          set +e
-          python3 tools/apply-google-review-fixes.py > patch-error.log 2>&1
-          status=$?
-          set -e
+          : > patch-error.log
+          status=0
+          echo '== patch ==' >> patch-error.log
+          python3 tools/apply-google-review-fixes.py >> patch-error.log 2>&1 || status=$?
+          if [ "$status" -eq 0 ]; then
+            echo '== php lint ==' >> patch-error.log
+            find . -type f -name '*.php' -print0 | xargs -0 -n1 php -l >> patch-error.log 2>&1 || status=$?
+          fi
+          if [ "$status" -eq 0 ]; then
+            echo '== admin js ==' >> patch-error.log
+            node --check assets/admin.js >> patch-error.log 2>&1 || status=$?
+          fi
+          if [ "$status" -eq 0 ]; then
+            echo '== rental js ==' >> patch-error.log
+            node --check assets/rental.js >> patch-error.log 2>&1 || status=$?
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
           if [ "$status" -ne 0 ]; then
-            git config user.name 'github-actions[bot]'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
             git add patch-error.log
             git commit -m 'chore: capture review patch failure' || true
             git push origin HEAD:fix/google-review-2026-11-03
             exit "$status"
           fi
+
           rm -f patch-error.log tools/apply-google-review-fixes.py
-          find . -type f -name '*.php' -print0 | xargs -0 -n1 php -l
-          node --check assets/admin.js
-          node --check assets/rental.js
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
           git commit -m 'fix: address rental engine review findings'
           git push origin HEAD:fix/google-review-2026-11-03
