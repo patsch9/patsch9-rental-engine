@@ -88,6 +88,7 @@ $_POST = [
     'end_date' => $blocked_end->format( 'Y-m-d' ),
     'quantity' => 1,
 ];
+$_REQUEST = $_POST;
 $admin_actions->invoke( $plugin );
 $after_manual = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE product_id = %d', $wpdb->prefix . 'rmwc_bookings', $product_id ) );
 $check( $before_manual === $after_manual, 'Manual booking obeys product interval rules' );
@@ -146,6 +147,7 @@ $_POST = [
     'end_date' => $new_end->format( 'Y-m-d' ),
     'note' => '',
 ];
+$_REQUEST = $_POST;
 $admin_actions->invoke( $plugin );
 $period_order = wc_get_order( $period_order->get_id() );
 $period_item = $period_order->get_item( $period_item_id );
@@ -171,6 +173,7 @@ $check( false !== strpos( $inventory_source, 'RMWC_Product_Context::rental_confi
 $check( false !== strpos( $materials_source, 'RMWC_Product_Context::rental_config_id' ), 'Materials use shared variation resolver' );
 
 $_POST = [];
+$_REQUEST = [];
 if ( null === $old_request_method ) {
     unset( $_SERVER['REQUEST_METHOD'] );
 } else {
