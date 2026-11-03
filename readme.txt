@@ -90,6 +90,14 @@ The plugin handles refundable deposits separately from normal rental pricing. Th
 
 == Changelog ==
 
+= 2026.11.1 =
+* Normalize rental order-item metadata during administrator booking changes and restore the exact previous metadata on rollback.
+* Resolve rental workflow data by order-item ID before legacy product fallbacks and handle variations consistently across rental products, accessories, shipping, materials and inventory assets.
+* Apply product interval rules to manual administrator bookings as well as customer bookings.
+* Improve deposit PDF normalization, order-currency deposit previews, uninstall cleanup and the Rental Engine administration workflow script loading.
+* Replace rental frontend alert dialogs with inline accessible feedback and correct settings headings.
+* Add focused regression coverage for variation inheritance, duplicate products, manual booking rules, metadata rollback/cleanup and related review findings.
+
 = 2026.10.4 =
 * Rental products in product loops now open their product page with a "Select" action instead of attempting an invalid direct add-to-cart request.
 * Required accessory groups remain enforced after the rental has entered the cart. The last valid item of a required group cannot be removed through the classic cart UI, and server-side cart/checkout validation blocks manipulated or Store API carts that no longer satisfy the requirement.
@@ -120,6 +128,9 @@ The plugin handles refundable deposits separately from normal rental pricing. Th
 * Revalidated Checkout Blocks integration, HPOS paths, protected document downloads, pricing and availability checks, and the optional routes integration.
 
 == Upgrade Notice ==
+
+= 2026.11.1 =
+Administrator booking changes now keep order-item rental metadata synchronized with the booking record. Test manual booking changes, variation-based rentals and handover/return workflows after upgrading.
 
 = 2026.10.4 =
 Required rental accessories are now revalidated throughout the cart and checkout lifecycle. Existing carts that no longer contain a required accessory must be corrected before checkout.
