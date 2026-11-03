@@ -2,6 +2,17 @@
 
 Alle stabilen Releases ab Oktober 2026 verwenden das in [VERSIONING.md](VERSIONING.md) dokumentierte Schema `YYYY.M.PATCH`.
 
+## 2026.11.1 – 2026-11-03
+
+- Mietdaten in Bestellpositionen werden bei administrativen Buchungsänderungen konsistent aktualisiert; bei einem Rollback werden die vorherigen Metadaten vollständig wiederhergestellt.
+- Workflow-Daten werden zuerst über die `order_item_id` aufgelöst, bevor der historische Produkt-Fallback greift. Dadurch bleiben mehrere gleiche Produkte und Varianten in einer Bestellung eindeutig.
+- Varianten-/Elternprodukt-Auflösung für Mietprodukte und mietgebundenes Zubehör vereinheitlicht und auf Versand, Materialprüfung und Inventarzuordnung übertragen.
+- Produktspezifische Intervallregeln gelten nun auch für manuell im Admin angelegte Buchungen.
+- Kautions-PDFs normalisieren geschützte Leerzeichen korrekt; die Kautionsvorschau verwendet Währung und Locale der Bestellung.
+- Deinstallationsbereinigung um neuere Rate-Limit-Transients, Bestellmetadaten und Zubehörmengen erweitert.
+- Frontend-`alert()`-Dialoge durch zugängliche Inline-Hinweise ersetzt; Admin-Workflow-Skript auf der Rental-Engine-Seite geladen und Einstellungsüberschriften korrigiert.
+- Regressionstests für Variantenvererbung, doppelte Produkte, manuelle Buchungsregeln, Metadaten-Rollback und Cleanup ergänzt.
+
 ## 2026.10.4 – 2026-10-28
 
 - Mietartikel verwenden in Produktübersichten keinen direkten WooCommerce-„In den Warenkorb“-Request mehr. Die Aktion „Auswählen“ öffnet stattdessen die Produktdetailseite, auf der Mietzeitraum und Optionen vollständig erfasst werden.
