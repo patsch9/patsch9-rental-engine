@@ -40,8 +40,8 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
           if [ "$status" -ne 0 ]; then
-            git add patch-error.log
-            git commit -m 'chore: capture review patch failure' || true
+            git add -A
+            git commit -m 'chore: preserve failed review patch for diagnosis' || true
             git push origin HEAD:fix/google-review-2026-11-03
             exit "$status"
           fi
