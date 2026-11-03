@@ -16,35 +16,27 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: fix/google-review-2026-11-03
-      - name: Extract and apply patch
+      - name: Apply patch and run syntax checks
         shell: bash
         run: |
-          sed -n "/python3 <<'PY'/,/^          PY$/p" .github/workflows/apply-google-review-fixes.yml | sed '1d;$d;s/^          //' > /tmp/apply-google-review-fixes.py
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('/tmp/apply-google-review-fixes.py')
-          s=p.read_text()
-          s=s.replace("raise RuntimeError(f'{path}: expected one match, got {count}')", "raise RuntimeError(f'{path}: expected one match, got {count}; old={old!r}')")
-          p.write_text(s)
-          PY
           set +e
-          python3 /tmp/apply-google-review-fixes.py > patch-error.log 2>&1
+          python3 tools/apply-google-review-fixes.py > patch-error.log 2>&1
           status=$?
           set -e
           if [ "$status" -ne 0 ]; then
             git config user.name 'github-actions[bot]'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
             git add patch-error.log
-            git commit -m 'chore: capture review patch failure'
+            git commit -m 'chore: capture review patch failure' || true
             git push origin HEAD:fix/google-review-2026-11-03
             exit "$status"
           fi
-          rm -f patch-error.log
+          rm -f patch-error.log tools/apply-google-review-fixes.py
           find . -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           node --check assets/admin.js
           node --check assets/rental.js
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add patsch9-rental-engine.php includes assets uninstall.php tests .github/workflows/static-checks.yml
+          git add -A
           git commit -m 'fix: address rental engine review findings'
           git push origin HEAD:fix/google-review-2026-11-03
